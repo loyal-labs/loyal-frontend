@@ -115,16 +115,16 @@ export async function encryptWithDek(
       ? new Uint8Array(data)
       : data;
 
-  const ctBuf = await getSubtle().encrypt(
-    {
-      name: AES_GCM,
-      iv: toArrayBuffer(iv),
-      additionalData: asBufferSource(aad),
-      tagLength: AES_GCM_TAG_BITS,
-    },
-    key,
-    toArrayBuffer(bytes)
-  );
+  const params: AesGcmParams = {
+    name: AES_GCM,
+    iv: toArrayBuffer(iv),
+    tagLength: AES_GCM_TAG_BITS,
+  };
+  if (aad) {
+    params.additionalData = asBufferSource(aad);
+  }
+
+  const ctBuf = await getSubtle().encrypt(params, key, toArrayBuffer(bytes));
 
   return { iv, ciphertext: new Uint8Array(ctBuf) };
 }
@@ -135,13 +135,17 @@ export async function decryptWithDek(
   aad?: Uint8Array
 ): Promise<Uint8Array> {
   const key = await importDekKey(dek);
+  const params: AesGcmParams = {
+    name: AES_GCM,
+    iv: toArrayBuffer(payload.iv),
+    tagLength: AES_GCM_TAG_BITS,
+  };
+  if (aad) {
+    params.additionalData = asBufferSource(aad);
+  }
+
   const ptBuf = await getSubtle().decrypt(
-    {
-      name: AES_GCM,
-      iv: toArrayBuffer(payload.iv),
-      additionalData: asBufferSource(aad),
-      tagLength: AES_GCM_TAG_BITS,
-    },
+    params,
     key,
     toArrayBuffer(payload.ciphertext)
   );

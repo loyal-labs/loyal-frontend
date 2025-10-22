@@ -1,9 +1,8 @@
 'use client';
 
-
 import { useChat } from '@ai-sdk/react';
-import { useAnchorWallet, useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { useEffect, useState } from 'react';
+import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
+import { useCallback, useEffect, useState } from 'react';
 
 import {
   Conversation,
@@ -37,7 +36,9 @@ import {
   SourcesTrigger,
 } from '@/components/ai-elements/source';
 import { fetchAllUserChats, fetchUserContext, initializeUserContext } from '@/lib/loyal/service';
+import type { UserChat, UserContext } from '@/lib/loyal/types';
 import { GrpcChatTransport } from '@/lib/query/transport';
+import { createAndUploadChat } from '@/lib/services/service';
 
 const models = [
   {
@@ -54,8 +55,11 @@ const ChatBotDemo = () => {
   const [input, setInput] = useState('');
   const [model, setModel] = useState<string>(models[0].value);
   const [darkMode, setDarkMode] = useState(false);
+  const [userContext, setUserContext] = useState<UserContext | null>(null);
+  const [userChats, setUserChats] = useState<UserChat[]>([]);
+  const [isContextLoading, setIsContextLoading] = useState(false);
+  const [isCreatingChat, setIsCreatingChat] = useState(false);
   const { connection } = useConnection();
-  const { publicKey } = useWallet();
   const anchorWallet = useAnchorWallet();
 
   const { messages, sendMessage, status } = useChat({
@@ -80,27 +84,82 @@ const ChatBotDemo = () => {
   // Check if the user has a context account
   useEffect(() => {
     if (!anchorWallet) {
+      setUserContext(null);
+      setUserChats([]);
+      setIsContextLoading(false);
       return;
     }
 
-    fetchUserContext(connection, anchorWallet).then((context) => {
-      if (context) {
-        console.log("Context account found:", context);
-        fetchAllUserChats(connection, anchorWallet, context.nextChatId).then((chats) => {
-          console.log("Chats found:", chats);
-        });
-      } else {
-        console.log("No context account found. Offering to create one...");
+    let cancelled = false;
 
-        initializeUserContext(connection, anchorWallet).then((context) => {
-          console.log("Context account created:", context);
-          fetchAllUserChats(connection, anchorWallet, context.nextChatId).then((chats) => {
-            console.log("Chats found:", chats);
-          });
-        });
+    const hydrateContext = async () => {
+      setIsContextLoading(true);
+      try {
+        let context = await fetchUserContext(connection, anchorWallet);
+        if (!context) {
+          console.log('No context account found. Creating one...');
+          context = await initializeUserContext(connection, anchorWallet);
+        }
+        if (cancelled) {
+          return;
+        }
+        setUserContext(context);
+        const chats =
+          (await fetchAllUserChats(connection, anchorWallet, context.nextChatId)) ??
+          [];
+        if (!cancelled) {
+          console.log('Chats found:', chats);
+          setUserChats(chats);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load Loyal context', error);
+          setUserChats([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsContextLoading(false);
+        }
       }
-    });
+    };
+
+    void hydrateContext();
+
+    return () => {
+      cancelled = true;
+    };
   }, [anchorWallet, connection]);    
+
+  const handleTestCreateChat = useCallback(async () => {
+    if (!anchorWallet || !userContext) {
+      console.warn('Wallet or context not ready yet');
+      return;
+    }
+    const messageText =
+      userChats.length === 0
+        ? 'Hello!'
+        : `Hello again! (#${userChats.length + 1})`;
+    setIsCreatingChat(true);
+    try {
+      await createAndUploadChat(connection, anchorWallet, messageText, userContext);
+      const updatedContext = await fetchUserContext(connection, anchorWallet);
+      if (updatedContext) {
+        setUserContext(updatedContext);
+        const chats =
+          (await fetchAllUserChats(
+            connection,
+            anchorWallet,
+            updatedContext.nextChatId
+          )) ?? [];
+        setUserChats(chats);
+        console.log('Chats found:', chats);
+      }
+    } catch (error) {
+      console.error('Failed to create chat', error);
+    } finally {
+      setIsCreatingChat(false);
+    }
+  }, [anchorWallet, connection, userContext, userChats]);
 
   // apply dark mode
   useEffect(() => {
@@ -128,6 +187,14 @@ const ChatBotDemo = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6 relative size-full h-screen">
+      <button
+        type="button"
+        onClick={handleTestCreateChat}
+        disabled={!anchorWallet || !userContext || isCreatingChat || isContextLoading}
+        className="fixed top-6 right-[10.5rem] z-20 rounded-md border border-white/20 bg-zinc-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {isCreatingChat ? 'Creating chat...' : 'Test Chat Upload'}
+      </button>
       <div className="flex flex-col h-full">
         <Conversation className="h-full">
           <ConversationContent>

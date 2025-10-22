@@ -1,3 +1,4 @@
+import { BN } from "@coral-xyz/anchor";
 import type { AnchorWallet } from "@solana/wallet-adapter-react";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 
@@ -148,7 +149,7 @@ export async function createUserChat(
   const contextAddress = getContextAccount(wallet);
 
   const instruction = await program.methods
-    .createChat(context.nextChatId, cmk, txId)
+    .createChat(new BN(context.nextChatId), cmk, txId)
     .accounts({
       payer: wallet.publicKey,
       contextAccount: contextAddress,

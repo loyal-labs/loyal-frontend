@@ -1,40 +1,21 @@
-export const IRYS_FILE_VERSION = "1.0.0" as const;
-
-export type IrysFileKind = "table-of-contents" | "chat-turn";
+import { PublicKey } from "@solana/web3.js";
 
 export type ChatRole = "user" | "assistant";
 
 export type IrysTableOfContentsEntry = {
-  txId: string;
-  conversationId: string;
-  turnId: string;
-  model?: string;
-  createdAt: string;
+  tx_id: PublicKey;
 };
 
 export type IrysTableOfContents = {
-  key: string | undefined;
+  irysKey: string | undefined;
   entries: IrysTableOfContentsEntry[];
 };
 
 export type IrysChatTurn = {
-  kind: "chat-turn";
-  version: typeof IRYS_FILE_VERSION;
-  conversationId: string;
-  turnId: string;
+  role: ChatRole;
+  text: string;
+  model?: string;
   createdAt: string;
-  prompt: {
-    role: ChatRole;
-    text: string;
-    model?: string;
-    metadata?: Record<string, unknown>;
-  };
-  response?: {
-    role: ChatRole;
-    text: string;
-    metadata?: Record<string, unknown>;
-  };
-  attachments?: string[];
 };
 
 export type IrysUploadFile = IrysTableOfContents | IrysChatTurn;
