@@ -243,4 +243,78 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Liquid Glass Styling for Solana Wallet Button */
+  .wallet-adapter-button {
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 20px !important;
+    padding: 0.75rem 1.5rem !important;
+    color: #fff !important;
+    font-weight: 500 !important;
+    font-size: 1rem !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px rgba(255, 255, 255, 0.1) !important;
+    transition: all 0.3s ease !important;
+    cursor: pointer !important;
+  }
+
+  .wallet-adapter-button:not([disabled]):hover {
+    background: rgba(255, 255, 255, 0.12) !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.15) !important;
+  }
+
+  .wallet-adapter-button[disabled] {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+  }
+
+  .wallet-adapter-button-trigger {
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 20px !important;
+    color: #fff !important;
+  }
+
+  .wallet-adapter-modal-wrapper {
+    background: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(10px) !important;
+  }
+
+  .wallet-adapter-modal {
+    background: rgba(20, 20, 20, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 24px !important;
+    box-shadow: 0 20px 60px 0 rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .wallet-adapter-modal-title {
+    color: #fff !important;
+  }
+
+  .wallet-adapter-modal-list {
+    background: transparent !important;
+  }
+
+  .wallet-adapter-modal-list-item {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 16px !important;
+    transition: all 0.3s ease !important;
+  }
+
+  .wallet-adapter-modal-list-item:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  }
+
+  .wallet-adapter-button-start-icon,
+  .wallet-adapter-button-end-icon {
+    display: flex !important;
+    align-items: center !important;
+  }
 }
