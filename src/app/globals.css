@@ -159,7 +159,7 @@
   .font-manrope {
     font-family: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
   }
-  
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;

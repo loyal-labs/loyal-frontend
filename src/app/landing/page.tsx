@@ -4,7 +4,8 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import localFont from "next/font/local";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { MenuIcon, type MenuIconHandle } from "@/components/ui/menu";
 
 const instrumentSerif = localFont({
   src: [
@@ -30,6 +31,17 @@ export default function LandingPage() {
   });
   const [input, setInput] = useState("");
   const [isChatMode, setIsChatMode] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const menuIconRef = useRef<MenuIconHandle>(null);
+
+  // Control menu icon animation based on sidebar state
+  useEffect(() => {
+    if (isSidebarOpen) {
+      menuIconRef.current?.startAnimation();
+    } else {
+      menuIconRef.current?.stopAnimation();
+    }
+  }, [isSidebarOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +51,13 @@ export default function LandingPage() {
       setIsChatMode(true);
     }
   };
+
+  // Mock data for previous chats - replace with real data later
+  const previousChats = [
+    { id: "1", title: "What is quantum computing?", timestamp: "2 hours ago" },
+    { id: "2", title: "Explain blockchain technology", timestamp: "Yesterday" },
+    { id: "3", title: "How does AI work?", timestamp: "2 days ago" },
+  ];
 
   return (
     <main
@@ -58,6 +77,8 @@ export default function LandingPage() {
           position: "relative",
           width: "100%",
           height: "100vh",
+          marginLeft: isSidebarOpen ? "300px" : "0",
+          transition: "margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
         <Image
@@ -80,6 +101,169 @@ export default function LandingPage() {
             pointerEvents: isChatMode ? "auto" : "none",
           }}
         />
+
+        {/* Menu Button - Always Visible */}
+        <button
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          style={{
+            position: "fixed",
+            top: "1.5rem",
+            left: "1.5rem",
+            zIndex: 50,
+            width: "3rem",
+            height: "3rem",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            background: "rgba(255, 255, 255, 0.08)",
+            backdropFilter: "blur(20px)",
+            border: "1px solid rgba(255, 255, 255, 0.15)",
+            borderRadius: "12px",
+            cursor: "pointer",
+            transition: "all 0.3s ease",
+            boxShadow:
+              "0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
+            color: "#fff",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
+            e.currentTarget.style.border = "1px solid rgba(255, 255, 255, 0.25)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+            e.currentTarget.style.border = "1px solid rgba(255, 255, 255, 0.15)";
+          }}
+        >
+          <MenuIcon
+            ref={menuIconRef}
+            size={24}
+            onMouseEnter={() => {}}
+            onMouseLeave={() => {}}
+          />
+        </button>
+
+        {/* Sidebar */}
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            height: "100vh",
+            width: "300px",
+            background: "rgba(0, 0, 0, 0.5)",
+            backdropFilter: "blur(20px)",
+            borderRight: "1px solid rgba(255, 255, 255, 0.1)",
+            transform: isSidebarOpen ? "translateX(0)" : "translateX(-100%)",
+            transition: "transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+            zIndex: 40,
+            display: "flex",
+            flexDirection: "column",
+            boxShadow: isSidebarOpen
+              ? "0 0 60px rgba(0, 0, 0, 0.5)"
+              : "none",
+          }}
+        >
+          {/* Sidebar Header */}
+          <div
+            style={{
+              padding: "1.5rem",
+              paddingTop: "1.5rem",
+              borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+            }}
+          >
+            <button
+              onClick={() => {
+                setIsChatMode(false);
+                setInput("");
+              }}
+              style={{
+                width: "100%",
+                padding: "0.75rem 1.25rem",
+                background: "rgba(255, 255, 255, 0.1)",
+                backdropFilter: "blur(10px)",
+                border: "1px solid rgba(255, 255, 255, 0.15)",
+                borderRadius: "12px",
+                color: "#fff",
+                fontSize: "0.95rem",
+                fontWeight: 500,
+                cursor: "pointer",
+                transition: "all 0.3s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
+                e.currentTarget.style.border =
+                  "1px solid rgba(255, 255, 255, 0.25)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+                e.currentTarget.style.border =
+                  "1px solid rgba(255, 255, 255, 0.15)";
+              }}
+            >
+              + New Chat
+            </button>
+          </div>
+
+          {/* Previous Chats List */}
+          <div
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: "1rem",
+            }}
+          >
+            {previousChats.map((chat) => (
+              <div
+                key={chat.id}
+                style={{
+                  padding: "0.875rem 1rem",
+                  marginBottom: "0.5rem",
+                  background: "rgba(255, 255, 255, 0.05)",
+                  backdropFilter: "blur(10px)",
+                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                  borderRadius: "12px",
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background =
+                    "rgba(255, 255, 255, 0.1)";
+                  e.currentTarget.style.border =
+                    "1px solid rgba(255, 255, 255, 0.15)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background =
+                    "rgba(255, 255, 255, 0.05)";
+                  e.currentTarget.style.border =
+                    "1px solid rgba(255, 255, 255, 0.08)";
+                }}
+              >
+                <div
+                  style={{
+                    color: "#fff",
+                    fontSize: "0.9rem",
+                    fontWeight: 500,
+                    marginBottom: "0.25rem",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {chat.title}
+                </div>
+                <div
+                  style={{
+                    color: "rgba(255, 255, 255, 0.5)",
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  {chat.timestamp}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div
           className={instrumentSerif.className}
           style={{
