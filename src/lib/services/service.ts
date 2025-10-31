@@ -1,8 +1,7 @@
-import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
 import { AnchorWallet } from "@solana/wallet-adapter-react";
 import { Connection, PublicKey } from "@solana/web3.js";
 
-import { deriveDekFromCmk, generateCmk } from "../loyal/encryption";
+import { generateCmk } from "../loyal/encryption";
 import { fetchIrysTransactionData } from "../loyal/http";
 import {
   createOrRestoreEphemeralKeypair,
@@ -108,8 +107,6 @@ export async function createAndUploadChat(
   console.log("Receipt of table of contents", receipt);
 
   const cmk = generateCmk();
-  const receiptIdBytes = bs58.decode(receiptId);
-  const dek = await deriveDekFromCmk(cmk, receiptIdBytes);
 
   // 3. encrypting the query and uploading it to Irys
   const queryJson = {

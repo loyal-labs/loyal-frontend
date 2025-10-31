@@ -30,9 +30,7 @@ export async function POST(req: Request) {
     model: loyalOracleModel,
     system:
       "You are a helpful AI assistant for Loyal, a private intelligence platform.",
-    messages: convertToModelMessages(
-      messages.map(({ id: _id, ...message }) => message)
-    ),
+    messages: convertToModelMessages(messages),
   });
 
   return result.toUIMessageStreamResponse();

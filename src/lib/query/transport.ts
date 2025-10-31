@@ -224,42 +224,7 @@ export class GrpcChatTransport<UI_MESSAGE extends UIMessage>
     }
   }
 
-  async reconnectToStream(
-    options: Parameters<ChatTransport<UI_MESSAGE>["reconnectToStream"]>[0]
-  ): Promise<ReadableStream<UIMessageChunk> | null> {
-    const resolvedBody = await resolve(this.body);
-    const resolvedHeaders = await resolve(this.headers);
-
-    const preparedRequest = await this.prepareReconnectToStreamRequest?.({
-      baseUrl: this.baseUrl,
-      id: options.chatId,
-      body: { ...resolvedBody, ...options.body },
-      headers: { ...resolvedHeaders, ...options.headers },
-      requestMetadata: options.metadata,
-    });
-
-    // Helper function to normalize headers
-    const normalizeHeaders = (
-      headers: Record<string, string> | Headers | undefined
-    ): Record<string, string> | undefined => {
-      if (!headers) return undefined;
-      if (headers instanceof Headers) {
-        const normalized: Record<string, string> = {};
-        headers.forEach((value, key) => {
-          normalized[key] = value;
-        });
-        return normalized;
-      }
-      return headers;
-    };
-
-    const baseUrl = preparedRequest?.baseUrl ?? this.baseUrl;
-    const headers = normalizeHeaders(
-      preparedRequest?.headers !== undefined
-        ? preparedRequest.headers
-        : { ...resolvedHeaders, ...options.headers }
-    );
-
+  async reconnectToStream(): Promise<ReadableStream<UIMessageChunk> | null> {
     console.warn("reconnectToStream not implemented for gRPC transport");
     return null;
   }
