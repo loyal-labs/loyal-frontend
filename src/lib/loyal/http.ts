@@ -1,7 +1,7 @@
 import type { AxiosRequestConfig, AxiosResponse } from "axios";
 import axios from "axios";
 
-export const IRYS_GATEWAY_BASE_URL = "https://gateway.irys.xyz";
+import { IRYS_GATEWAY_BASE_URL } from "./constants";
 
 export const irysHttpClient = axios.create({
   baseURL: IRYS_GATEWAY_BASE_URL,
