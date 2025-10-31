@@ -682,121 +682,160 @@ export default function LandingPage() {
                 inputRef.current?.focus();
               }}
             >
-              {messages.map((message) => {
+              {messages.map((message, messageIndex) => {
                 const messageText = message.parts
                   .filter((part) => part.type === "text")
                   .map((part) => part.text)
                   .join("");
 
+                // Generate a timestamp for the message
+                const messageTime = new Date(
+                  Date.now() - (messages.length - messageIndex - 1) * 60000
+                ).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit"
+                });
+
                 return (
                   <div
                     key={message.id}
                     style={{
-                      position: "relative",
-                      padding: "1rem 3rem 1rem 1.5rem",
-                      borderRadius: "16px",
-                      background:
-                        message.role === "user"
-                          ? "rgba(255, 255, 255, 0.1)"
-                          : "rgba(255, 255, 255, 0.05)",
-                      backdropFilter: "blur(10px)",
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
-                      color: "#fff",
-                      fontSize: "1rem",
-                      lineHeight: 1.5,
-                      alignSelf:
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems:
                         message.role === "user" ? "flex-end" : "flex-start",
-                      maxWidth: "80%",
-                      transition: "all 0.2s ease",
-                      overflow: "visible",
+                      gap: "0.5rem",
                       animation: "slideInUp 0.3s ease-out",
                       animationFillMode: "both",
                     }}
                   >
-                    {message.parts.map((part, index) =>
-                      part.type === "text" ? (
-                        <span key={index}>{part.text}</span>
-                      ) : null
-                    )}
-
-                    {/* Copy button */}
-                    <button
-                      onClick={() => handleCopyMessage(message.id, messageText)}
+                    {/* Message bubble */}
+                    <div
                       style={{
-                        position: "absolute",
-                        top: "1rem",
-                        right: "0.75rem",
-                        padding: "0.25rem",
+                        position: "relative",
+                        padding: "1rem 1.5rem",
+                        borderRadius: "16px",
                         background:
-                          copiedMessageId === message.id
-                            ? "rgba(34, 197, 94, 0.2)"
-                            : "transparent",
-                        border: "none",
-                        borderRadius: "8px",
-                        cursor: "pointer",
-                        color:
-                          copiedMessageId === message.id
-                            ? "#22c55e"
-                            : "rgba(255, 255, 255, 0.5)",
+                          message.role === "user"
+                            ? "rgba(255, 255, 255, 0.1)"
+                            : "rgba(255, 255, 255, 0.05)",
+                        backdropFilter: "blur(10px)",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                        color: "#fff",
+                        fontSize: "1rem",
+                        lineHeight: 1.5,
+                        maxWidth: "80%",
                         transition: "all 0.2s ease",
+                        overflow: "visible",
+                      }}
+                    >
+                      {message.parts.map((part, index) =>
+                        part.type === "text" ? (
+                          <span key={index}>{part.text}</span>
+                        ) : null
+                      )}
+                    </div>
+
+                    {/* Controls below message */}
+                    <div
+                      style={{
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "center",
+                        gap: "0.75rem",
+                        padding: "0 0.5rem",
+                        flexDirection: message.role === "user" ? "row-reverse" : "row",
                       }}
-                      onMouseEnter={(e) => {
-                        if (copiedMessageId !== message.id) {
-                          e.currentTarget.style.color =
-                            "rgba(255, 255, 255, 0.8)";
-                          e.currentTarget.style.background =
-                            "rgba(255, 255, 255, 0.1)";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (copiedMessageId !== message.id) {
-                          e.currentTarget.style.color =
-                            "rgba(255, 255, 255, 0.5)";
-                          e.currentTarget.style.background = "transparent";
-                        }
-                      }}
-                      title={
-                        copiedMessageId === message.id
-                          ? "Copied!"
-                          : "Copy message"
-                      }
                     >
-                      <CopyIcon
-                        ref={(el) => {
-                          if (el) {
-                            copyIconRefs.current.set(message.id, el);
-                          }
-                        }}
-                        size={18}
-                      />
-                    </button>
-
-                    {/* Copied feedback text */}
-                    {copiedMessageId === message.id && (
+                      {/* Timestamp */}
                       <span
                         style={{
-                          position: "absolute",
-                          top: "-0.5rem",
-                          right: "0.125rem",
-                          fontSize: "0.65rem",
-                          color: "#fff",
-                          background: "rgba(34, 197, 94, 0.9)",
-                          padding: "0.125rem 0.375rem",
-                          borderRadius: "4px",
-                          animation: "fadeInDownSimple 0.2s ease-in",
-                          fontWeight: 500,
+                          fontSize: "0.75rem",
+                          color: "rgba(255, 255, 255, 0.3)",
+                          fontFamily: "system-ui, -apple-system, sans-serif",
                           letterSpacing: "0.025em",
-                          whiteSpace: "nowrap",
-                          pointerEvents: "none",
-                          zIndex: 10,
                         }}
                       >
-                        Copied
+                        {messageTime}
                       </span>
-                    )}
+
+                      {/* Copy button */}
+                      <button
+                        onClick={() => handleCopyMessage(message.id, messageText)}
+                        style={{
+                          padding: "0.25rem",
+                          background:
+                            copiedMessageId === message.id
+                              ? "rgba(34, 197, 94, 0.15)"
+                              : "transparent",
+                          border: "none",
+                          borderRadius: "8px",
+                          cursor: "pointer",
+                          color:
+                            copiedMessageId === message.id
+                              ? "#22c55e"
+                              : "rgba(255, 255, 255, 0.3)",
+                          transition: "all 0.2s ease",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          position: "relative",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (copiedMessageId !== message.id) {
+                            e.currentTarget.style.color =
+                              "rgba(255, 255, 255, 0.5)";
+                            e.currentTarget.style.background =
+                              "rgba(255, 255, 255, 0.05)";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (copiedMessageId !== message.id) {
+                            e.currentTarget.style.color =
+                              "rgba(255, 255, 255, 0.3)";
+                            e.currentTarget.style.background = "transparent";
+                          }
+                        }}
+                        title={
+                          copiedMessageId === message.id
+                            ? "Copied!"
+                            : "Copy message"
+                        }
+                      >
+                        <CopyIcon
+                          ref={(el) => {
+                            if (el) {
+                              copyIconRefs.current.set(message.id, el);
+                            }
+                          }}
+                          size={14}
+                        />
+
+                        {/* Copied feedback text */}
+                        {copiedMessageId === message.id && (
+                          <span
+                            style={{
+                              position: "absolute",
+                              top: "-1.25rem",
+                              left: "50%",
+                              transform: "translateX(-50%)",
+                              fontSize: "0.65rem",
+                              color: "#fff",
+                              background: "rgba(34, 197, 94, 0.9)",
+                              padding: "0.125rem 0.375rem",
+                              borderRadius: "4px",
+                              animation: "fadeInDownSimple 0.2s ease-in",
+                              fontWeight: 500,
+                              letterSpacing: "0.025em",
+                              whiteSpace: "nowrap",
+                              pointerEvents: "none",
+                              zIndex: 10,
+                            }}
+                          >
+                            Copied
+                          </span>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 );
               })}
