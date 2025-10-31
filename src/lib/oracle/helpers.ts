@@ -1,4 +1,5 @@
 import { AuthType, NilaiOpenAIClient } from "@nillion/nilai-ts";
+import { Codec, Envelope } from "@nillion/nuc";
 
 import { ORACLE_MODEL_BASE_URL } from "./constants";
 
@@ -32,4 +33,11 @@ export function getModelClient(): NilaiOpenAIClient {
     baseURL: ORACLE_MODEL_BASE_URL,
     authType: AuthType.DELEGATION_TOKEN,
   });
+}
+
+// 1. Sign-in with Solana (https://github.com/phantom/sign-in-with-solana)
+// 2. Notify users when they need to sign in again
+// 3.
+export function deserializeDelegationToken(delegationToken: string): Envelope {
+  return Codec.decodeBase64Url(delegationToken);
 }

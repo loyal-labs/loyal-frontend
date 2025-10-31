@@ -1,6 +1,8 @@
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { DelegationTokenRequest, NilaiOpenAIClient } from "@nillion/nilai-ts";
 import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
+import { ORACLE_MODEL_BASE_URL } from "./constants";
 import { AvailableModels } from "./enums";
 import { getModelClient } from "./helpers";
 
@@ -32,4 +34,14 @@ export async function sendQuery(
     messages,
   });
   return response;
+}
+
+export function getLoyalModel() {
+  const provider = createOpenAICompatible({
+    baseURL: ORACLE_MODEL_BASE_URL,
+    name: "loyal-oracle",
+    includeUsage: true,
+  });
+
+  return provider;
 }
