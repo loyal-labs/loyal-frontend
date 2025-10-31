@@ -9,3 +9,5 @@ export const ORACLE_ROUTES = {
     verify: "/solana/sign-in/verify",
   },
 };
+
+export const ORACLE_MODEL_BASE_URL = "https://nilai-a779.nillion.network/v1/";

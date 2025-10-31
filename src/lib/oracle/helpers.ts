@@ -1,3 +1,7 @@
+import { AuthType, NilaiOpenAIClient } from "@nillion/nilai-ts";
+
+import { ORACLE_MODEL_BASE_URL } from "./constants";
+
 export function normalizeBaseUrl(url: string): string {
   if (!url) {
     throw new Error("Oracle base URL is not defined.");
@@ -20,4 +24,12 @@ export function normalizePath(path: string): string {
     throw new Error("Path is required for Loyal Oracle requests.");
   }
   return path.startsWith("/") ? path : `/${path}`;
+}
+
+// TODO: we need to check if we have delegation token stored in the browser storage
+export function getModelClient(): NilaiOpenAIClient {
+  return new NilaiOpenAIClient({
+    baseURL: ORACLE_MODEL_BASE_URL,
+    authType: AuthType.DELEGATION_TOKEN,
+  });
 }
