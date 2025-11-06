@@ -493,7 +493,6 @@ export default function LandingPage() {
                 />
               )}
             {[
-              { label: "For testers", onClick: () => setIsModalOpen(true) },
               {
                 label: "About",
                 onClick: isScrolledToAbout
@@ -789,7 +788,6 @@ export default function LandingPage() {
               }}
             >
               {[
-                { label: "For testers", onClick: () => setIsModalOpen(true) },
                 {
                   label: "About",
                   onClick: () => {
@@ -1032,13 +1030,56 @@ export default function LandingPage() {
               alignItems: "center",
               justifyContent: "flex-start",
               textAlign: "center",
-              padding: "22vh 1.5rem 0",
+              padding: "calc(22vh + 40px) 1.5rem 0",
               gap: "0.75rem",
               color: "#fff",
               transition: "transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
               transform: isChatMode ? "translateY(-100vh)" : "translateY(0)",
             }}
           >
+            {/* For testers pill badge */}
+            <button
+              className={ibmPlexSans.className}
+              onClick={() => setIsModalOpen(true)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(239, 68, 68, 0.25)";
+                e.currentTarget.style.border = "1px solid rgba(239, 68, 68, 0.6)";
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow =
+                  "0 8px 24px 0 rgba(239, 68, 68, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.15)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)";
+                e.currentTarget.style.border = "1px solid rgba(239, 68, 68, 0.4)";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow =
+                  "0 4px 16px 0 rgba(239, 68, 68, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.1)";
+              }}
+              style={{
+                padding: "0.375rem 0.875rem",
+                fontSize: "0.75rem",
+                fontWeight: 500,
+                letterSpacing: "0.02em",
+                color: "#fff",
+                background: "rgba(239, 68, 68, 0.15)",
+                backdropFilter: "blur(20px)",
+                border: "1px solid rgba(239, 68, 68, 0.4)",
+                borderRadius: "999px",
+                cursor: "pointer",
+                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                boxShadow:
+                  "0 4px 16px 0 rgba(239, 68, 68, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
+                animation: "fadeIn 0.6s ease-out",
+                marginBottom: "0.75rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.375rem",
+              }}
+            >
+              For testers
+              <ChevronRightIcon size={16} />
+            </button>
+
             <h1
               style={{
                 fontSize: "clamp(2rem, 5vw, 4.25rem)",
@@ -1129,7 +1170,7 @@ export default function LandingPage() {
             }}
             style={{
               position: "absolute",
-              bottom: isChatMode ? "0" : "48vh",
+              bottom: isChatMode ? "0" : "calc(48vh - 40px)",
               left: "50%",
               transform: "translateX(-50%)",
               width: isChatMode ? "min(920px, 90%)" : "min(600px, 90%)",
