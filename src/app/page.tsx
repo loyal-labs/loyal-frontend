@@ -780,11 +780,10 @@ export default function LandingPage() {
 
             {/* Navigation Menu - Mobile only */}
             <div
-              className="md:hidden"
+              className="flex md:hidden"
               style={{
                 padding: "1rem 1.5rem",
                 borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-                display: "flex",
                 flexDirection: "column",
                 gap: "0.5rem",
               }}
