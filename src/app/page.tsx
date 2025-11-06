@@ -11,6 +11,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { BentoGridSection } from "@/components/bento-grid-section";
 import { RoadmapSection } from "@/components/roadmap-section";
+import { Footer } from "@/components/footer";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { ChevronRightIcon } from "@/components/ui/chevron-right";
 import { CopyIcon, type CopyIconHandle } from "@/components/ui/copy";
@@ -1741,6 +1742,7 @@ export default function LandingPage() {
 
         {/* Roadmap Section - Only show when not in chat mode */}
         {!isChatMode && <RoadmapSection />}
+        {!isChatMode && <Footer />}
       </div>
 
       {/* Network offline overlay */}
