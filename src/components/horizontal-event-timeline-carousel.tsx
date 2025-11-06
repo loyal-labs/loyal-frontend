@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence, PanInfo } from "framer-motion";
+import { AnimatePresence, motion, type PanInfo } from "framer-motion";
 import {
+  Calendar,
+  CheckCircle,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Calendar,
-  CheckCircle,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { events } from "@/data/events";
+import { Card, CardContent } from "@/components/ui/card";
+import { roadmapEvents as events } from "@/data/roadmap";
 
 const height = "30rem";
 
@@ -43,7 +43,8 @@ export default function HorizontalEventTimelineCarousel() {
   const formatPeriod = (item: (typeof events)[0]) => {
     if (item.periodType === "Q") {
       return `Q${item.periodNumber} ${item.year}`;
-    } else if (item.periodType === "H") {
+    }
+    if (item.periodType === "H") {
       return `H${item.periodNumber} ${item.year}`;
     }
     return `${item.year}`;
@@ -94,20 +95,20 @@ export default function HorizontalEventTimelineCarousel() {
   };
 
   return (
-    <div className="mx-auto px-4 py-12 max-w-7xl">
+    <div className="mx-auto max-w-7xl px-4 py-12">
       <motion.h1
-        className="text-3xl md:text-4xl font-bold mb-2 text-center"
-        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
+        className="mb-2 text-center font-bold text-3xl md:text-4xl"
+        initial={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.5 }}
       >
         Project Timeline
       </motion.h1>
 
       <motion.p
-        className="text-muted-foreground text-center"
-        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
+        className="text-center text-muted-foreground"
+        initial={{ opacity: 0, y: 20 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
         Our development journey and milestones
@@ -115,92 +116,92 @@ export default function HorizontalEventTimelineCarousel() {
 
       <div className="relative">
         <button
+          className="-translate-y-1/2 absolute top-1/2 left-0 z-20 rounded-full bg-background p-2 shadow-md transition-colors hover:bg-primary/10"
           onClick={prevSlide}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-background p-2 rounded-full shadow-md hover:bg-primary/10 transition-colors"
         >
-          <ChevronLeft className="w-6 h-6" />
+          <ChevronLeft className="h-6 w-6" />
         </button>
         <button
+          className="-translate-y-1/2 absolute top-1/2 right-0 z-20 rounded-full bg-background p-2 shadow-md transition-colors hover:bg-primary/10"
           onClick={nextSlide}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-background p-2 rounded-full shadow-md hover:bg-primary/10 transition-colors"
         >
-          <ChevronRight className="w-6 h-6" />
+          <ChevronRight className="h-6 w-6" />
         </button>
 
-        <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-primary/20 z-0"></div>
+        <div className="absolute top-1/2 right-0 left-0 z-0 h-0.5 bg-primary/20" />
 
         <div
+          className="relative touch-pan-x overflow-hidden"
           ref={carouselRef}
-          className="relative overflow-hidden touch-pan-x"
           style={{ height }}
         >
           <div className="flex h-full items-center justify-center">
             {events.map((item, index) => (
               <motion.div
-                key={index}
-                className="absolute w-64 mx-4"
-                variants={cardVariants}
-                initial="inactive"
                 animate={index === currentIndex ? "active" : "inactive"}
+                className="absolute mx-4 w-64"
+                drag="x"
+                dragConstraints={{ left: -50, right: 50 }}
+                dragElastic={0.1}
+                initial="inactive"
+                key={index}
+                onDragEnd={(e, info) => handleDragEnd(e, info, index)}
                 style={{
                   x: `${Math.round((index - currentIndex) * 300)}px`,
                   willChange: "transform",
                   transform: "translateZ(0)",
                 }}
-                drag="x"
-                dragConstraints={{ left: -50, right: 50 }}
-                dragElastic={0.1}
-                onDragEnd={(e, info) => handleDragEnd(e, info, index)}
+                variants={cardVariants}
               >
                 <motion.div
-                  variants={cardVariants}
-                  initial="inactive"
                   animate={index === currentIndex ? "active" : "inactive"}
-                  className={`absolute left-1/2 top-[-1rem] w-6 h-6 rounded-full transform -translate-x-1/2 z-10 ${
+                  className={`-translate-x-1/2 absolute top-[-1rem] left-1/2 z-10 h-6 w-6 transform rounded-full ${
                     index === currentIndex
                       ? "bg-primary"
                       : "border-2 border-primary bg-transparent"
                   }`}
+                  initial="inactive"
                   style={{
                     willChange: "transform",
                     transform: "translateZ(0)",
                   }}
+                  variants={cardVariants}
                 />
 
                 <motion.div
-                  layout
                   className="w-full"
+                  layout
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                 >
-                  <Card className="overflow-hidden border-primary/10 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                  <Card className="overflow-hidden border-primary/10 shadow-lg transition-shadow duration-300 hover:shadow-xl">
                     <CardContent className="p-0">
                       <div
-                        ref={index === 0 ? headerRef : null} // Measure first card's header
-                        className={`p-6 flex flex-col items-center text-center ${
+                        className={`flex flex-col items-center p-6 text-center ${
                           index === currentIndex
                             ? "cursor-pointer"
                             : "cursor-default"
-                        }`}
+                        }`} // Measure first card's header
                         onClick={() => toggleExpand(index)}
+                        ref={index === 0 ? headerRef : null}
                       >
                         <Badge
+                          className="mb-2 border-primary/20 bg-primary/5 px-3 py-1 text-sm"
                           variant="outline"
-                          className="text-sm py-1 px-3 bg-primary/5 border-primary/20 mb-2"
                         >
-                          <Calendar className="w-4 h-4 mr-1" />
+                          <Calendar className="mr-1 h-4 w-4" />
                           {formatPeriod(item)}
                         </Badge>
-                        <h3 className="text-xl font-bold text-primary">
+                        <h3 className="font-bold text-primary text-xl">
                           {item.year} Milestones
                         </h3>
-                        <p className="text-lg font-medium">
+                        <p className="font-medium text-lg">
                           {item.periodType === "Q"
                             ? `Quarter ${item.periodNumber}`
                             : `Half ${item.periodNumber}`}
                         </p>
-                        <div className="flex items-center text-sm text-muted-foreground mt-1">
+                        <div className="mt-1 flex items-center text-muted-foreground text-sm">
                           <CheckCircle
-                            className={`w-4 h-4 mr-1 ${
+                            className={`mr-1 h-4 w-4 ${
                               item.isChecked
                                 ? "text-green-500"
                                 : "text-gray-400"
@@ -215,31 +216,31 @@ export default function HorizontalEventTimelineCarousel() {
                           }}
                           transition={{ duration: 0.3 }}
                         >
-                          <ChevronDown className="w-5 h-5 text-muted-foreground mt-2" />
+                          <ChevronDown className="mt-2 h-5 w-5 text-muted-foreground" />
                         </motion.div>
                       </div>
 
                       <AnimatePresence>
                         {expandedIndex === index && index === currentIndex && (
                           <motion.div
-                            initial={{ height: 0, opacity: 0 }}
                             animate={{ height: expandedHeight, opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.3, ease: "easeInOut" }}
                             className="overflow-y-auto"
+                            exit={{ height: 0, opacity: 0 }}
+                            initial={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: "easeInOut" }}
                           >
-                            <div className="px-6 pb-6 pt-2 border-t border-border/50">
+                            <div className="border-border/50 border-t px-6 pt-2 pb-6">
                               <div className="mb-4">
-                                <h4 className="text-sm font-semibold flex items-center justify-center mb-2">
+                                <h4 className="mb-2 flex items-center justify-center font-semibold text-sm">
                                   Events
                                 </h4>
                                 <ul className="grid grid-cols-1 gap-2">
                                   {item.events.map((event, i) => (
                                     <motion.li
-                                      key={i}
+                                      animate={{ opacity: 1, x: 0 }}
                                       className="flex items-start"
                                       initial={{ opacity: 0, x: -20 }}
-                                      animate={{ opacity: 1, x: 0 }}
+                                      key={i}
                                       transition={{
                                         duration: 0.3,
                                         delay: i * 0.1,
@@ -247,7 +248,7 @@ export default function HorizontalEventTimelineCarousel() {
                                       }}
                                     >
                                       <CheckCircle
-                                        className={`w-4 h-4 mr-2 ${
+                                        className={`mr-2 h-4 w-4 ${
                                           event.isChecked
                                             ? "text-green-500"
                                             : "text-gray-400"
@@ -272,15 +273,15 @@ export default function HorizontalEventTimelineCarousel() {
           </div>
         </div>
 
-        <div className="flex justify-center mt-8 gap-2">
+        <div className="mt-8 flex justify-center gap-2">
           {events.map((_, index) => (
             <button
-              key={index}
-              onClick={() => goToSlide(index)}
-              className={`w-3 h-3 rounded-full transition-colors ${
+              aria-label={`Go to slide ${index + 1}`}
+              className={`h-3 w-3 rounded-full transition-colors ${
                 index === currentIndex ? "bg-primary" : "bg-primary/20"
               }`}
-              aria-label={`Go to slide ${index + 1}`}
+              key={index}
+              onClick={() => goToSlide(index)}
             />
           ))}
         </div>

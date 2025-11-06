@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "motion/react";
-import localFont from "next/font/local";
 import { IBM_Plex_Sans } from "next/font/google";
+import localFont from "next/font/local";
 
 const instrumentSerif = localFont({
   src: [
@@ -106,12 +106,18 @@ export function Footer() {
         >
           {socialLinks.map((link) => (
             <motion.a
-              key={link.name}
+              aria-label={link.name}
               href={link.url}
-              target="_blank"
+              key={link.name}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
+                e.currentTarget.style.color = "rgba(255, 255, 255, 0.95)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                e.currentTarget.style.color = "rgba(255, 255, 255, 0.7)";
+              }}
               rel="noopener noreferrer"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -126,15 +132,9 @@ export function Footer() {
                 transition: "all 0.3s ease",
                 textDecoration: "none",
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
-                e.currentTarget.style.color = "rgba(255, 255, 255, 0.95)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
-                e.currentTarget.style.color = "rgba(255, 255, 255, 0.7)";
-              }}
-              aria-label={link.name}
+              target="_blank"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
             >
               {link.icon}
             </motion.a>
@@ -155,9 +155,14 @@ export function Footer() {
         >
           {legalLinks.map((link, index) => (
             <motion.a
-              key={link.name}
               href={link.url}
-              whileHover={{ y: -2 }}
+              key={link.name}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "rgba(255, 255, 255, 0.9)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "rgba(255, 255, 255, 0.5)";
+              }}
               style={{
                 fontSize: "0.875rem",
                 fontWeight: 400,
@@ -166,12 +171,7 @@ export function Footer() {
                 transition: "all 0.3s ease",
                 position: "relative",
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "rgba(255, 255, 255, 0.9)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "rgba(255, 255, 255, 0.5)";
-              }}
+              whileHover={{ y: -2 }}
             >
               {link.name}
               {index < legalLinks.length - 1 && (
