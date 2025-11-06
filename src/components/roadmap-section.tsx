@@ -268,6 +268,7 @@ function RoadmapSectionComponent() {
                     x: `${Math.round((index - currentIndex) * 300)}px`,
                     willChange: "transform",
                     transform: "translateZ(0)",
+                    cursor: index !== currentIndex ? "pointer" : "default",
                   }}
                   variants={cardVariants}
                   initial="inactive"
@@ -276,6 +277,11 @@ function RoadmapSectionComponent() {
                   dragConstraints={{ left: -50, right: 50 }}
                   dragElastic={0.1}
                   onDragEnd={(e, info) => handleDragEnd(e, info, index)}
+                  onClick={() => {
+                    if (index !== currentIndex) {
+                      goToSlide(index);
+                    }
+                  }}
                 >
                   {/* Timeline dot */}
                   <motion.div
@@ -284,12 +290,11 @@ function RoadmapSectionComponent() {
                     animate={index === currentIndex ? "active" : "inactive"}
                     style={{
                       position: "absolute",
-                      left: "50%",
+                      left: "calc(50% - 0.75rem)",
                       top: "-1rem",
                       width: "1.5rem",
                       height: "1.5rem",
                       borderRadius: "50%",
-                      transform: "translateX(-50%)",
                       zIndex: 10,
                       background:
                         index === currentIndex
