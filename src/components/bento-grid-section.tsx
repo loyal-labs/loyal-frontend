@@ -8,9 +8,10 @@ import {
 } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import localFont from "next/font/local";
-import { memo, useRef, useState } from "react";
+import { memo, useRef, useState, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { BentoGrid, BentoGridItem } from "./ui/bento-grid";
+import { bentoTabs, type BentoItemVisualKey } from "@/data/bento";
 
 const instrumentSerif = localFont({
   src: [
@@ -32,12 +33,6 @@ function BentoGridSectionComponent() {
   const [activeTab, setActiveTab] = useState(0);
   const [hoveredTab, setHoveredTab] = useState<number | null>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-
-  const tabs = [
-    { label: "Features", content: items },
-    { label: "Technology", content: items }, // Replace with different content later
-    { label: "Security", content: items }, // Replace with different content later
-  ];
 
   const getIndicatorStyle = () => {
     const index = hoveredTab !== null ? hoveredTab : activeTab;
@@ -469,60 +464,51 @@ const SkeletonFive = () => {
   );
 };
 
-const items = [
-  {
-    title: "AI Content Generation",
-    description: (
-      <span className="text-sm">
-        Experience the power of AI in generating unique content.
-      </span>
-    ),
+type BentoVisualConfig = {
+  header: ReactNode;
+  className: string;
+  icon: ReactNode;
+};
+
+const bentoVisuals: Record<BentoItemVisualKey, BentoVisualConfig> = {
+  cardOne: {
     header: <SkeletonOne />,
     className: "md:col-span-1",
     icon: <IconClipboardCopy className="h-4 w-4 text-neutral-500" />,
   },
-  {
-    title: "Automated Proofreading",
-    description: (
-      <span className="text-sm">
-        Let AI handle the proofreading of your documents.
-      </span>
-    ),
+  cardTwo: {
     header: <SkeletonTwo />,
     className: "md:col-span-1",
     icon: <IconFileBroken className="h-4 w-4 text-neutral-500" />,
   },
-  {
-    title: "Contextual Suggestions",
-    description: (
-      <span className="text-sm">
-        Get AI-powered suggestions based on your writing context.
-      </span>
-    ),
+  cardThree: {
     header: <SkeletonThree />,
     className: "md:col-span-1",
     icon: <IconSignature className="h-4 w-4 text-neutral-500" />,
   },
-  {
-    title: "Sentiment Analysis",
-    description: (
-      <span className="text-sm">
-        Understand the sentiment of your text with AI analysis.
-      </span>
-    ),
+  cardFour: {
     header: <SkeletonFour />,
     className: "md:col-span-2",
     icon: <IconTableColumn className="h-4 w-4 text-neutral-500" />,
   },
-  {
-    title: "Text Summarization",
-    description: (
-      <span className="text-sm">
-        Summarize your lengthy documents with AI technology.
-      </span>
-    ),
+  cardFive: {
     header: <SkeletonFive />,
     className: "md:col-span-1",
     icon: <IconBoxAlignRightFilled className="h-4 w-4 text-neutral-500" />,
   },
-];
+};
+
+const tabs = bentoTabs.map((tab) => ({
+  label: tab.label,
+  content: tab.items.map((item) => {
+    const visuals = bentoVisuals[item.visualKey];
+
+    return {
+      ...visuals,
+      title: item.title,
+      description: (
+        <span className="text-sm">{item.description}</span>
+      ),
+    };
+  }),
+}));
