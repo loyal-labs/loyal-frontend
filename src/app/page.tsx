@@ -13,10 +13,12 @@ import { BentoGridSection } from "@/components/bento-grid-section";
 import { RoadmapSection } from "@/components/roadmap-section";
 import { Footer } from "@/components/footer";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { SkillsTextarea } from "@/components/skills-textarea";
 import { ChevronRightIcon } from "@/components/ui/chevron-right";
 import { CopyIcon, type CopyIconHandle } from "@/components/ui/copy";
 import { MenuIcon, type MenuIconHandle } from "@/components/ui/menu";
 import { PlusIcon, type PlusIconHandle } from "@/components/ui/plus";
+import { stripSkillMarkers } from "@/lib/skills-text";
 
 const instrumentSerif = localFont({
   src: [
@@ -82,6 +84,8 @@ export default function LandingPage() {
   const [isScrolledToRoadmap, setIsScrolledToRoadmap] = useState(false);
   const prevScrolledToAbout = useRef(false);
   const prevScrolledToRoadmap = useRef(false);
+  const sanitizedInput = stripSkillMarkers(input).trim();
+  const hasUsableInput = sanitizedInput.length > 0;
 
   // Network status monitoring and recovery
   useEffect(() => {
@@ -320,16 +324,16 @@ export default function LandingPage() {
     // Always check if wallet is connected before sending any message
     if (!connected) {
       // Save the message to send after connection
-      if (input.trim()) {
-        setPendingMessage(input);
+      if (hasUsableInput) {
+        setPendingMessage(sanitizedInput);
       }
       // Open wallet connection modal
       setVisible(true);
       return;
     }
 
-    if (input.trim() && status === "ready") {
-      sendMessage({ text: input });
+    if (hasUsableInput && status === "ready") {
+      sendMessage({ text: sanitizedInput });
       setInput("");
       setIsChatMode(true);
 
