@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "ultracite": "bunx ultracite check",
     "fix-lint": "next lint --fix",
     "commit": "cz"
   },

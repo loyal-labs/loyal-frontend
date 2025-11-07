@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, memo } from "react";
-import { motion, AnimatePresence, PanInfo } from "motion/react";
+import { roadmapEvents } from "@/data/roadmap";
+import { AnimatePresence, motion, PanInfo } from "motion/react";
 import { IBM_Plex_Sans } from "next/font/google";
 import localFont from "next/font/local";
-import { roadmapEvents } from "@/data/roadmap";
+import { memo, useState } from "react";
 
 const instrumentSerif = localFont({
   src: [
@@ -29,8 +29,8 @@ const ibmPlexSans = IBM_Plex_Sans({
 });
 
 function RoadmapSectionComponent() {
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
 
   const formatPeriod = (item: (typeof roadmapEvents)[0]) => {
     if (item.periodType === "Q") {
@@ -41,9 +41,32 @@ function RoadmapSectionComponent() {
     return `${item.year}`;
   };
 
+  const getStatus = (item: (typeof roadmapEvents)[0]) => {
+    if (item.isChecked) {
+      return {
+        label: "Completed",
+        color: "rgba(34, 197, 94, 0.8)",
+      };
+    }
+
+    const hasCompletedEvents = item.events.some((event) => event.isChecked);
+
+    if (hasCompletedEvents) {
+      return {
+        label: "In progress",
+        color: "rgba(249, 115, 22, 0.8)",
+      };
+    }
+
+    return {
+      label: "Planned",
+      color: "rgba(156, 163, 175, 0.5)",
+    };
+  };
+
   const toggleExpand = (index: number) => {
     if (index === currentIndex) {
-      setExpandedIndex(expandedIndex === index ? null : index);
+      setIsDetailsExpanded((prev) => !prev);
     }
   };
 
@@ -51,19 +74,16 @@ function RoadmapSectionComponent() {
     setCurrentIndex((prev) =>
       prev === roadmapEvents.length - 1 ? 0 : prev + 1
     );
-    setExpandedIndex(null);
   };
 
   const prevSlide = () => {
     setCurrentIndex((prev) =>
       prev === 0 ? roadmapEvents.length - 1 : prev - 1
     );
-    setExpandedIndex(null);
   };
 
   const goToSlide = (index: number) => {
     setCurrentIndex(index);
-    setExpandedIndex(null);
   };
 
   const handleDragEnd = (
@@ -259,7 +279,10 @@ function RoadmapSectionComponent() {
                 justifyContent: "center",
               }}
             >
-              {roadmapEvents.map((item, index) => (
+              {roadmapEvents.map((item, index) => {
+                const status = getStatus(item);
+
+                return (
                 <motion.div
                   key={index}
                   style={{
@@ -349,7 +372,7 @@ function RoadmapSectionComponent() {
                             marginBottom: "0.75rem",
                           }}
                         >
-                          {formatPeriod(item)}
+                          {item.year}
                         </div>
 
                         <h3
@@ -360,20 +383,8 @@ function RoadmapSectionComponent() {
                             marginBottom: "0.5rem",
                           }}
                         >
-                          {item.year} Milestones
+                          {`${formatPeriod(item)} Goals`}
                         </h3>
-                        <p
-                          style={{
-                            fontSize: "1rem",
-                            fontWeight: 400,
-                            color: "rgba(255, 255, 255, 0.7)",
-                            marginBottom: "0.5rem",
-                          }}
-                        >
-                          {item.periodType === "Q"
-                            ? `Quarter ${item.periodNumber}`
-                            : `Half ${item.periodNumber}`}
-                        </p>
 
                         {/* Status */}
                         <div
@@ -391,19 +402,17 @@ function RoadmapSectionComponent() {
                               height: "1rem",
                               marginRight: "0.5rem",
                               borderRadius: "50%",
-                              background: item.isChecked
-                                ? "rgba(34, 197, 94, 0.8)"
-                                : "rgba(156, 163, 175, 0.5)",
+                              background: status.color,
                             }}
                           />
-                          {item.isChecked ? "Completed" : "Planned"}
+                          {status.label}
                         </div>
 
                         {/* Expand indicator */}
                         {index === currentIndex && (
                           <motion.div
                             animate={{
-                              rotate: expandedIndex === index ? 180 : 0,
+                              rotate: isDetailsExpanded ? 180 : 0,
                             }}
                             transition={{ duration: 0.3 }}
                             style={{ marginTop: "0.75rem" }}
@@ -430,7 +439,7 @@ function RoadmapSectionComponent() {
 
                       {/* Expanded content */}
                       <AnimatePresence>
-                        {expandedIndex === index && index === currentIndex && (
+                        {isDetailsExpanded && index === currentIndex && (
                           <motion.div
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: "auto", opacity: 1 }}
@@ -510,7 +519,8 @@ function RoadmapSectionComponent() {
                     </div>
                   </motion.div>
                 </motion.div>
-              ))}
+              );
+            })}
             </div>
           </div>
 
