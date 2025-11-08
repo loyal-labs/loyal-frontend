@@ -430,8 +430,11 @@
     transform: rotate(180deg) !important;
   }
 
-  /* Close button styling - Simple fix */
+  /* Close button styling - Positioned in screen corner */
   .wallet-adapter-modal-button-close {
+    position: fixed !important;
+    top: 1.5rem !important;
+    right: 1.5rem !important;
     background: rgba(255, 255, 255, 0.08) !important;
     backdrop-filter: blur(10px) !important;
     border: 1px solid rgba(255, 255, 255, 0.15) !important;
@@ -445,6 +448,7 @@
     cursor: pointer !important;
     transition: all 0.3s ease !important;
     padding: 0 !important;
+    z-index: 10000 !important;
   }
 
   /* Replace broken X icon with text */
