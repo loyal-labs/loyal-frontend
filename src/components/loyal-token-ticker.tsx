@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import {
   Ticker,
@@ -8,7 +9,6 @@ import {
   TickerPriceChange,
   TickerSymbol,
 } from "@/components/kibo-ui/ticker";
-import Image from "next/image";
 
 const LOYAL_TOKEN_ADDRESS = "LYLikzBQtpa9ZgVrJsqYGQpR3cC1WMJrBHaXGrQmeta";
 
@@ -54,7 +54,7 @@ export function LoyalTokenTicker() {
     fetchTokenData();
 
     // Refresh every 60 seconds
-    const interval = setInterval(fetchTokenData, 60000);
+    const interval = setInterval(fetchTokenData, 60_000);
 
     return () => clearInterval(interval);
   }, []);
@@ -64,20 +64,20 @@ export function LoyalTokenTicker() {
       <div className="flex items-center gap-1">
         {/* Icon skeleton */}
         <div
-          className="rounded-full bg-white/10 animate-pulse"
+          className="animate-pulse rounded-full bg-white/10"
           style={{ width: "16px", height: "16px" }}
         />
         {/* Text skeletons */}
         <div
-          className="h-3 bg-white/10 rounded animate-pulse"
+          className="h-3 animate-pulse rounded bg-white/10"
           style={{ width: "45px" }}
         />
         <div
-          className="h-3 bg-white/10 rounded animate-pulse"
+          className="h-3 animate-pulse rounded bg-white/10"
           style={{ width: "35px" }}
         />
         <div
-          className="h-3 bg-white/10 rounded animate-pulse"
+          className="h-3 animate-pulse rounded bg-white/10"
           style={{ width: "40px" }}
         />
       </div>
@@ -90,7 +90,7 @@ export function LoyalTokenTicker() {
 
   return (
     <Ticker
-      className="gap-1 text-xs cursor-pointer transition-opacity hover:opacity-80"
+      className="cursor-pointer gap-1 text-xs transition-opacity hover:opacity-80"
       onClick={() =>
         window.open(
           "https://jup.ag/tokens/LYLikzBQtpa9ZgVrJsqYGQpR3cC1WMJrBHaXGrQmeta",
@@ -107,9 +107,19 @@ export function LoyalTokenTicker() {
           width={16}
         />
       </TickerIcon>
-      <TickerSymbol symbol={tokenData.symbol} className="text-white text-xs font-medium" />
-      <TickerPrice price={tokenData.usdPrice} className="text-white/80 text-xs" />
-      <TickerPriceChange change={tokenData.stats1h.priceChange} isPercent className="text-xs" />
+      <TickerSymbol
+        className="font-medium text-white text-xs"
+        symbol={tokenData.symbol}
+      />
+      <TickerPrice
+        className="text-white/80 text-xs"
+        price={tokenData.usdPrice}
+      />
+      <TickerPriceChange
+        change={tokenData.stats1h.priceChange}
+        className="text-xs"
+        isPercent
+      />
     </Ticker>
   );
 }

@@ -59,7 +59,14 @@ function BentoGridSectionComponent() {
       }}
     >
       <Spotlight />
-      <div style={{ maxWidth: "1200px", margin: "0 auto", position: "relative", zIndex: 10 }}>
+      <div
+        style={{
+          maxWidth: "1200px",
+          margin: "0 auto",
+          position: "relative",
+          zIndex: 10,
+        }}
+      >
         <h2
           className={instrumentSerif.className}
           style={{

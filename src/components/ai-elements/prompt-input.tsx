@@ -40,43 +40,54 @@ export type PromptInputTextareaProps = ComponentProps<typeof Textarea> & {
 export const PromptInputTextarea = forwardRef<
   HTMLTextAreaElement,
   PromptInputTextareaProps
->(({ onChange, className, placeholder = "What would you like to know?", onKeyDown, ...props }, ref) => {
-  const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
-    if (e.key === "Enter") {
-      if (e.shiftKey) {
-        // Allow newline
-        return;
-      }
+>(
+  (
+    {
+      onChange,
+      className,
+      placeholder = "What would you like to know?",
+      onKeyDown,
+      ...props
+    },
+    ref
+  ) => {
+    const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
+      if (e.key === "Enter") {
+        if (e.shiftKey) {
+          // Allow newline
+          return;
+        }
 
-      // Submit on Enter (without Shift)
-      e.preventDefault();
-      const form = e.currentTarget.form;
-      if (form) {
-        form.requestSubmit();
+        // Submit on Enter (without Shift)
+        e.preventDefault();
+        const form = e.currentTarget.form;
+        if (form) {
+          form.requestSubmit();
+        }
       }
-    }
-    onKeyDown?.(e);
-  };
+      onKeyDown?.(e);
+    };
 
-  return (
-    <Textarea
-      ref={ref}
-      className={cn(
-        "w-full resize-none rounded-none border-none p-3 shadow-none outline-none ring-0",
-        "field-sizing-content max-h-[6lh] bg-transparent dark:bg-transparent",
-        "focus-visible:ring-0",
-        className
-      )}
-      name="message"
-      onChange={(e) => {
-        onChange?.(e);
-      }}
-      onKeyDown={handleKeyDown}
-      placeholder={placeholder}
-      {...props}
-    />
-  );
-});
+    return (
+      <Textarea
+        className={cn(
+          "w-full resize-none rounded-none border-none p-3 shadow-none outline-none ring-0",
+          "field-sizing-content max-h-[6lh] bg-transparent dark:bg-transparent",
+          "focus-visible:ring-0",
+          className
+        )}
+        name="message"
+        onChange={(e) => {
+          onChange?.(e);
+        }}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        ref={ref}
+        {...props}
+      />
+    );
+  }
+);
 
 PromptInputTextarea.displayName = "PromptInputTextarea";
 
