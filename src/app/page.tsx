@@ -562,6 +562,7 @@ export default function LandingPage() {
           >
             {/* Logo */}
             <div
+              className={plusJakartaSans.className}
               style={{
                 fontSize: "1.125rem",
                 fontWeight: 500,
@@ -574,13 +575,7 @@ export default function LandingPage() {
                 alignItems: "center",
               }}
             >
-              <span
-                className={dirtyline.className}
-                style={{ fontSize: "1.8rem", marginRight: "-0.1rem" }}
-              >
-                L
-              </span>
-              <span className={plusJakartaSans.className}>oyal</span>
+              Loyal
             </div>
             {/* Sliding liquid glass indicator */}
             {hoveredNavIndex !== null &&
