@@ -4,6 +4,7 @@ export type BentoItemVisualKey =
   | "cardThree"
   | "cardFour"
   | "cardFive"
+  | "cardFiveApp"
   | "cardSix"
   | "cardSeven"
   | "cardEight"
@@ -46,7 +47,7 @@ const sectionOneItmes: BentoItemCopy[] = [
       "Loyal makes sending money, paying invoices and managing your assets easy.",
   },
   {
-    visualKey: "cardFive",
+    visualKey: "cardFiveApp",
     title: "User-owned storage",
     description: "Your wallet = your data",
   },
