@@ -65,20 +65,20 @@ export function LoyalTokenTicker() {
         {/* Icon skeleton */}
         <div
           className="animate-pulse rounded-full bg-white/10"
-          style={{ width: "16px", height: "16px" }}
+          style={{ width: "14px", height: "14px" }}
         />
         {/* Text skeletons */}
         <div
-          className="h-3 animate-pulse rounded bg-white/10"
-          style={{ width: "45px" }}
-        />
-        <div
-          className="h-3 animate-pulse rounded bg-white/10"
-          style={{ width: "35px" }}
-        />
-        <div
-          className="h-3 animate-pulse rounded bg-white/10"
+          className="h-2.5 animate-pulse rounded bg-white/10 md:h-3"
           style={{ width: "40px" }}
+        />
+        <div
+          className="h-2.5 animate-pulse rounded bg-white/10 md:h-3"
+          style={{ width: "30px" }}
+        />
+        <div
+          className="h-2.5 animate-pulse rounded bg-white/10 md:h-3"
+          style={{ width: "35px" }}
         />
       </div>
     );
@@ -90,7 +90,7 @@ export function LoyalTokenTicker() {
 
   return (
     <Ticker
-      className="cursor-pointer gap-1 text-xs transition-opacity hover:opacity-80"
+      className="loyal-ticker cursor-pointer gap-1 text-xs transition-opacity hover:opacity-80 md:text-xs"
       onClick={() =>
         window.open(
           "https://jup.ag/tokens/LYLikzBQtpa9ZgVrJsqYGQpR3cC1WMJrBHaXGrQmeta",
@@ -102,22 +102,23 @@ export function LoyalTokenTicker() {
       <TickerIcon asChild>
         <Image
           alt={tokenData.symbol}
+          className="loyal-ticker-icon"
           height={16}
           src={tokenData.icon}
           width={16}
         />
       </TickerIcon>
       <TickerSymbol
-        className="font-medium text-white text-xs"
+        className="font-medium text-[10px] text-white md:text-xs"
         symbol={tokenData.symbol}
       />
       <TickerPrice
-        className="text-white/80 text-xs"
+        className="text-[10px] text-white/80 md:text-xs"
         price={tokenData.usdPrice}
       />
       <TickerPriceChange
         change={tokenData.stats1h.priceChange}
-        className="text-xs"
+        className="text-[10px] md:text-xs"
         isPercent
       />
     </Ticker>

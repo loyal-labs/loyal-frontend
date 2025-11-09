@@ -746,6 +746,7 @@ export default function LandingPage() {
 
           {/* Token Ticker */}
           <div
+            className="loyal-token-ticker-container"
             style={{
               position: "fixed",
               top: "4.5rem",
@@ -767,6 +768,20 @@ export default function LandingPage() {
           >
             <LoyalTokenTicker />
           </div>
+          <style>{`
+            @media (max-width: 768px) {
+              .loyal-token-ticker-container {
+                top: 5rem !important;
+                left: auto !important;
+                right: 1.5rem !important;
+                transform: none !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+                border-radius: 10px !important;
+                padding: 0.4rem 0.5rem 0.3rem !important;
+                font-size: 0.75rem !important;
+              }
+            }
+          `}</style>
 
           {/* Menu Button - Always Visible */}
           <button
