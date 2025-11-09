@@ -1,5 +1,5 @@
 import { AuthType, NilaiOpenAIClient } from "@nillion/nilai-ts";
-import { Codec, Envelope } from "@nillion/nuc";
+import { Codec, type Envelope } from "@nillion/nuc";
 
 import { ORACLE_MODEL_BASE_URL } from "./constants";
 

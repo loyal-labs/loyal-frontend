@@ -1,14 +1,18 @@
-import { Resolvable, resolve } from "@ai-sdk/provider-utils";
+import { type Resolvable, resolve } from "@ai-sdk/provider-utils";
 import { create } from "@bufbuild/protobuf";
-import { createClient, Interceptor, Transport } from "@connectrpc/connect";
+import {
+  createClient,
+  type Interceptor,
+  type Transport,
+} from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
-import { ChatTransport, UIMessage, UIMessageChunk } from "ai";
+import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 
 import {
-  DialogEntry,
+  type DialogEntry,
   DialogEntrySchema,
   QueryRequestSchema,
-  QueryResponse,
+  type QueryResponse,
   QueryService,
   Role_Type,
   RoleSchema,
@@ -161,7 +165,7 @@ export class GrpcChatTransport<UI_MESSAGE extends UIMessage>
     const normalizeHeaders = (
       headers: Record<string, string> | Headers | undefined
     ): Record<string, string> | undefined => {
-      if (!headers) return undefined;
+      if (!headers) return;
       if (headers instanceof Headers) {
         const normalized: Record<string, string> = {};
         headers.forEach((value, key) => {

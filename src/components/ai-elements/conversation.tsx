@@ -46,7 +46,7 @@ export const ConversationScrollButton = ({
   return (
     <button
       className={cn(
-        "group absolute bottom-20 right-8 flex size-10 items-center justify-center",
+        "group absolute right-8 bottom-20 flex size-10 items-center justify-center",
         className
       )}
       onClick={handleScrollToBottom}
@@ -74,10 +74,10 @@ export const ConversationScrollButton = ({
           "0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
         cursor: "pointer",
         transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-        transform: !isAtBottom ? "scale(1)" : "scale(0.8)",
-        opacity: !isAtBottom ? 1 : 0,
-        visibility: !isAtBottom ? "visible" : "hidden",
-        pointerEvents: !isAtBottom ? "auto" : "none",
+        transform: isAtBottom ? "scale(0.8)" : "scale(1)",
+        opacity: isAtBottom ? 0 : 1,
+        visibility: isAtBottom ? "hidden" : "visible",
+        pointerEvents: isAtBottom ? "none" : "auto",
         zIndex: 10,
       }}
       type="button"

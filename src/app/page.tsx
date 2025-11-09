@@ -4,16 +4,23 @@ import { useChat } from "@ai-sdk/react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { DefaultChatTransport } from "ai";
-import { ArrowDownIcon } from "lucide-react";
+import { ArrowDownIcon, ArrowUpToLine } from "lucide-react";
 import { IBM_Plex_Sans, Plus_Jakarta_Sans } from "next/font/google";
 import localFont from "next/font/local";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { BentoGridSection } from "@/components/bento-grid-section";
+import { Footer } from "@/components/footer";
+import { LoyalTokenTicker } from "@/components/loyal-token-ticker";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { RoadmapSection } from "@/components/roadmap-section";
+import { SkillsTextarea } from "@/components/skills-textarea";
+import AnimatedBadge from "@/components/ui/animated-badge";
 import { ChevronRightIcon } from "@/components/ui/chevron-right";
 import { CopyIcon, type CopyIconHandle } from "@/components/ui/copy";
 import { MenuIcon, type MenuIconHandle } from "@/components/ui/menu";
 import { PlusIcon, type PlusIconHandle } from "@/components/ui/plus";
+import { stripSkillMarkers } from "@/lib/skills-text";
 
 const instrumentSerif = localFont({
   src: [
@@ -59,6 +66,7 @@ export default function LandingPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [hasShownModal, setHasShownModal] = useState(false);
   const [hoveredChatId, setHoveredChatId] = useState<string | null>(null);
   const [hoveredNavIndex, setHoveredNavIndex] = useState<number | null>(null);
   const menuIconRef = useRef<MenuIconHandle>(null);
@@ -75,6 +83,14 @@ export default function LandingPage() {
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [isScrolledToAbout, setIsScrolledToAbout] = useState(false);
+  const [isScrolledToRoadmap, setIsScrolledToRoadmap] = useState(false);
+  const [isScrolledToLinks, setIsScrolledToLinks] = useState(false);
+  const prevScrolledToAbout = useRef(false);
+  const prevScrolledToRoadmap = useRef(false);
+  const prevScrolledToLinks = useRef(false);
+  const sanitizedInput = stripSkillMarkers(input).trim();
+  const hasUsableInput = sanitizedInput.length > 0;
 
   // Network status monitoring and recovery
   useEffect(() => {
@@ -109,6 +125,14 @@ export default function LandingPage() {
     };
   }, []);
 
+  // Check if testers modal has been shown before
+  useEffect(() => {
+    const modalShown = localStorage.getItem("loyal-testers-modal-shown");
+    if (modalShown === "true") {
+      setHasShownModal(true);
+    }
+  }, []);
+
   // Control menu icon animation based on sidebar state
   useEffect(() => {
     if (isSidebarOpen) {
@@ -124,6 +148,13 @@ export default function LandingPage() {
       sendMessage({ text: pendingMessage });
       setInput("");
       setPendingMessage(null);
+
+      // Manually clear textarea value
+      if (inputRef.current) {
+        inputRef.current.value = "";
+        inputRef.current.style.height = "auto";
+      }
+
       setIsChatMode(true);
 
       // Reset textarea height and ensure focus
@@ -254,23 +285,126 @@ export default function LandingPage() {
     };
   }, [messages.length]);
 
+  // Detect when user scrolls to About section
+  useEffect(() => {
+    if (isChatMode) return; // Don't track scroll in chat mode
+
+    const handlePageScroll = () => {
+      const aboutSection = document.getElementById("about-section");
+      const roadmapSection = document.getElementById("roadmap-section");
+      const footerSection = document.getElementById("footer-section");
+
+      // Check if we're at the bottom of the page
+      const isAtBottom =
+        window.innerHeight + window.scrollY >=
+        document.documentElement.scrollHeight - 10;
+
+      // If at bottom, activate links section
+      if (isAtBottom && footerSection) {
+        setIsScrolledToAbout(false);
+        setIsScrolledToRoadmap(false);
+        setIsScrolledToLinks(true);
+        return;
+      }
+
+      // Calculate which section is closest to the top threshold
+      const sections = [
+        { id: "about", element: aboutSection, setter: setIsScrolledToAbout },
+        {
+          id: "roadmap",
+          element: roadmapSection,
+          setter: setIsScrolledToRoadmap,
+        },
+        { id: "links", element: footerSection, setter: setIsScrolledToLinks },
+      ];
+
+      let closestSection = null;
+      let closestDistance = Number.POSITIVE_INFINITY;
+
+      for (const section of sections) {
+        if (section.element) {
+          const rect = section.element.getBoundingClientRect();
+          const isInView = rect.top <= 100 && rect.bottom >= 100;
+
+          if (isInView) {
+            // Calculate distance from top of section to threshold
+            const distance = Math.abs(rect.top - 100);
+            if (distance < closestDistance) {
+              closestDistance = distance;
+              closestSection = section;
+            }
+          }
+        }
+      }
+
+      // Set only the closest section as active
+      for (const section of sections) {
+        section.setter(section === closestSection);
+      }
+    };
+
+    window.addEventListener("scroll", handlePageScroll, { passive: true });
+    handlePageScroll(); // Check initial state
+
+    return () => {
+      window.removeEventListener("scroll", handlePageScroll);
+    };
+  }, [isChatMode]);
+
+  // Reset hover state when About or Roadmap button changes to/from icon mode
+  // This forces the hover indicator to recalculate its position after DOM updates
+  useEffect(() => {
+    // Only recalculate if the state actually changed (not just on every render)
+    const aboutChanged = prevScrolledToAbout.current !== isScrolledToAbout;
+    const roadmapChanged =
+      prevScrolledToRoadmap.current !== isScrolledToRoadmap;
+    const linksChanged = prevScrolledToLinks.current !== isScrolledToLinks;
+
+    if (
+      (aboutChanged || roadmapChanged || linksChanged) &&
+      (hoveredNavIndex === 0 || hoveredNavIndex === 1 || hoveredNavIndex === 2)
+    ) {
+      // Index 0 is About, Index 1 is Roadmap, Index 2 is Links
+      const currentIndex = hoveredNavIndex;
+      setHoveredNavIndex(null);
+      // Use double requestAnimationFrame to ensure layout has been recalculated
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setHoveredNavIndex(currentIndex);
+        });
+      });
+    }
+
+    prevScrolledToAbout.current = isScrolledToAbout;
+    prevScrolledToRoadmap.current = isScrolledToRoadmap;
+    prevScrolledToLinks.current = isScrolledToLinks;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isScrolledToAbout, isScrolledToRoadmap, isScrolledToLinks]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     // Always check if wallet is connected before sending any message
     if (!connected) {
       // Save the message to send after connection
-      if (input.trim()) {
-        setPendingMessage(input);
+      if (hasUsableInput) {
+        setPendingMessage(sanitizedInput);
       }
       // Open wallet connection modal
       setVisible(true);
       return;
     }
 
-    if (input.trim() && status === "ready") {
-      sendMessage({ text: input });
+    if (hasUsableInput && status === "ready") {
+      sendMessage({ text: sanitizedInput });
       setInput("");
+
+      // Manually clear textarea value
+      if (inputRef.current) {
+        inputRef.current.value = "";
+        inputRef.current.style.height = "auto";
+      }
+
       setIsChatMode(true);
 
       // Reset textarea height and ensure focus
@@ -310,6 +444,55 @@ export default function LandingPage() {
     setShowScrollButton(false);
   };
 
+  const handleScrollToAbout = () => {
+    const aboutSection = document.getElementById("about-section");
+    if (aboutSection) {
+      const navHeight = 80; // Height of nav + extra spacing
+      const elementPosition = aboutSection.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.scrollY - navHeight;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  const handleBackToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
+  const handleScrollToRoadmap = () => {
+    const roadmapSection = document.getElementById("roadmap-section");
+    if (roadmapSection) {
+      const navHeight = 80;
+      const elementPosition = roadmapSection.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.scrollY - navHeight;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  const handleScrollToLinks = () => {
+    const footerSection = document.getElementById("footer-section");
+    if (footerSection) {
+      const navHeight = 80;
+      const elementPosition = footerSection.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.scrollY - navHeight;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth",
+      });
+    }
+  };
+
   // Mock data for previous chats - replace with real data later
   const previousChats = [
     { id: "1", title: "What is quantum computing?", timestamp: "2 hours ago" },
@@ -324,11 +507,8 @@ export default function LandingPage() {
         margin: 0,
         minHeight: "100vh",
         width: "100%",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
         backgroundColor: "#000",
-        overflow: "hidden",
+        overflow: isChatMode ? "hidden" : "auto",
       }}
     >
       {/* Desktop margin wrapper - only pushes content on desktop */}
@@ -339,423 +519,41 @@ export default function LandingPage() {
         style={{
           position: "relative",
           width: "100%",
-          height: "100vh",
+          minHeight: "100vh",
+          display: isChatMode ? "flex" : "block",
+          flexDirection: "column",
         }}
       >
-        <Image
-          alt="Landing"
-          fill
-          priority
-          sizes="100vw"
-          src="/landing.png"
-          style={{ objectFit: "cover", objectPosition: "center" }}
-        />
-        {/* Dark overlay for chat mode */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.6)",
-            backdropFilter: isChatMode ? "blur(8px)" : "blur(0px)",
-            opacity: isChatMode ? 1 : 0,
-            transition: "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
-            pointerEvents: isChatMode ? "auto" : "none",
-          }}
-        />
-
-        {/* Menu Button - Always Visible */}
-        <button
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
-            e.currentTarget.style.border =
-              "1px solid rgba(255, 255, 255, 0.25)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
-            e.currentTarget.style.border =
-              "1px solid rgba(255, 255, 255, 0.15)";
-          }}
-          style={{
-            position: "fixed",
-            top: "1.5rem",
-            left: "1.5rem",
-            zIndex: 60,
-            width: "3rem",
-            height: "3rem",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            background: "rgba(255, 255, 255, 0.08)",
-            backdropFilter: "blur(20px)",
-            border: "1px solid rgba(255, 255, 255, 0.15)",
-            borderRadius: "12px",
-            cursor: "pointer",
-            transition: "all 0.3s ease",
-            boxShadow:
-              "0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
-            color: "#fff",
-          }}
-        >
-          <MenuIcon
-            onMouseEnter={() => {}}
-            onMouseLeave={() => {}}
-            ref={menuIconRef}
-            size={24}
+        {/* First section with background image */}
+        <div style={{ position: "relative", width: "100%", height: "100vh" }}>
+          <Image
+            alt="Landing"
+            fill
+            priority
+            sizes="100vw"
+            src="/landing.png"
+            style={{ objectFit: "cover", objectPosition: "center" }}
           />
-        </button>
-
-        {/* New Chat Button - Below Menu - Elegantly hides when sidebar opens */}
-        <div
-          style={{
-            position: "fixed",
-            top: "5.5rem",
-            left: "1.5rem",
-            zIndex: 45,
-            width: "3rem",
-            height: "3rem",
-            transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-            transform: isSidebarOpen
-              ? "translateX(-5rem) scale(0.7) rotate(-180deg)"
-              : "translateX(0) scale(1) rotate(0deg)",
-            opacity: isSidebarOpen ? 0 : 1,
-            pointerEvents: isSidebarOpen ? "none" : "auto",
-          }}
-        >
-          <button
-            onClick={() => {
-              setIsChatMode(false);
-              setInput("");
-              // Clear all messages to start a completely new chat
-              setMessages([]);
-              setTimeout(() => {
-                inputRef.current?.focus();
-              }, 100);
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
-              e.currentTarget.style.border =
-                "1px solid rgba(255, 255, 255, 0.25)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
-              e.currentTarget.style.border =
-                "1px solid rgba(255, 255, 255, 0.15)";
-            }}
-            style={{
-              width: "100%",
-              height: "100%",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              background: "rgba(255, 255, 255, 0.08)",
-              backdropFilter: "blur(20px)",
-              border: "1px solid rgba(255, 255, 255, 0.15)",
-              borderRadius: "12px",
-              cursor: "pointer",
-              transition: "all 0.3s ease",
-              boxShadow:
-                "0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
-              color: "#fff",
-            }}
-            title="New chat"
-          >
-            <PlusIcon
-              onMouseEnter={() => {}}
-              onMouseLeave={() => {}}
-              ref={plusIconRef}
-              size={24}
-            />
-          </button>
-        </div>
-
-        {/* Mobile backdrop overlay */}
-        {isSidebarOpen && (
+          {/* Dark overlay for chat mode */}
           <div
-            className="md:hidden"
-            onClick={() => setIsSidebarOpen(false)}
             style={{
-              position: "fixed",
+              position: "absolute",
               inset: 0,
-              background: "rgba(0, 0, 0, 0.7)",
-              backdropFilter: "blur(4px)",
-              zIndex: 39,
-              animation: "fadeIn 0.3s ease-out",
+              backgroundColor: "rgba(0, 0, 0, 0.6)",
+              backdropFilter: isChatMode ? "blur(8px)" : "blur(0px)",
+              opacity: isChatMode ? 1 : 0,
+              transition: "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
+              pointerEvents: isChatMode ? "auto" : "none",
             }}
           />
-        )}
 
-        {/* Sidebar */}
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            height: "100vh",
-            width: "300px",
-            background: "rgba(0, 0, 0, 0.5)",
-            backdropFilter: "blur(20px)",
-            borderRight: "1px solid rgba(255, 255, 255, 0.1)",
-            transform: isSidebarOpen ? "translateX(0)" : "translateX(-100%)",
-            transition: "transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-            zIndex: 50,
-            display: "flex",
-            flexDirection: "column",
-            boxShadow: isSidebarOpen ? "0 0 60px rgba(0, 0, 0, 0.5)" : "none",
-            overflow: "visible", // Allow tooltip to overflow
-          }}
-        >
-          {/* Sidebar Header */}
-          <div
-            style={{
-              padding: "1.5rem",
-              paddingTop: "1.5rem",
-              borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-            }}
-          >
-            <button
-              onClick={() => {
-                setIsChatMode(false);
-                setInput("");
-                // Clear all messages for a new chat
-                setMessages([]);
-                // Focus on input after resetting chat
-                setTimeout(() => {
-                  inputRef.current?.focus();
-                }, 100);
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
-                e.currentTarget.style.border =
-                  "1px solid rgba(255, 255, 255, 0.25)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
-                e.currentTarget.style.border =
-                  "1px solid rgba(255, 255, 255, 0.15)";
-              }}
-              style={{
-                width: "100%",
-                padding: "0.75rem 1.25rem",
-                background: "rgba(255, 255, 255, 0.1)",
-                backdropFilter: "blur(10px)",
-                border: "1px solid rgba(255, 255, 255, 0.15)",
-                borderRadius: "12px",
-                color: "#fff",
-                fontSize: "0.95rem",
-                fontWeight: 500,
-                cursor: "pointer",
-                transition: "all 0.3s ease",
-              }}
-            >
-              + New Chat
-            </button>
-          </div>
-
-          {/* Navigation Menu - Mobile only */}
-          <div
-            className="md:hidden"
-            style={{
-              padding: "1rem 1.5rem",
-              borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.5rem",
-            }}
-          >
-            {[
-              { label: "For testers", onClick: () => setIsModalOpen(true) },
-              { label: "Blog", href: "#" },
-              { label: "Docs", href: "#" },
-              { label: "About", href: "#" },
-              { label: "Manifesto", href: "#" },
-              { label: "Roadmap", href: "#" },
-            ].map((item) => (
-              <button
-                key={item.label}
-                onClick={item.onClick}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background =
-                    "rgba(255, 255, 255, 0.12)";
-                  e.currentTarget.style.border =
-                    "1px solid rgba(255, 255, 255, 0.25)";
-                  e.currentTarget.style.color = "rgba(255, 255, 255, 1)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background =
-                    "rgba(255, 255, 255, 0.05)";
-                  e.currentTarget.style.border =
-                    "1px solid rgba(255, 255, 255, 0.1)";
-                  e.currentTarget.style.color = "rgba(255, 255, 255, 0.85)";
-                }}
-                style={{
-                  width: "100%",
-                  padding: "0.625rem 1rem",
-                  background: "rgba(255, 255, 255, 0.05)",
-                  backdropFilter: "blur(10px)",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  borderRadius: "10px",
-                  color: "rgba(255, 255, 255, 0.85)",
-                  fontSize: "0.875rem",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
-                  textAlign: "left",
-                }}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Previous Chats List */}
-          <div
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              overflowX: "visible",
-              padding: "1rem",
-              position: "relative",
-            }}
-          >
-            {previousChats.map((chat) => (
-              <div
-                key={chat.id}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
-                  e.currentTarget.style.border =
-                    "1px solid rgba(255, 255, 255, 0.15)";
-                  setHoveredChatId(chat.id);
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background =
-                    "rgba(255, 255, 255, 0.05)";
-                  e.currentTarget.style.border =
-                    "1px solid rgba(255, 255, 255, 0.08)";
-                  setHoveredChatId(null);
-                }}
-                style={{
-                  padding: "0.875rem 1rem",
-                  marginBottom: hoveredChatId === chat.id ? "3rem" : "0.5rem",
-                  background: "rgba(255, 255, 255, 0.05)",
-                  backdropFilter: "blur(10px)",
-                  border: "1px solid rgba(255, 255, 255, 0.08)",
-                  borderRadius: "12px",
-                  cursor: "pointer",
-                  transition: "all 0.3s ease",
-                  position: "relative",
-                }}
-              >
-                {/* Tooltip */}
-                {hoveredChatId === chat.id && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      bottom: "-2.5rem",
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      padding: "0.4rem 0.6rem",
-                      background: "rgba(255, 255, 255, 0.12)",
-                      backdropFilter: "blur(20px)",
-                      border: "1px solid rgba(255, 255, 255, 0.2)",
-                      borderRadius: "10px",
-                      boxShadow:
-                        "0 8px 24px 0 rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.15)",
-                      fontSize: "0.75rem",
-                      fontWeight: 500,
-                      color: "rgba(255, 255, 255, 0.9)",
-                      whiteSpace: "nowrap",
-                      pointerEvents: "none",
-                      zIndex: 1000,
-                      animation: "tooltipFadeInDown 0.2s ease-out",
-                      letterSpacing: "0.025em",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.3rem",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "0.85rem",
-                          opacity: 0.8,
-                        }}
-                      >
-                        ⚠️
-                      </span>
-                      Preview. Storage is WIP
-                    </div>
-                    {/* Tooltip arrow pointing up */}
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: "-5px",
-                        left: "50%",
-                        transform: "translateX(-50%) rotate(45deg)",
-                        width: "10px",
-                        height: "10px",
-                        background: "rgba(255, 255, 255, 0.12)",
-                        border: "1px solid rgba(255, 255, 255, 0.2)",
-                        borderRight: "none",
-                        borderBottom: "none",
-                        backdropFilter: "blur(20px)",
-                      }}
-                    />
-                  </div>
-                )}
-                <div
-                  style={{
-                    color: "#fff",
-                    fontSize: "0.9rem",
-                    fontWeight: 500,
-                    marginBottom: "0.25rem",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {chat.title}
-                </div>
-                <div
-                  style={{
-                    color: "rgba(255, 255, 255, 0.5)",
-                    fontSize: "0.75rem",
-                  }}
-                >
-                  {chat.timestamp}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div
-          className={instrumentSerif.className}
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "flex-start",
-            textAlign: "center",
-            padding: "22vh 1.5rem 0",
-            gap: "0.75rem",
-            color: "#fff",
-            transition: "transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
-            transform: isChatMode ? "translateY(-100vh)" : "translateY(0)",
-          }}
-        >
-          {/* Navigation Bar - Desktop only */}
+          {/* Navigation Bar - Desktop only - Fixed to viewport */}
           <nav
             className="hidden md:flex"
             onMouseLeave={() => setHoveredNavIndex(null)}
             style={{
-              position: "absolute",
-              top: "1.4375rem", // 23px (2rem = 32px - 9px = 23px)
+              position: "fixed",
+              top: "1.4375rem",
               left: "50%",
               transform: "translateX(-50%)",
               alignItems: "center",
@@ -767,10 +565,15 @@ export default function LandingPage() {
               padding: "0.5rem 0.75rem",
               boxShadow:
                 "0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
+              zIndex: 60,
+              opacity: isChatMode ? 0 : 1,
+              pointerEvents: isChatMode ? "none" : "auto",
+              transition: "opacity 0.3s ease",
             }}
           >
             {/* Logo */}
             <div
+              className={plusJakartaSans.className}
               style={{
                 fontSize: "1.125rem",
                 fontWeight: 500,
@@ -783,13 +586,7 @@ export default function LandingPage() {
                 alignItems: "center",
               }}
             >
-              <span
-                className={dirtyline.className}
-                style={{ fontSize: "1.8rem", marginRight: "-0.1rem" }}
-              >
-                L
-              </span>
-              <span className={plusJakartaSans.className}>oyal</span>
+              Loyal
             </div>
             {/* Sliding liquid glass indicator */}
             {hoveredNavIndex !== null &&
@@ -815,17 +612,38 @@ export default function LandingPage() {
                 />
               )}
             {[
-              { label: "For testers", onClick: () => setIsModalOpen(true) },
-              { label: "Blog", href: "#" },
-              { label: "Docs", href: "#" },
-              { label: "About", href: "#" },
-              { label: "Manifesto", href: "#" },
-              { label: "Roadmap", href: "#" },
+              {
+                label: "About",
+                onClick: isScrolledToAbout
+                  ? handleBackToTop
+                  : handleScrollToAbout,
+                isAbout: true,
+              },
+              {
+                label: "Roadmap",
+                onClick: isScrolledToRoadmap
+                  ? handleBackToTop
+                  : handleScrollToRoadmap,
+                isRoadmap: true,
+              },
+              {
+                label: "Links",
+                onClick: isScrolledToLinks
+                  ? handleBackToTop
+                  : handleScrollToLinks,
+                isLinks: true,
+              },
+              { label: "Docs", href: "https://docs.askloyal.com/" },
             ].map((item, index) => (
               <button
                 className={ibmPlexSans.className}
                 key={item.label}
-                onClick={item.onClick}
+                onClick={
+                  item.href
+                    ? () =>
+                        window.open(item.href, "_blank", "noopener,noreferrer")
+                    : item.onClick
+                }
                 onMouseEnter={() => setHoveredNavIndex(index)}
                 ref={(el) => {
                   navItemRefs.current[index] = el;
@@ -844,523 +662,1232 @@ export default function LandingPage() {
                   border: "1px solid transparent",
                   borderRadius: "14px",
                   cursor: "pointer",
-                  transition: "color 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   outline: "none",
                   animation: `fadeIn 0.5s ease-out ${index * 0.1}s both`,
                   zIndex: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.375rem",
+                  filter:
+                    (item.isAbout && isScrolledToAbout) ||
+                    (item.isRoadmap && isScrolledToRoadmap) ||
+                    (item.isLinks && isScrolledToLinks)
+                      ? "drop-shadow(0 0 8px rgba(255, 255, 255, 0.6))"
+                      : "none",
+                  overflow: "hidden",
                 }}
               >
-                {item.label}
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    opacity:
+                      (item.isAbout && isScrolledToAbout) ||
+                      (item.isRoadmap && isScrolledToRoadmap) ||
+                      (item.isLinks && isScrolledToLinks)
+                        ? 1
+                        : 0,
+                    transform:
+                      (item.isAbout && isScrolledToAbout) ||
+                      (item.isRoadmap && isScrolledToRoadmap) ||
+                      (item.isLinks && isScrolledToLinks)
+                        ? "scale(1) translateY(0)"
+                        : "scale(0.8) translateY(4px)",
+                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    position:
+                      (item.isAbout && isScrolledToAbout) ||
+                      (item.isRoadmap && isScrolledToRoadmap) ||
+                      (item.isLinks && isScrolledToLinks)
+                        ? "relative"
+                        : "absolute",
+                    pointerEvents:
+                      (item.isAbout && isScrolledToAbout) ||
+                      (item.isRoadmap && isScrolledToRoadmap) ||
+                      (item.isLinks && isScrolledToLinks)
+                        ? "auto"
+                        : "none",
+                  }}
+                >
+                  {(item.isAbout || item.isRoadmap || item.isLinks) && (
+                    <ArrowUpToLine size={18} />
+                  )}
+                </span>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    opacity:
+                      (item.isAbout && isScrolledToAbout) ||
+                      (item.isRoadmap && isScrolledToRoadmap) ||
+                      (item.isLinks && isScrolledToLinks)
+                        ? 0
+                        : 1,
+                    transform:
+                      (item.isAbout && isScrolledToAbout) ||
+                      (item.isRoadmap && isScrolledToRoadmap) ||
+                      (item.isLinks && isScrolledToLinks)
+                        ? "scale(0.8) translateY(-4px)"
+                        : "scale(1) translateY(0)",
+                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    position:
+                      (item.isAbout && isScrolledToAbout) ||
+                      (item.isRoadmap && isScrolledToRoadmap) ||
+                      (item.isLinks && isScrolledToLinks)
+                        ? "absolute"
+                        : "relative",
+                    pointerEvents:
+                      (item.isAbout && isScrolledToAbout) ||
+                      (item.isLinks && isScrolledToLinks)
+                        ? "none"
+                        : "auto",
+                  }}
+                >
+                  {item.label}
+                </span>
               </button>
             ))}
           </nav>
 
-          <h1
-            style={{
-              fontSize: "clamp(2rem, 5vw, 4.25rem)",
-              fontWeight: 400,
-              lineHeight: 1.1,
-              maxWidth: "100%",
-              whiteSpace: "nowrap",
-            }}
-          >
-            <em>Private</em> intelligence for <em>private</em> people
-          </h1>
-          <p
-            style={{
-              fontSize: "clamp(1.125rem, 2vw, 1.6rem)",
-              fontWeight: 400,
-              maxWidth: "40rem",
-              lineHeight: 1.45,
-            }}
-          >
-            Loyal is built for those who want to ask questions with no
-            repercussions.
-          </p>
-        </div>
-
-        {/* Chat Header - Shows first message as title - FIXED TO TOP OF VIEWPORT */}
-        {isChatMode && messages.length > 0 && (
+          {/* Token Ticker */}
           <div
+            className="loyal-token-ticker-container"
             style={{
               position: "fixed",
-              top: "1.5rem", // Same level as control buttons
-              left: isSidebarOpen ? "320px" : "1.5rem", // Full width from left edge
-              right: "1.5rem", // Full width to right edge
-              height: "3rem", // Same height as control buttons
+              top: "4.5rem",
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 50,
+              opacity: isChatMode ? 0 : 1,
+              pointerEvents: isChatMode ? "none" : "auto",
+              transition: "opacity 0.3s ease",
+              background: "rgba(255, 255, 255, 0.05)",
+              backdropFilter: "blur(20px)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              borderTop: "none",
+              borderRadius: "0 0 10px 10px",
+              padding: "0.6rem 0.625rem 0.4rem",
+              boxShadow:
+                "0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
+            }}
+          >
+            <LoyalTokenTicker />
+          </div>
+          <style>{`
+            @media (max-width: 768px) {
+              .loyal-token-ticker-container {
+                top: 5rem !important;
+                left: auto !important;
+                right: 1.5rem !important;
+                transform: none !important;
+                border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+                border-radius: 10px !important;
+                padding: 0.4rem 0.5rem 0.3rem !important;
+                font-size: 0.75rem !important;
+              }
+            }
+          `}</style>
+
+          {/* Menu Button - Always Visible */}
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
+              e.currentTarget.style.border =
+                "1px solid rgba(255, 255, 255, 0.25)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+              e.currentTarget.style.border =
+                "1px solid rgba(255, 255, 255, 0.15)";
+            }}
+            style={{
+              position: "fixed",
+              top: "1.5rem",
+              left: "1.5rem",
+              zIndex: 60,
+              width: "3rem",
+              height: "3rem",
               display: "flex",
+              justifyContent: "center",
               alignItems: "center",
               background: "rgba(255, 255, 255, 0.08)",
               backdropFilter: "blur(20px)",
               border: "1px solid rgba(255, 255, 255, 0.15)",
-              borderRadius: "24px",
+              borderRadius: "12px",
+              cursor: "pointer",
+              transition: "all 0.3s ease",
               boxShadow:
                 "0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
-              zIndex: 5, // Very LOW z-index so all buttons appear on top
-              animation: "fadeIn 0.5s ease-out",
-              animationFillMode: "both",
-              animationDelay: "0.2s",
-              padding: "0 1.5rem",
-              transition: "left 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+              color: "#fff",
             }}
           >
-            {/* Chat title - no chevron button */}
-            <h2
+            <MenuIcon
+              onMouseEnter={() => {}}
+              onMouseLeave={() => {}}
+              ref={menuIconRef}
+              size={24}
+            />
+          </button>
+
+          {/* New Chat Button - Below Menu - Elegantly hides when sidebar opens */}
+          <div
+            style={{
+              position: "fixed",
+              top: "5.5rem",
+              left: "1.5rem",
+              zIndex: 45,
+              width: "3rem",
+              height: "3rem",
+              transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+              transform: isSidebarOpen
+                ? "translateX(-5rem) scale(0.7) rotate(-180deg)"
+                : "translateX(0) scale(1) rotate(0deg)",
+              opacity: isSidebarOpen ? 0 : 1,
+              pointerEvents: isSidebarOpen ? "none" : "auto",
+            }}
+          >
+            <button
+              onClick={() => {
+                setIsChatMode(false);
+                setInput("");
+                // Clear all messages to start a completely new chat
+                setMessages([]);
+                setTimeout(() => {
+                  inputRef.current?.focus();
+                }, 100);
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
+                e.currentTarget.style.border =
+                  "1px solid rgba(255, 255, 255, 0.25)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                e.currentTarget.style.border =
+                  "1px solid rgba(255, 255, 255, 0.15)";
+              }}
               style={{
-                fontSize: "0.95rem",
-                fontWeight: 400,
-                color: "rgba(255, 255, 255, 0.85)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
                 width: "100%",
-                letterSpacing: "0.01em",
-                margin: 0,
-                textAlign: "center",
+                height: "100%",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                background: "rgba(255, 255, 255, 0.08)",
+                backdropFilter: "blur(20px)",
+                border: "1px solid rgba(255, 255, 255, 0.15)",
+                borderRadius: "12px",
+                cursor: "pointer",
+                transition: "all 0.3s ease",
+                boxShadow:
+                  "0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
+                color: "#fff",
+              }}
+              title="New chat"
+            >
+              <PlusIcon
+                onMouseEnter={() => {}}
+                onMouseLeave={() => {}}
+                ref={plusIconRef}
+                size={24}
+              />
+            </button>
+          </div>
+
+          {/* Mobile backdrop overlay */}
+          {isSidebarOpen && (
+            <div
+              className="md:hidden"
+              onClick={() => setIsSidebarOpen(false)}
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0, 0, 0, 0.7)",
+                backdropFilter: "blur(4px)",
+                zIndex: 39,
+                animation: "fadeIn 0.3s ease-out",
+              }}
+            />
+          )}
+
+          {/* Sidebar */}
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              height: "100vh",
+              width: "300px",
+              background: "rgba(0, 0, 0, 0.5)",
+              backdropFilter: "blur(20px)",
+              borderRight: "1px solid rgba(255, 255, 255, 0.1)",
+              transform: isSidebarOpen ? "translateX(0)" : "translateX(-100%)",
+              transition: "transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+              zIndex: 50,
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: isSidebarOpen ? "0 0 60px rgba(0, 0, 0, 0.5)" : "none",
+              overflow: "visible", // Allow tooltip to overflow
+            }}
+          >
+            {/* Sidebar Header */}
+            <div
+              style={{
+                padding: "1.5rem",
+                paddingTop: "1.5rem",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
               }}
             >
-              {messages[0]?.role === "user"
-                ? messages[0].parts
-                    .filter((part) => part.type === "text")
-                    .map((part) => part.text)
-                    .join("")
-                    .slice(0, 80) +
-                  (messages[0].parts
-                    .filter((part) => part.type === "text")
-                    .map((part) => part.text)
-                    .join("").length > 80
-                    ? "..."
-                    : "")
-                : "Chat"}
-            </h2>
-          </div>
-        )}
+              <button
+                onClick={() => {
+                  setIsChatMode(false);
+                  setInput("");
+                  // Clear all messages for a new chat
+                  setMessages([]);
+                  // Focus on input after resetting chat
+                  setTimeout(() => {
+                    inputRef.current?.focus();
+                  }, 100);
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background =
+                    "rgba(255, 255, 255, 0.15)";
+                  e.currentTarget.style.border =
+                    "1px solid rgba(255, 255, 255, 0.25)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+                  e.currentTarget.style.border =
+                    "1px solid rgba(255, 255, 255, 0.15)";
+                }}
+                style={{
+                  width: "100%",
+                  padding: "0.75rem 1.25rem",
+                  background: "rgba(255, 255, 255, 0.1)",
+                  backdropFilter: "blur(10px)",
+                  border: "1px solid rgba(255, 255, 255, 0.15)",
+                  borderRadius: "12px",
+                  color: "#fff",
+                  fontSize: "0.95rem",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  transition: "all 0.3s ease",
+                }}
+              >
+                + New Chat
+              </button>
+            </div>
 
-        {/* Input container */}
-        <div
-          onClick={(e) => {
-            // Focus input when clicking on the container (but not on other elements)
-            if (isChatMode && e.target === e.currentTarget) {
-              inputRef.current?.focus();
-            }
-          }}
-          style={{
-            position: "absolute",
-            bottom: isChatMode ? "0" : "48vh",
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: isChatMode ? "min(920px, 90%)" : "min(600px, 90%)",
-            maxHeight: isChatMode ? "100vh" : "auto",
-            transition: "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "1rem",
-            padding: isChatMode ? "2rem 1rem 2rem 2rem" : "0",
-          }}
-        >
-          {/* Chat messages */}
-          {isChatMode && (
+            {/* Navigation Menu - Mobile only */}
             <div
-              className="chat-messages-container"
-              onClick={() => {
-                // Focus input when clicking on the message area
-                inputRef.current?.focus();
+              className="flex md:hidden"
+              style={{
+                padding: "1rem 1.5rem",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                flexDirection: "column",
+                gap: "0.5rem",
               }}
-              ref={messagesContainerRef}
+            >
+              {[
+                {
+                  label: "About",
+                  onClick: () => {
+                    if (isScrolledToAbout) {
+                      handleBackToTop();
+                    } else {
+                      handleScrollToAbout();
+                    }
+                    setIsSidebarOpen(false); // Close sidebar after clicking
+                  },
+                  isAbout: true,
+                },
+                {
+                  label: "Roadmap",
+                  onClick: () => {
+                    if (isScrolledToRoadmap) {
+                      handleBackToTop();
+                    } else {
+                      handleScrollToRoadmap();
+                    }
+                    setIsSidebarOpen(false);
+                  },
+                  isRoadmap: true,
+                },
+                {
+                  label: "Links",
+                  onClick: () => {
+                    if (isScrolledToLinks) {
+                      handleBackToTop();
+                    } else {
+                      handleScrollToLinks();
+                    }
+                    setIsSidebarOpen(false);
+                  },
+                  isLinks: true,
+                },
+                { label: "Docs", href: "https://docs.askloyal.com/" },
+              ].map((item) => (
+                <button
+                  key={item.label}
+                  onClick={item.onClick}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background =
+                      "rgba(255, 255, 255, 0.12)";
+                    e.currentTarget.style.border =
+                      "1px solid rgba(255, 255, 255, 0.25)";
+                    e.currentTarget.style.color = "rgba(255, 255, 255, 1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background =
+                      "rgba(255, 255, 255, 0.05)";
+                    e.currentTarget.style.border =
+                      "1px solid rgba(255, 255, 255, 0.1)";
+                    e.currentTarget.style.color = "rgba(255, 255, 255, 0.85)";
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "0.625rem 1rem",
+                    background: "rgba(255, 255, 255, 0.05)",
+                    backdropFilter: "blur(10px)",
+                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    borderRadius: "10px",
+                    color: "rgba(255, 255, 255, 0.85)",
+                    fontSize: "0.875rem",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
+                    textAlign: "left",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent:
+                      (item.isAbout && isScrolledToAbout) ||
+                      (item.isRoadmap && isScrolledToRoadmap) ||
+                      (item.isLinks && isScrolledToLinks)
+                        ? "center"
+                        : "flex-start",
+                    gap: "0.5rem",
+                    filter:
+                      (item.isAbout && isScrolledToAbout) ||
+                      (item.isRoadmap && isScrolledToRoadmap) ||
+                      (item.isLinks && isScrolledToLinks)
+                        ? "drop-shadow(0 0 6px rgba(255, 255, 255, 0.5))"
+                        : "none",
+                    overflow: "hidden",
+                    position: "relative",
+                  }}
+                >
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity:
+                        (item.isAbout && isScrolledToAbout) ||
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
+                          ? 1
+                          : 0,
+                      transform:
+                        (item.isAbout && isScrolledToAbout) ||
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
+                          ? "scale(1) translateY(0)"
+                          : "scale(0.8) translateY(4px)",
+                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                      position:
+                        (item.isAbout && isScrolledToAbout) ||
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
+                          ? "relative"
+                          : "absolute",
+                      pointerEvents:
+                        (item.isAbout && isScrolledToAbout) ||
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
+                          ? "auto"
+                          : "none",
+                    }}
+                  >
+                    {(item.isAbout || item.isRoadmap || item.isLinks) && (
+                      <ArrowUpToLine size={16} />
+                    )}
+                  </span>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity:
+                        (item.isAbout && isScrolledToAbout) ||
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
+                          ? 0
+                          : 1,
+                      transform:
+                        (item.isAbout && isScrolledToAbout) ||
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
+                          ? "scale(0.8) translateY(-4px)"
+                          : "scale(1) translateY(0)",
+                      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                      position:
+                        (item.isAbout && isScrolledToAbout) ||
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
+                          ? "absolute"
+                          : "relative",
+                      pointerEvents:
+                        (item.isAbout && isScrolledToAbout) ||
+                        (item.isLinks && isScrolledToLinks)
+                          ? "none"
+                          : "auto",
+                    }}
+                  >
+                    {item.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Previous Chats List */}
+            <div
               style={{
                 flex: 1,
                 overflowY: "auto",
-                overflowX: "hidden",
-                display: "flex",
-                flexDirection: "column",
-                gap: "1rem",
-                padding:
-                  messages.length > 0 ? "5rem 1rem 2rem 0" : "2rem 1rem 2rem 0",
-                animation: "fadeIn 0.5s ease-in",
+                overflowX: "visible",
+                padding: "1rem",
                 position: "relative",
-                maskImage:
-                  messages.length > 0
-                    ? "linear-gradient(to bottom, transparent 0%, black 4rem, black calc(100% - 1.5rem), transparent 100%)"
-                    : "linear-gradient(to bottom, transparent 0%, black 1.5rem, black calc(100% - 1.5rem), transparent 100%)",
-                WebkitMaskImage:
-                  messages.length > 0
-                    ? "linear-gradient(to bottom, transparent 0%, black 4rem, black calc(100% - 1.5rem), transparent 100%)"
-                    : "linear-gradient(to bottom, transparent 0%, black 1.5rem, black calc(100% - 1.5rem), transparent 100%)",
               }}
             >
-              {messages.map((message, messageIndex) => {
-                const messageText = message.parts
-                  .filter((part) => part.type === "text")
-                  .map((part) => part.text)
-                  .join("");
-
-                // Generate a timestamp for the message
-                const messageTime = new Date(
-                  Date.now() - (messages.length - messageIndex - 1) * 60_000
-                ).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                });
-
-                return (
+              {previousChats.map((chat) => (
+                <div
+                  key={chat.id}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background =
+                      "rgba(255, 255, 255, 0.1)";
+                    e.currentTarget.style.border =
+                      "1px solid rgba(255, 255, 255, 0.15)";
+                    setHoveredChatId(chat.id);
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background =
+                      "rgba(255, 255, 255, 0.05)";
+                    e.currentTarget.style.border =
+                      "1px solid rgba(255, 255, 255, 0.08)";
+                    setHoveredChatId(null);
+                  }}
+                  style={{
+                    padding: "0.875rem 1rem",
+                    marginBottom: hoveredChatId === chat.id ? "3rem" : "0.5rem",
+                    background: "rgba(255, 255, 255, 0.05)",
+                    backdropFilter: "blur(10px)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: "12px",
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
+                    position: "relative",
+                  }}
+                >
+                  {/* Tooltip */}
+                  {hoveredChatId === chat.id && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: "-2.5rem",
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        padding: "0.4rem 0.6rem",
+                        background: "rgba(255, 255, 255, 0.12)",
+                        backdropFilter: "blur(20px)",
+                        border: "1px solid rgba(255, 255, 255, 0.2)",
+                        borderRadius: "10px",
+                        boxShadow:
+                          "0 8px 24px 0 rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.15)",
+                        fontSize: "0.75rem",
+                        fontWeight: 500,
+                        color: "rgba(255, 255, 255, 0.9)",
+                        whiteSpace: "nowrap",
+                        pointerEvents: "none",
+                        zIndex: 1000,
+                        animation: "tooltipFadeInDown 0.2s ease-out",
+                        letterSpacing: "0.025em",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.3rem",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: "0.85rem",
+                            opacity: 0.8,
+                          }}
+                        >
+                          ⚠️
+                        </span>
+                        Preview. Storage is WIP
+                      </div>
+                      {/* Tooltip arrow pointing up */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "-5px",
+                          left: "50%",
+                          transform: "translateX(-50%) rotate(45deg)",
+                          width: "10px",
+                          height: "10px",
+                          background: "rgba(255, 255, 255, 0.12)",
+                          border: "1px solid rgba(255, 255, 255, 0.2)",
+                          borderRight: "none",
+                          borderBottom: "none",
+                          backdropFilter: "blur(20px)",
+                        }}
+                      />
+                    </div>
+                  )}
                   <div
-                    key={message.id}
+                    style={{
+                      color: "#fff",
+                      fontSize: "0.9rem",
+                      fontWeight: 500,
+                      marginBottom: "0.25rem",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {chat.title}
+                  </div>
+                  <div
+                    style={{
+                      color: "rgba(255, 255, 255, 0.5)",
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    {chat.timestamp}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div
+            className={instrumentSerif.className}
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "flex-start",
+              textAlign: "center",
+              padding: "calc(22vh + 40px) 1.5rem 0",
+              gap: "0.75rem",
+              color: "#fff",
+              transition: "transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
+              transform: isChatMode ? "translateY(-100vh)" : "translateY(0)",
+            }}
+          >
+            {/* For testers pill badge */}
+            <div
+              onClick={() => setIsModalOpen(true)}
+              style={{
+                marginBottom: "0.75rem",
+                animation: "fadeIn 0.6s ease-out",
+                fontFamily: "var(--font-geist-sans)",
+              }}
+            >
+              <AnimatedBadge color="#ef4444" text="Message for testers" />
+            </div>
+
+            <h1
+              style={{
+                fontSize: "clamp(2rem, 5vw, 4.25rem)",
+                fontWeight: 400,
+                lineHeight: 1.1,
+                maxWidth: "100%",
+              }}
+            >
+              Agentic <em>computer</em> for private <em>people</em>
+            </h1>
+            <p
+              style={{
+                fontSize: "clamp(1.125rem, 2vw, 1.6rem)",
+                fontWeight: 400,
+                maxWidth: "40rem",
+                lineHeight: 1.45,
+              }}
+            >
+              Private onchain intelligence with web2 performance.
+            </p>
+          </div>
+
+          {/* Chat Header - Shows first message as title - FIXED TO TOP OF VIEWPORT */}
+          {isChatMode && messages.length > 0 && (
+            <div
+              style={{
+                position: "fixed",
+                top: "1.5rem", // Same level as control buttons
+                left: isSidebarOpen ? "320px" : "1.5rem", // Full width from left edge
+                right: "1.5rem", // Full width to right edge
+                height: "3rem", // Same height as control buttons
+                display: "flex",
+                alignItems: "center",
+                background: "rgba(255, 255, 255, 0.08)",
+                backdropFilter: "blur(20px)",
+                border: "1px solid rgba(255, 255, 255, 0.15)",
+                borderRadius: "24px",
+                boxShadow:
+                  "0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
+                zIndex: 5, // Very LOW z-index so all buttons appear on top
+                animation: "fadeIn 0.5s ease-out",
+                animationFillMode: "both",
+                animationDelay: "0.2s",
+                padding: "0 1.5rem",
+                transition: "left 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+              }}
+            >
+              {/* Chat title - no chevron button */}
+              <h2
+                style={{
+                  fontSize: "0.95rem",
+                  fontWeight: 400,
+                  color: "rgba(255, 255, 255, 0.85)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  width: "100%",
+                  letterSpacing: "0.01em",
+                  margin: 0,
+                  textAlign: "center",
+                }}
+              >
+                {messages[0]?.role === "user"
+                  ? messages[0].parts
+                      .filter((part) => part.type === "text")
+                      .map((part) => part.text)
+                      .join("")
+                      .slice(0, 80) +
+                    (messages[0].parts
+                      .filter((part) => part.type === "text")
+                      .map((part) => part.text)
+                      .join("").length > 80
+                      ? "..."
+                      : "")
+                  : "Chat"}
+              </h2>
+            </div>
+          )}
+
+          {/* Input container */}
+          <div
+            onClick={(e) => {
+              // Focus input when clicking on the container (but not on other elements)
+              if (isChatMode && e.target === e.currentTarget) {
+                inputRef.current?.focus();
+              }
+            }}
+            style={{
+              position: "absolute",
+              bottom: isChatMode ? "0" : "calc(48vh - 40px)",
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: isChatMode ? "min(920px, 90%)" : "min(600px, 90%)",
+              maxHeight: isChatMode ? "100vh" : "auto",
+              transition: "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "1rem",
+              padding: isChatMode ? "2rem 1rem 2rem 2rem" : "0",
+            }}
+          >
+            {/* Chat messages */}
+            {isChatMode && (
+              <div
+                className="chat-messages-container"
+                onClick={() => {
+                  // Focus input when clicking on the message area
+                  inputRef.current?.focus();
+                }}
+                ref={messagesContainerRef}
+                style={{
+                  flex: 1,
+                  overflowY: "auto",
+                  overflowX: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1rem",
+                  padding:
+                    messages.length > 0
+                      ? "5rem 1rem 2rem 0"
+                      : "2rem 1rem 2rem 0",
+                  animation: "fadeIn 0.5s ease-in",
+                  position: "relative",
+                  maskImage:
+                    messages.length > 0
+                      ? "linear-gradient(to bottom, transparent 0%, black 4rem, black calc(100% - 1.5rem), transparent 100%)"
+                      : "linear-gradient(to bottom, transparent 0%, black 1.5rem, black calc(100% - 1.5rem), transparent 100%)",
+                  WebkitMaskImage:
+                    messages.length > 0
+                      ? "linear-gradient(to bottom, transparent 0%, black 4rem, black calc(100% - 1.5rem), transparent 100%)"
+                      : "linear-gradient(to bottom, transparent 0%, black 1.5rem, black calc(100% - 1.5rem), transparent 100%)",
+                }}
+              >
+                {messages.map((message, messageIndex) => {
+                  const messageText = message.parts
+                    .filter((part) => part.type === "text")
+                    .map((part) => part.text)
+                    .join("");
+
+                  // Generate a timestamp for the message
+                  const messageTime = new Date(
+                    Date.now() - (messages.length - messageIndex - 1) * 60_000
+                  ).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  });
+
+                  return (
+                    <div
+                      key={message.id}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems:
+                          message.role === "user" ? "flex-end" : "flex-start",
+                        gap: "0.5rem",
+                        animation: "slideInUp 0.3s ease-out",
+                        animationFillMode: "both",
+                      }}
+                    >
+                      {/* Message bubble */}
+                      <div
+                        style={{
+                          position: "relative",
+                          padding: "1rem 1.5rem",
+                          borderRadius: "16px",
+                          background:
+                            message.role === "user"
+                              ? "rgba(255, 255, 255, 0.1)"
+                              : "rgba(255, 255, 255, 0.05)",
+                          backdropFilter: "blur(10px)",
+                          border: "1px solid rgba(255, 255, 255, 0.1)",
+                          color: "#fff",
+                          fontSize: "1rem",
+                          lineHeight: 1.5,
+                          maxWidth: "80%",
+                          transition: "all 0.2s ease",
+                          overflow: "visible",
+                        }}
+                      >
+                        {message.role === "assistant" ? (
+                          <MarkdownRenderer content={messageText} />
+                        ) : (
+                          message.parts.map((part, index) =>
+                            part.type === "text" ? (
+                              <span key={index}>{part.text}</span>
+                            ) : null
+                          )
+                        )}
+                      </div>
+
+                      {/* Controls below message */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.75rem",
+                          padding: "0 0.5rem",
+                        }}
+                      >
+                        {/* Timestamp */}
+                        <span
+                          style={{
+                            fontSize: "0.75rem",
+                            color: "rgba(255, 255, 255, 0.3)",
+                            letterSpacing: "0.025em",
+                          }}
+                        >
+                          {messageTime}
+                        </span>
+
+                        {/* Copy button */}
+                        <button
+                          onClick={() =>
+                            handleCopyMessage(message.id, messageText)
+                          }
+                          onMouseEnter={(e) => {
+                            if (copiedMessageId !== message.id) {
+                              e.currentTarget.style.color =
+                                "rgba(255, 255, 255, 0.5)";
+                              e.currentTarget.style.background =
+                                "rgba(255, 255, 255, 0.05)";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (copiedMessageId !== message.id) {
+                              e.currentTarget.style.color =
+                                "rgba(255, 255, 255, 0.3)";
+                              e.currentTarget.style.background = "transparent";
+                            }
+                          }}
+                          style={{
+                            padding: "0.25rem",
+                            background:
+                              copiedMessageId === message.id
+                                ? "rgba(34, 197, 94, 0.15)"
+                                : "transparent",
+                            border: "none",
+                            borderRadius: "8px",
+                            cursor: "pointer",
+                            color:
+                              copiedMessageId === message.id
+                                ? "#22c55e"
+                                : "rgba(255, 255, 255, 0.3)",
+                            transition: "all 0.2s ease",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            position: "relative",
+                          }}
+                          title={
+                            copiedMessageId === message.id
+                              ? "Copied!"
+                              : "Copy message"
+                          }
+                        >
+                          <CopyIcon
+                            ref={(el) => {
+                              if (el) {
+                                copyIconRefs.current.set(message.id, el);
+                              }
+                            }}
+                            size={14}
+                          />
+
+                          {/* Copied feedback text */}
+                          {copiedMessageId === message.id && (
+                            <span
+                              style={{
+                                position: "absolute",
+                                top: "-1.25rem",
+                                left: "50%",
+                                transform: "translateX(-50%)",
+                                fontSize: "0.65rem",
+                                color: "#fff",
+                                background: "rgba(34, 197, 94, 0.9)",
+                                padding: "0.125rem 0.375rem",
+                                borderRadius: "4px",
+                                animation: "fadeInDownSimple 0.2s ease-in",
+                                fontWeight: 500,
+                                letterSpacing: "0.025em",
+                                whiteSpace: "nowrap",
+                                pointerEvents: "none",
+                                zIndex: 10,
+                              }}
+                            >
+                              Copied
+                            </span>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Thinking indicator */}
+                {status === "submitted" && (
+                  <div
                     style={{
                       display: "flex",
                       flexDirection: "column",
-                      alignItems:
-                        message.role === "user" ? "flex-end" : "flex-start",
+                      alignItems: "flex-start",
                       gap: "0.5rem",
                       animation: "slideInUp 0.3s ease-out",
                       animationFillMode: "both",
                     }}
                   >
-                    {/* Message bubble */}
                     <div
                       style={{
                         position: "relative",
                         padding: "1rem 1.5rem",
                         borderRadius: "16px",
-                        background:
-                          message.role === "user"
-                            ? "rgba(255, 255, 255, 0.1)"
-                            : "rgba(255, 255, 255, 0.05)",
+                        background: "rgba(255, 255, 255, 0.05)",
                         backdropFilter: "blur(10px)",
                         border: "1px solid rgba(255, 255, 255, 0.1)",
-                        color: "#fff",
+                        color: "rgba(255, 255, 255, 0.6)",
                         fontSize: "1rem",
                         lineHeight: 1.5,
-                        maxWidth: "80%",
-                        transition: "all 0.2s ease",
-                        overflow: "visible",
-                      }}
-                    >
-                      {message.role === "assistant" ? (
-                        <MarkdownRenderer content={messageText} />
-                      ) : (
-                        message.parts.map((part, index) =>
-                          part.type === "text" ? (
-                            <span key={index}>{part.text}</span>
-                          ) : null
-                        )
-                      )}
-                    </div>
-
-                    {/* Controls below message */}
-                    <div
-                      style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "0.75rem",
-                        padding: "0 0.5rem",
+                        gap: "0.5rem",
                       }}
                     >
-                      {/* Timestamp */}
+                      <span>Thinking</span>
                       <span
                         style={{
-                          fontSize: "0.75rem",
-                          color: "rgba(255, 255, 255, 0.3)",
-                          letterSpacing: "0.025em",
+                          display: "inline-flex",
+                          gap: "0.125rem",
                         }}
                       >
-                        {messageTime}
-                      </span>
-
-                      {/* Copy button */}
-                      <button
-                        onClick={() =>
-                          handleCopyMessage(message.id, messageText)
-                        }
-                        onMouseEnter={(e) => {
-                          if (copiedMessageId !== message.id) {
-                            e.currentTarget.style.color =
-                              "rgba(255, 255, 255, 0.5)";
-                            e.currentTarget.style.background =
-                              "rgba(255, 255, 255, 0.05)";
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (copiedMessageId !== message.id) {
-                            e.currentTarget.style.color =
-                              "rgba(255, 255, 255, 0.3)";
-                            e.currentTarget.style.background = "transparent";
-                          }
-                        }}
-                        style={{
-                          padding: "0.25rem",
-                          background:
-                            copiedMessageId === message.id
-                              ? "rgba(34, 197, 94, 0.15)"
-                              : "transparent",
-                          border: "none",
-                          borderRadius: "8px",
-                          cursor: "pointer",
-                          color:
-                            copiedMessageId === message.id
-                              ? "#22c55e"
-                              : "rgba(255, 255, 255, 0.3)",
-                          transition: "all 0.2s ease",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          position: "relative",
-                        }}
-                        title={
-                          copiedMessageId === message.id
-                            ? "Copied!"
-                            : "Copy message"
-                        }
-                      >
-                        <CopyIcon
-                          ref={(el) => {
-                            if (el) {
-                              copyIconRefs.current.set(message.id, el);
-                            }
+                        <span
+                          style={{
+                            animation:
+                              "dotBounce 1.4s infinite ease-in-out both",
+                            animationDelay: "0s",
                           }}
-                          size={14}
-                        />
-
-                        {/* Copied feedback text */}
-                        {copiedMessageId === message.id && (
-                          <span
-                            style={{
-                              position: "absolute",
-                              top: "-1.25rem",
-                              left: "50%",
-                              transform: "translateX(-50%)",
-                              fontSize: "0.65rem",
-                              color: "#fff",
-                              background: "rgba(34, 197, 94, 0.9)",
-                              padding: "0.125rem 0.375rem",
-                              borderRadius: "4px",
-                              animation: "fadeInDownSimple 0.2s ease-in",
-                              fontWeight: 500,
-                              letterSpacing: "0.025em",
-                              whiteSpace: "nowrap",
-                              pointerEvents: "none",
-                              zIndex: 10,
-                            }}
-                          >
-                            Copied
-                          </span>
-                        )}
-                      </button>
+                        >
+                          .
+                        </span>
+                        <span
+                          style={{
+                            animation:
+                              "dotBounce 1.4s infinite ease-in-out both",
+                            animationDelay: "0.2s",
+                          }}
+                        >
+                          .
+                        </span>
+                        <span
+                          style={{
+                            animation:
+                              "dotBounce 1.4s infinite ease-in-out both",
+                            animationDelay: "0.4s",
+                          }}
+                        >
+                          .
+                        </span>
+                      </span>
                     </div>
                   </div>
-                );
-              })}
-              <div ref={messagesEndRef} style={{ height: "1rem" }} />
-            </div>
-          )}
+                )}
 
-          {/* Scroll to bottom button - positioned above input */}
-          {isChatMode && (
-            <button
-              aria-label="Scroll to bottom"
-              className="scroll-to-bottom-button"
-              onClick={handleScrollToBottom}
-              onMouseEnter={(e) => {
-                if (showScrollButton) {
-                  e.currentTarget.style.transform = "scale(1.05)";
-                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
-                  e.currentTarget.style.border = "1px solid rgba(255, 255, 255, 0.25)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (showScrollButton) {
-                  e.currentTarget.style.transform = "scale(1)";
-                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
-                  e.currentTarget.style.border = "1px solid rgba(255, 255, 255, 0.15)";
-                }
-              }}
-              style={{
-                position: "absolute",
-                bottom: "7rem", // Positioned above the input field with more space
-                right: "2rem",
-                width: "2.5rem",
-                height: "2.5rem",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "rgba(255, 255, 255, 0.08)",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)", // Safari support
-                border: "1px solid rgba(255, 255, 255, 0.15)",
-                borderRadius: "50%",
-                boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
-                cursor: "pointer",
-                transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-                transform: showScrollButton ? "scale(1)" : "scale(0.8)",
-                opacity: showScrollButton ? 1 : 0,
-                visibility: showScrollButton ? "visible" : "hidden",
-                pointerEvents: showScrollButton ? "auto" : "none",
-                zIndex: 10,
-              }}
-              type="button"
-            >
-              <ArrowDownIcon
-                style={{
-                  width: "1.125rem",
-                  height: "1.125rem",
-                  color: "#fff",
-                  filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3))",
-                }}
-              />
-            </button>
-          )}
+                <div ref={messagesEndRef} style={{ height: "1rem" }} />
+              </div>
+            )}
 
-          {/* Input form - liquid glass style with integrated send button */}
-          <form
-            onSubmit={handleSubmit}
-            style={{
-              position: "relative",
-              width: "100%",
-              marginTop: "0.5rem",
-            }}
-          >
-            <div
-              onBlur={(e) => {
-                e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
-                e.currentTarget.style.border =
-                  "1px solid rgba(255, 255, 255, 0.15)";
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
-                e.currentTarget.style.border =
-                  "1px solid rgba(255, 255, 255, 0.25)";
-              }}
-              style={{
-                position: "relative",
-                display: "flex",
-                alignItems: "flex-end",
-                background: "rgba(255, 255, 255, 0.08)",
-                backdropFilter: "blur(20px)",
-                border: "1px solid rgba(255, 255, 255, 0.15)",
-                borderRadius: "20px",
-                boxShadow:
-                  "0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
-                transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
-              }}
-            >
-              <textarea
-                autoFocus
-                disabled={
-                  !isOnline || status !== "ready" || (isChatMode && !connected)
-                }
-                onChange={(e) => {
-                  setInput(e.target.value);
-                  // Auto-resize textarea
-                  if (inputRef.current) {
-                    inputRef.current.style.height = "auto";
-                    inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSubmit(e);
-                  }
-                }}
-                placeholder={
-                  isOnline
-                    ? isChatMode && !connected
-                      ? "Please reconnect wallet to continue..."
-                      : "Ask me anything..."
-                    : "No internet connection..."
-                }
-                ref={inputRef}
-                rows={1}
-                style={{
-                  flex: 1,
-                  padding: "1.25rem 1.75rem",
-                  paddingRight: "3.5rem", // Make room for the send button
-                  fontSize: "1rem",
-                  color: "#fff",
-                  background: "transparent",
-                  border: "none",
-                  outline: "none",
-                  resize: "none",
-                  fontFamily: "inherit",
-                  lineHeight: "1.5",
-                  overflowX: "hidden",
-                  overflowY: "auto",
-                  minHeight: "auto",
-                  maxHeight: "200px",
-                }}
-                tabIndex={0}
-                value={input}
-              />
+            {/* Scroll to bottom button - positioned above input */}
+            {isChatMode && (
               <button
-                disabled={
-                  !isOnline ||
-                  status !== "ready" ||
-                  !input.trim() ||
-                  (isChatMode && !connected)
-                }
+                aria-label="Scroll to bottom"
+                className="scroll-to-bottom-button"
+                onClick={handleScrollToBottom}
                 onMouseEnter={(e) => {
-                  if (
-                    isOnline &&
-                    status === "ready" &&
-                    input.trim() &&
-                    (!isChatMode || connected)
-                  ) {
-                    e.currentTarget.style.opacity = "1";
+                  if (showScrollButton) {
+                    e.currentTarget.style.transform = "scale(1.05)";
                     e.currentTarget.style.background =
-                      "rgba(255, 255, 255, 0.1)";
-                    e.currentTarget.style.transform =
-                      "translateY(-50%) scale(1.1)";
+                      "rgba(255, 255, 255, 0.12)";
+                    e.currentTarget.style.border =
+                      "1px solid rgba(255, 255, 255, 0.25)";
                   }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = "0.7";
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.transform = "translateY(-50%) scale(1)";
+                  if (showScrollButton) {
+                    e.currentTarget.style.transform = "scale(1)";
+                    e.currentTarget.style.background =
+                      "rgba(255, 255, 255, 0.08)";
+                    e.currentTarget.style.border =
+                      "1px solid rgba(255, 255, 255, 0.15)";
+                  }
                 }}
                 style={{
                   position: "absolute",
-                  right: "0.75rem",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  padding: "0.5rem",
+                  bottom: "7rem", // Positioned above the input field with more space
+                  right: "2rem",
+                  width: "2.5rem",
+                  height: "2.5rem",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#fff",
-                  background: "transparent",
-                  border: "none",
-                  borderRadius: "12px",
-                  cursor:
-                    !isOnline ||
-                    status !== "ready" ||
-                    !input.trim() ||
-                    (isChatMode && !connected)
-                      ? "not-allowed"
-                      : "pointer",
-                  outline: "none",
-                  transition: "all 0.3s ease",
-                  opacity:
-                    !isOnline ||
-                    status !== "ready" ||
-                    !input.trim() ||
-                    (isChatMode && !connected)
-                      ? 0.3
-                      : 0.7,
+                  background: "rgba(255, 255, 255, 0.08)",
+                  backdropFilter: "blur(20px)",
+                  WebkitBackdropFilter: "blur(20px)", // Safari support
+                  border: "1px solid rgba(255, 255, 255, 0.15)",
+                  borderRadius: "50%",
+                  boxShadow:
+                    "0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
+                  cursor: "pointer",
+                  transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+                  transform: showScrollButton ? "scale(1)" : "scale(0.8)",
+                  opacity: showScrollButton ? 1 : 0,
+                  visibility: showScrollButton ? "visible" : "hidden",
+                  pointerEvents: showScrollButton ? "auto" : "none",
+                  zIndex: 10,
                 }}
-                type="submit"
+                type="button"
               >
-                <ChevronRightIcon
-                  size={24}
+                <ArrowDownIcon
                   style={{
-                    animation:
-                      status === "streaming" || status === "submitted"
-                        ? "pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite"
-                        : "none",
+                    width: "1.125rem",
+                    height: "1.125rem",
+                    color: "#fff",
+                    filter: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3))",
                   }}
                 />
               </button>
-            </div>
-          </form>
+            )}
+
+            {/* Input form - liquid glass style with integrated send button */}
+            <form
+              onSubmit={handleSubmit}
+              style={{
+                position: "relative",
+                width: "100%",
+                marginTop: "0.5rem",
+              }}
+            >
+              <div
+                onBlur={(e) => {
+                  e.currentTarget.style.background =
+                    "rgba(255, 255, 255, 0.08)";
+                  e.currentTarget.style.border =
+                    "1px solid rgba(255, 255, 255, 0.15)";
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.background =
+                    "rgba(255, 255, 255, 0.12)";
+                  e.currentTarget.style.border =
+                    "1px solid rgba(255, 255, 255, 0.25)";
+                }}
+                style={{
+                  position: "relative",
+                  display: "flex",
+                  alignItems: "flex-end",
+                  background: "rgba(255, 255, 255, 0.08)",
+                  backdropFilter: "blur(20px)",
+                  border: "1px solid rgba(255, 255, 255, 0.15)",
+                  borderRadius: "20px",
+                  boxShadow:
+                    "0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
+                  transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+                }}
+              >
+                <SkillsTextarea
+                  autoFocus
+                  disabled={
+                    !isOnline ||
+                    status !== "ready" ||
+                    (isChatMode && !connected)
+                  }
+                  onChange={(e) => {
+                    setInput(e.target.value);
+
+                    // Show modal on first typing
+                    if (!hasShownModal && e.target.value.length > 0) {
+                      setIsModalOpen(true);
+                      setHasShownModal(true);
+                      localStorage.setItem("loyal-testers-modal-shown", "true");
+                    }
+
+                    // Auto-resize textarea
+                    if (inputRef.current) {
+                      inputRef.current.style.height = "auto";
+                      inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmit(e);
+                    }
+                  }}
+                  placeholder={
+                    isOnline
+                      ? isChatMode && !connected
+                        ? "Please reconnect wallet to continue..."
+                        : "Ask me anything..."
+                      : "No internet connection..."
+                  }
+                  ref={inputRef}
+                  rows={1}
+                  style={{
+                    flex: 1,
+                    padding: "1.25rem 1.75rem",
+                    paddingRight: "3.5rem", // Make room for the send button
+                    fontSize: "1rem",
+                    color: "#fff",
+                    background: "transparent",
+                    border: "none",
+                    outline: "none",
+                    resize: "none",
+                    fontFamily: "inherit",
+                    lineHeight: "1.5",
+                    overflowX: "hidden",
+                    overflowY: "auto",
+                    minHeight: "auto",
+                    maxHeight: "200px",
+                  }}
+                  tabIndex={0}
+                  value={input}
+                />
+                <button
+                  disabled={!hasUsableInput}
+                  onMouseEnter={(e) => {
+                    if (hasUsableInput) {
+                      e.currentTarget.style.opacity = "1";
+                      e.currentTarget.style.background =
+                        "rgba(255, 255, 255, 0.15)";
+                      e.currentTarget.style.transform =
+                        "translateY(-50%) scale(1.1)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (hasUsableInput) {
+                      e.currentTarget.style.opacity = "0.8";
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.transform =
+                        "translateY(-50%) scale(1)";
+                    }
+                  }}
+                  style={{
+                    position: "absolute",
+                    right: "0.75rem",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    padding: "0.5rem",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#fff",
+                    background: "transparent",
+                    border: "none",
+                    borderRadius: "12px",
+                    cursor: hasUsableInput ? "pointer" : "not-allowed",
+                    outline: "none",
+                    transition: "all 0.3s ease",
+                    opacity: hasUsableInput ? 0.8 : 0.3,
+                    zIndex: 2,
+                  }}
+                  type="submit"
+                >
+                  <ChevronRightIcon
+                    size={24}
+                    style={{
+                      animation:
+                        status === "streaming" || status === "submitted"
+                          ? "pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite"
+                          : "none",
+                    }}
+                  />
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
+        {/* End of first section */}
+
+        {/* BentoGrid Section - Only show when not in chat mode */}
+        {!isChatMode && <BentoGridSection />}
+
+        {/* Roadmap Section - Only show when not in chat mode */}
+        {!isChatMode && <RoadmapSection />}
+        {!isChatMode && <Footer />}
       </div>
 
       {/* Network offline overlay */}
@@ -1609,7 +2136,7 @@ export default function LandingPage() {
                 lineHeight: 1.3,
               }}
             >
-              Thank you for joining the first test batch!
+              Thank you for joining Loyal open test!
             </h2>
 
             {/* Modal body */}
@@ -1624,33 +2151,42 @@ export default function LandingPage() {
               }}
             >
               <p style={{ margin: 0 }}>
-                Please note: Loyal is a test product for evaluation purposes
-                only. Functionality may be incomplete, may change without
-                notice, and may contain errors.
-              </p>
-
-              <p style={{ margin: 0 }}>
                 <strong style={{ color: "#fff", fontWeight: 600 }}>
-                  What makes Loyal different from regular LLM chats:
+                  What is it:
                 </strong>{" "}
-                your queries run in fully private, confidential compute—even the
-                Loyal team cannot access them. Conversation state is written
-                on-chain and anchored to a per-user Solana PDA.
+                you&apos;re looking at fully private on-chain AI. Every message
+                is encrypted and facilitated on-chain with AI itself running in
+                confidential VM. Neither Loyal devs nor compute node owners can
+                access your data.
               </p>
 
               <p style={{ margin: 0 }}>
-                This app may look like a simple chat, but under the hood
-                you&apos;re talking to a fully on-chain AI. In the coming weeks,
-                we&apos;ll ship more AI apps built on this Loyal backbone.
-              </p>
-
-              <p style={{ margin: 0 }}>
-                For this test run, there&apos;s no per-query fee—only wallet
+                For this open test, there&apos;s no per-query fee but the wallet
                 verification is required.
               </p>
 
               <p style={{ margin: 0 }}>
-                Please report any bugs to our discord testing channel.
+                <strong style={{ color: "#ef4444", fontWeight: 600 }}>
+                  WARNING:
+                </strong>{" "}
+                this is an early stage product and some features may be
+                incomplete or contain errors.
+              </p>
+
+              <p style={{ margin: 0 }}>
+                You will help our cause if you report any bugs/drop your
+                feedback or ideas in our discord community:{" "}
+                <a
+                  href="https://discord.askloyal.com"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: "#60a5fa",
+                    textDecoration: "underline",
+                  }}
+                  target="_blank"
+                >
+                  https://discord.askloyal.com
+                </a>
               </p>
             </div>
 

@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { useChat } from '@ai-sdk/react';
-import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useChat } from "@ai-sdk/react";
+import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   Conversation,
   ConversationContent,
   ConversationScrollButton,
-} from '@/components/ai-elements/conversation';
-import { Loader } from '@/components/ai-elements/loader';
-import { Message, MessageContent } from '@/components/ai-elements/message';
+} from "@/components/ai-elements/conversation";
+import { Loader } from "@/components/ai-elements/loader";
+import { Message, MessageContent } from "@/components/ai-elements/message";
 import {
   PromptInput,
   PromptInputModelSelect,
@@ -21,39 +21,39 @@ import {
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputToolbar,
-  PromptInputTools
-} from '@/components/ai-elements/prompt-input';
+  PromptInputTools,
+} from "@/components/ai-elements/prompt-input";
 import {
   Reasoning,
   ReasoningContent,
   ReasoningTrigger,
-} from '@/components/ai-elements/reasoning';
-import { Response } from '@/components/ai-elements/response';
+} from "@/components/ai-elements/reasoning";
+import { Response } from "@/components/ai-elements/response";
 import {
   Source,
   Sources,
   SourcesContent,
   SourcesTrigger,
-} from '@/components/ai-elements/source';
-import { TopicsSidebar } from '@/components/ai-elements/topics-sidebar';
-import { mapChatsToTopics } from '@/lib/chat/topic-utils';
-import { GrpcChatTransport } from '@/lib/query/transport';
-import { createAndUploadChat } from '@/lib/services/service';
-import { useUserChats } from '@/providers/user-chats';
+} from "@/components/ai-elements/source";
+import { TopicsSidebar } from "@/components/ai-elements/topics-sidebar";
+import { mapChatsToTopics } from "@/lib/chat/topic-utils";
+import { GrpcChatTransport } from "@/lib/query/transport";
+import { createAndUploadChat } from "@/lib/services/service";
+import { useUserChats } from "@/providers/user-chats";
 
 const models = [
   {
-    name: 'GPT 4o',
-    value: 'openai/gpt-4o',
+    name: "GPT 4o",
+    value: "openai/gpt-4o",
   },
   {
-    name: 'Deepseek R1',
-    value: 'deepseek/deepseek-r1',
+    name: "Deepseek R1",
+    value: "deepseek/deepseek-r1",
   },
 ];
 
 const ChatBotDemo = () => {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [model, setModel] = useState<string>(models[0].value);
   const [darkMode, setDarkMode] = useState(false);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
@@ -68,10 +68,10 @@ const ChatBotDemo = () => {
 
   const { messages, sendMessage, status, setMessages } = useChat({
     transport: new GrpcChatTransport({
-      baseUrl: 'http://localhost:8000',
+      baseUrl: "http://localhost:8000",
       headers: {
-        'Content-Type': 'application/connect+proto',
-      }
+        "Content-Type": "application/connect+proto",
+      },
     }),
   });
 
@@ -82,37 +82,42 @@ const ChatBotDemo = () => {
     // Clear the current messages
     setMessages([]);
     // Reset the input
-    setInput('');
+    setInput("");
     // Reset model to default
     setModel(models[0].value);
-    console.log('New chat started');
+    console.log("New chat started");
   }, [setMessages]);
 
   // Initialize dark mode based on system preference
   useEffect(() => {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      setDarkMode(mediaQuery.matches);
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    setDarkMode(mediaQuery.matches);
 
-      const handler = (e: MediaQueryListEvent) => setDarkMode(e.matches);
-      mediaQuery.addEventListener('change', handler);
-      return () => mediaQuery.removeEventListener('change', handler);
-    }, []);
-  
+    const handler = (e: MediaQueryListEvent) => setDarkMode(e.matches);
+    mediaQuery.addEventListener("change", handler);
+    return () => mediaQuery.removeEventListener("change", handler);
+  }, []);
+
   const handleTestCreateChat = useCallback(async () => {
-    if (!anchorWallet || !userContext) {
-      console.warn('Wallet or context not ready yet');
+    if (!(anchorWallet && userContext)) {
+      console.warn("Wallet or context not ready yet");
       return;
     }
     const messageText =
       userChats.length === 0
-        ? 'Hello!'
+        ? "Hello!"
         : `Hello again! (#${userChats.length + 1})`;
     setIsCreatingChat(true);
     try {
-      await createAndUploadChat(connection, anchorWallet, messageText, userContext);
+      await createAndUploadChat(
+        connection,
+        anchorWallet,
+        messageText,
+        userContext
+      );
       await refreshUserChats();
     } catch (error) {
-      console.error('Failed to create chat', error);
+      console.error("Failed to create chat", error);
     } finally {
       setIsCreatingChat(false);
     }
@@ -121,9 +126,9 @@ const ChatBotDemo = () => {
   // apply dark mode
   useEffect(() => {
     if (darkMode) {
-      document.documentElement.classList.add('dark');
+      document.documentElement.classList.add("dark");
     } else {
-      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.remove("dark");
     }
   }, [darkMode]);
 
@@ -134,50 +139,54 @@ const ChatBotDemo = () => {
         { text: input },
         {
           body: {
-            model: model,
+            model,
           },
-        },
+        }
       );
-      setInput('');
+      setInput("");
     }
   };
 
   return (
     <div className="flex h-screen">
-      <TopicsSidebar topics={topics} onNewChat={handleNewChat} />
+      <TopicsSidebar onNewChat={handleNewChat} topics={topics} />
       <div className="flex-1 overflow-hidden">
         <div className="relative mx-auto flex h-full max-w-4xl flex-col p-6">
           <button
-            type="button"
+            className="fixed top-6 right-[10.5rem] z-20 rounded-md border border-white/20 bg-zinc-900 px-3 py-2 font-medium text-white text-xs transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={
+              !(anchorWallet && userContext) ||
+              isCreatingChat ||
+              isUserChatsLoading
+            }
             onClick={handleTestCreateChat}
-            disabled={!anchorWallet || !userContext || isCreatingChat || isUserChatsLoading}
-            className="fixed top-6 right-[10.5rem] z-20 rounded-md border border-white/20 bg-zinc-900 px-3 py-2 text-xs font-medium text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
+            type="button"
           >
-            {isCreatingChat ? 'Creating chat...' : 'Test Chat Upload'}
+            {isCreatingChat ? "Creating chat..." : "Test Chat Upload"}
           </button>
           <div className="flex h-full flex-col">
             <Conversation className="h-full">
               <ConversationContent>
                 {messages.map((message) => (
                   <div key={message.id}>
-                    {message.role === 'assistant' && (
+                    {message.role === "assistant" && (
                       <Sources>
                         {message.parts.map((part, i) => {
                           switch (part.type) {
-                            case 'source-url':
+                            case "source-url":
                               return (
                                 <>
                                   <SourcesTrigger
                                     count={
                                       message.parts.filter(
-                                        (part) => part.type === 'source-url',
+                                        (part) => part.type === "source-url"
                                       ).length
                                     }
                                   />
                                   <SourcesContent key={`${message.id}-${i}`}>
                                     <Source
-                                      key={`${message.id}-${i}`}
                                       href={part.url}
+                                      key={`${message.id}-${i}`}
                                       title={part.url}
                                     />
                                   </SourcesContent>
@@ -191,21 +200,23 @@ const ChatBotDemo = () => {
                       <MessageContent>
                         {message.parts.map((part, i) => {
                           switch (part.type) {
-                            case 'text':
+                            case "text":
                               return (
                                 <Response key={`${message.id}-${i}`}>
                                   {part.text}
                                 </Response>
                               );
-                            case 'reasoning':
+                            case "reasoning":
                               return (
                                 <Reasoning
-                                  key={`${message.id}-${i}`}
                                   className="w-full"
-                                  isStreaming={status === 'streaming'}
+                                  isStreaming={status === "streaming"}
+                                  key={`${message.id}-${i}`}
                                 >
                                   <ReasoningTrigger />
-                                  <ReasoningContent>{part.text}</ReasoningContent>
+                                  <ReasoningContent>
+                                    {part.text}
+                                  </ReasoningContent>
                                 </Reasoning>
                               );
                             default:
@@ -216,12 +227,12 @@ const ChatBotDemo = () => {
                     </Message>
                   </div>
                 ))}
-                {status === 'submitted' && <Loader />}
+                {status === "submitted" && <Loader />}
               </ConversationContent>
               <ConversationScrollButton />
             </Conversation>
 
-            <PromptInput onSubmit={handleSubmit} className="mt-4">
+            <PromptInput className="mt-4" onSubmit={handleSubmit}>
               <PromptInputTextarea
                 onChange={(e) => setInput(e.target.value)}
                 value={input}
@@ -239,7 +250,10 @@ const ChatBotDemo = () => {
                     </PromptInputModelSelectTrigger>
                     <PromptInputModelSelectContent>
                       {models.map((model) => (
-                        <PromptInputModelSelectItem key={model.value} value={model.value}>
+                        <PromptInputModelSelectItem
+                          key={model.value}
+                          value={model.value}
+                        >
                           {model.name}
                         </PromptInputModelSelectItem>
                       ))}

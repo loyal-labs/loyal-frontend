@@ -1,5 +1,5 @@
-import { AnchorWallet } from "@solana/wallet-adapter-react";
-import { Connection, PublicKey } from "@solana/web3.js";
+import type { AnchorWallet } from "@solana/wallet-adapter-react";
+import { type Connection, PublicKey } from "@solana/web3.js";
 
 import { generateCmk } from "../loyal/encryption";
 import { fetchIrysTransactionData } from "../loyal/http";
@@ -8,7 +8,7 @@ import {
   getIrysUploader,
 } from "../loyal/irys";
 import { createUserChat } from "../loyal/service";
-import { UserContext } from "../loyal/types";
+import type { UserContext } from "../loyal/types";
 import { createEmptyTableOfContents } from "./helpers";
 import type { IrysChatTurn, IrysTableOfContents } from "./types";
 
@@ -27,8 +27,8 @@ export async function fetchIrysTableOfContents(
     typeof parsed.irysKey === "string"
       ? parsed.irysKey
       : typeof parsed.key === "string"
-      ? parsed.key
-      : undefined;
+        ? parsed.key
+        : undefined;
 
   const entries =
     parsed.entries?.reduce<IrysTableOfContents["entries"]>((acc, entry) => {

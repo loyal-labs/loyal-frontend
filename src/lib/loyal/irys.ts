@@ -1,7 +1,12 @@
 import { bs58 } from "@coral-xyz/anchor/dist/cjs/utils/bytes";
 import { WebUploader } from "@irys/web-upload";
 import { WebSolana } from "@irys/web-upload-solana";
-import { Connection, Keypair, PublicKey, Transaction } from "@solana/web3.js";
+import {
+  type Connection,
+  Keypair,
+  type PublicKey,
+  type Transaction,
+} from "@solana/web3.js";
 import nacl from "tweetnacl";
 
 function makeEphemeralProvider(keypair: Keypair, connection: Connection) {

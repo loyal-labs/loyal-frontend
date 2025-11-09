@@ -1,15 +1,22 @@
-'use client';
+"use client";
 
-import { useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
-import type { PropsWithChildren } from 'react';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
+import type { PropsWithChildren } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import {
   fetchAllUserChats,
   fetchUserContext,
   initializeUserContext,
-} from '@/lib/loyal/service';
-import type { UserChat, UserContext } from '@/lib/loyal/types';
+} from "@/lib/loyal/service";
+import type { UserChat, UserContext } from "@/lib/loyal/types";
 
 type UserChatsContextValue = {
   userContext: UserContext | null;
@@ -19,7 +26,7 @@ type UserChatsContextValue = {
 };
 
 const UserChatsContext = createContext<UserChatsContextValue | undefined>(
-  undefined,
+  undefined
 );
 
 export const UserChatsProvider = ({ children }: PropsWithChildren) => {
@@ -60,7 +67,7 @@ export const UserChatsProvider = ({ children }: PropsWithChildren) => {
           (await fetchAllUserChats(
             connection,
             anchorWallet,
-            context.nextChatId,
+            context.nextChatId
           )) ?? [];
 
         if (!signal?.aborted) {
@@ -70,7 +77,7 @@ export const UserChatsProvider = ({ children }: PropsWithChildren) => {
         if (signal?.aborted) {
           return;
         }
-        console.error('Failed to refresh user chats', error);
+        console.error("Failed to refresh user chats", error);
         setUserContext(null);
         setUserChats([]);
       } finally {
@@ -79,7 +86,7 @@ export const UserChatsProvider = ({ children }: PropsWithChildren) => {
         }
       }
     },
-    [anchorWallet, connection],
+    [anchorWallet, connection]
   );
 
   const refreshUserChats = useCallback(async () => {
@@ -107,9 +114,9 @@ export const UserChatsProvider = ({ children }: PropsWithChildren) => {
       userContext,
       userChats,
       isLoading,
-      refreshUserChats: refreshUserChats,
+      refreshUserChats,
     }),
-    [isLoading, refreshUserChats, userChats, userContext],
+    [isLoading, refreshUserChats, userChats, userContext]
   );
 
   return (
@@ -122,7 +129,7 @@ export const UserChatsProvider = ({ children }: PropsWithChildren) => {
 export const useUserChats = () => {
   const context = useContext(UserChatsContext);
   if (!context) {
-    throw new Error('useUserChats must be used within a UserChatsProvider');
+    throw new Error("useUserChats must be used within a UserChatsProvider");
   }
   return context;
 };

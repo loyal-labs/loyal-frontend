@@ -5,7 +5,7 @@ import type {
 
 import { getFromOracle, postToOracle } from "./client";
 import { ORACLE_ROUTES } from "./constants";
-import { DelegationTokensResponse } from "./types";
+import type { DelegationTokensResponse } from "./types";
 
 export async function createDataForSIWS(): Promise<SolanaSignInInput> {
   const { data, status, statusText } = await getFromOracle<SolanaSignInInput>(
@@ -38,7 +38,7 @@ export async function verifySIWS(
   if (!data) {
     throw new Error(`Failed to verify sign in data: ${statusText}`);
   }
-  if (!Object.prototype.hasOwnProperty.call(data, "verified")) {
+  if (!Object.hasOwn(data, "verified")) {
     throw new Error(`Failed to verify sign in data: ${statusText}`);
   }
 
@@ -61,8 +61,10 @@ export async function getDelegationTokens(
     throw new Error(`Failed to get delegation tokens: ${statusText}`);
   }
   if (
-    !Object.prototype.hasOwnProperty.call(data, "storageDelegationToken") ||
-    !Object.prototype.hasOwnProperty.call(data, "modelDelegationToken")
+    !(
+      Object.hasOwn(data, "storageDelegationToken") &&
+      Object.hasOwn(data, "modelDelegationToken")
+    )
   ) {
     throw new Error(`Failed to get delegation tokens: ${statusText}`);
   }

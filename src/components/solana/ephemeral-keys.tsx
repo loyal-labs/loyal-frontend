@@ -14,11 +14,10 @@ const generateX25519Keys = async (): Promise<CryptoKeyPair> => {
   }
 
   try {
-    return (await subtle.generateKey(
-      { name: "X25519" },
-      true,
-      ["deriveKey", "deriveBits"]
-    )) as CryptoKeyPair;
+    return (await subtle.generateKey({ name: "X25519" }, true, [
+      "deriveKey",
+      "deriveBits",
+    ])) as CryptoKeyPair;
   } catch (error) {
     if (
       error instanceof DOMException &&
@@ -34,23 +33,24 @@ const generateX25519Keys = async (): Promise<CryptoKeyPair> => {
   }
 };
 
-export const generateEphemeralX25519KeyPair = async (): Promise<EphemeralKeyPair> => {
-  const subtle = globalThis.crypto?.subtle;
-  if (!subtle) {
-    throw new Error("WebCrypto API is unavailable in this environment.");
-  }
+export const generateEphemeralX25519KeyPair =
+  async (): Promise<EphemeralKeyPair> => {
+    const subtle = globalThis.crypto?.subtle;
+    if (!subtle) {
+      throw new Error("WebCrypto API is unavailable in this environment.");
+    }
 
-  const { publicKey, privateKey } = await generateX25519Keys();
+    const { publicKey, privateKey } = await generateX25519Keys();
 
-  const [publicKeyRaw, privateKeyPkcs8] = await Promise.all([
-    subtle.exportKey("raw", publicKey),
-    subtle.exportKey("pkcs8", privateKey),
-  ]);
+    const [publicKeyRaw, privateKeyPkcs8] = await Promise.all([
+      subtle.exportKey("raw", publicKey),
+      subtle.exportKey("pkcs8", privateKey),
+    ]);
 
-  return {
-    publicKey,
-    privateKey,
-    publicKeyRaw: new Uint8Array(publicKeyRaw),
-    privateKeyPkcs8: new Uint8Array(privateKeyPkcs8),
+    return {
+      publicKey,
+      privateKey,
+      publicKeyRaw: new Uint8Array(publicKeyRaw),
+      privateKeyPkcs8: new Uint8Array(privateKeyPkcs8),
+    };
   };
-};

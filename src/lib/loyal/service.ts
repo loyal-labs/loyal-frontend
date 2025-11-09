@@ -1,6 +1,6 @@
 import { BN } from "@coral-xyz/anchor";
 import type { AnchorWallet } from "@solana/wallet-adapter-react";
-import { Connection, Keypair, PublicKey } from "@solana/web3.js";
+import { type Connection, Keypair, PublicKey } from "@solana/web3.js";
 
 import {
   getChatAccount,
@@ -156,7 +156,7 @@ export async function createUserChat(
     })
     .rpc({ skipPreflight: true });
   console.log("Your transaction signature", instruction);
-  return undefined;
+  return;
 }
 
 export const generateSolanaKeypair = (): GeneratedSolanaKeypair => {

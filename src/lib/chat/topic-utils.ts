@@ -52,8 +52,7 @@ export const mapChatsToTopics = (userChats: UserChat[]): TopicListItem[] =>
       chatIdNumber !== null
         ? chatIdNumber.toString()
         : String(chat.id ?? index);
-    const displayNumber =
-      chatIdNumber !== null ? chatIdNumber + 1 : index + 1;
+    const displayNumber = chatIdNumber !== null ? chatIdNumber + 1 : index + 1;
 
     return {
       id: topicId,
@@ -61,4 +60,3 @@ export const mapChatsToTopics = (userChats: UserChat[]): TopicListItem[] =>
       updatedAt: toIsoDateString(chat.createdAt),
     };
   });
-

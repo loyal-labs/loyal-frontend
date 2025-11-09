@@ -49,10 +49,10 @@ const b64uDecode = (s: string): Uint8Array => {
     s.length % 4 === 2
       ? "=="
       : s.length % 4 === 3
-      ? "="
-      : s.length % 4 === 1
-      ? "==="
-      : "";
+        ? "="
+        : s.length % 4 === 1
+          ? "==="
+          : "";
   const bin = atob(s.replaceAll("-", "+").replaceAll("_", "/") + pad);
   const out = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
@@ -80,7 +80,7 @@ export function zeroize(bytes: Uint8Array) {
 
 // ---- AAD normalization (WebCrypto expects ArrayBuffer) ----
 function asBufferSource(u8?: Uint8Array): ArrayBuffer | undefined {
-  if (!u8) return undefined;
+  if (!u8) return;
   return u8.buffer.slice(
     u8.byteOffset,
     u8.byteOffset + u8.byteLength
@@ -112,8 +112,8 @@ export async function encryptWithDek(
     typeof data === "string"
       ? enc.encode(data)
       : data instanceof ArrayBuffer
-      ? new Uint8Array(data)
-      : data;
+        ? new Uint8Array(data)
+        : data;
 
   const params: AesGcmParams = {
     name: AES_GCM,
@@ -188,7 +188,7 @@ export function hexToU8(hex: string): Uint8Array {
   if (hex.length % 2) throw new Error("bad hex");
   const out = new Uint8Array(hex.length / 2);
   for (let i = 0; i < out.length; i++)
-    out[i] = parseInt(hex.slice(2 * i, 2 * i + 2), 16);
+    out[i] = Number.parseInt(hex.slice(2 * i, 2 * i + 2), 16);
   return out;
 }
 

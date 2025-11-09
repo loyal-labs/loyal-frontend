@@ -9,16 +9,7 @@
   "instructions": [
     {
       "name": "create_chat",
-      "discriminator": [
-        133,
-        186,
-        254,
-        72,
-        143,
-        178,
-        221,
-        28
-      ],
+      "discriminator": [133, 186, 254, 72, 143, 178, 221, 28],
       "accounts": [
         {
           "name": "payer",
@@ -31,20 +22,13 @@
         },
         {
           "name": "chat",
-          "docs": [
-            "creates the interaction PDA if needed"
-          ],
+          "docs": ["creates the interaction PDA if needed"],
           "writable": true,
           "pda": {
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  99,
-                  104,
-                  97,
-                  116
-                ]
+                "value": [99, 104, 97, 116]
               },
               {
                 "kind": "account",
@@ -79,16 +63,7 @@
     },
     {
       "name": "create_context",
-      "discriminator": [
-        87,
-        62,
-        197,
-        44,
-        169,
-        57,
-        243,
-        178
-      ],
+      "discriminator": [87, 62, 197, 44, 169, 57, 243, 178],
       "accounts": [
         {
           "name": "payer",
@@ -102,15 +77,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  99,
-                  111,
-                  110,
-                  116,
-                  101,
-                  120,
-                  116
-                ]
+                "value": [99, 111, 110, 116, 101, 120, 116]
               },
               {
                 "kind": "account",
@@ -128,16 +95,7 @@
     },
     {
       "name": "delegate_chat",
-      "discriminator": [
-        50,
-        211,
-        191,
-        65,
-        208,
-        161,
-        231,
-        189
-      ],
+      "discriminator": [50, 211, 191, 65, 208, 161, 231, 189],
       "accounts": [
         {
           "name": "payer",
@@ -151,14 +109,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  98,
-                  117,
-                  102,
-                  102,
-                  101,
-                  114
-                ]
+                "value": [98, 117, 102, 102, 101, 114]
               },
               {
                 "kind": "account",
@@ -168,38 +119,9 @@
             "program": {
               "kind": "const",
               "value": [
-                125,
-                113,
-                61,
-                60,
-                231,
-                68,
-                249,
-                191,
-                65,
-                156,
-                172,
-                217,
-                75,
-                33,
-                103,
-                114,
-                217,
-                14,
-                55,
-                76,
-                86,
-                25,
-                212,
-                121,
-                20,
-                216,
-                148,
-                201,
-                129,
-                118,
-                192,
-                65
+                125, 113, 61, 60, 231, 68, 249, 191, 65, 156, 172, 217, 75, 33,
+                103, 114, 217, 14, 55, 76, 86, 25, 212, 121, 20, 216, 148, 201,
+                129, 118, 192, 65
               ]
             }
           }
@@ -211,18 +133,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  100,
-                  101,
-                  108,
-                  101,
-                  103,
-                  97,
-                  116,
-                  105,
-                  111,
-                  110
-                ]
+                "value": [100, 101, 108, 101, 103, 97, 116, 105, 111, 110]
               },
               {
                 "kind": "account",
@@ -243,25 +154,8 @@
               {
                 "kind": "const",
                 "value": [
-                  100,
-                  101,
-                  108,
-                  101,
-                  103,
-                  97,
-                  116,
-                  105,
-                  111,
-                  110,
-                  45,
-                  109,
-                  101,
-                  116,
-                  97,
-                  100,
-                  97,
-                  116,
-                  97
+                  100, 101, 108, 101, 103, 97, 116, 105, 111, 110, 45, 109, 101,
+                  116, 97, 100, 97, 116, 97
                 ]
               },
               {
@@ -282,12 +176,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  99,
-                  104,
-                  97,
-                  116
-                ]
+                "value": [99, 104, 97, 116]
               },
               {
                 "kind": "account",
@@ -325,30 +214,17 @@
     },
     {
       "name": "get_dek",
-      "discriminator": [
-        236,
-        216,
-        253,
-        103,
-        17,
-        232,
-        143,
-        109
-      ],
+      "discriminator": [236, 216, 253, 103, 17, 232, 143, 109],
       "accounts": [
         {
           "name": "caller",
-          "docs": [
-            "chat.user OR the oracle identity."
-          ],
+          "docs": ["chat.user OR the oracle identity."],
           "writable": true,
           "signer": true
         },
         {
           "name": "chat",
-          "docs": [
-            "Must be owned by this program."
-          ],
+          "docs": ["Must be owned by this program."],
           "writable": true
         }
       ],
@@ -356,16 +232,7 @@
     },
     {
       "name": "initialize",
-      "discriminator": [
-        175,
-        175,
-        109,
-        31,
-        13,
-        152,
-        155,
-        237
-      ],
+      "discriminator": [175, 175, 109, 31, 13, 152, 155, 237],
       "accounts": [
         {
           "name": "payer",
@@ -379,16 +246,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  105,
-                  100,
-                  101,
-                  110,
-                  116,
-                  105,
-                  116,
-                  121
-                ]
+                "value": [105, 100, 101, 110, 116, 105, 116, 121]
               }
             ]
           }
@@ -402,16 +260,7 @@
     },
     {
       "name": "process_undelegation",
-      "discriminator": [
-        196,
-        28,
-        41,
-        206,
-        48,
-        37,
-        51,
-        167
-      ],
+      "discriminator": [196, 28, 41, 206, 48, 37, 51, 167],
       "accounts": [
         {
           "name": "base_account",
@@ -439,22 +288,11 @@
     },
     {
       "name": "update_status",
-      "discriminator": [
-        147,
-        215,
-        74,
-        174,
-        55,
-        191,
-        42,
-        0
-      ],
+      "discriminator": [147, 215, 74, 174, 55, 191, 42, 0],
       "accounts": [
         {
           "name": "caller",
-          "docs": [
-            "chat.user OR the oracle identity."
-          ],
+          "docs": ["chat.user OR the oracle identity."],
           "writable": true,
           "signer": true
         },
@@ -474,70 +312,25 @@
   "accounts": [
     {
       "name": "Chat",
-      "discriminator": [
-        170,
-        4,
-        71,
-        128,
-        185,
-        103,
-        250,
-        177
-      ]
+      "discriminator": [170, 4, 71, 128, 185, 103, 250, 177]
     },
     {
       "name": "ContextAccount",
-      "discriminator": [
-        75,
-        176,
-        185,
-        173,
-        144,
-        35,
-        90,
-        109
-      ]
+      "discriminator": [75, 176, 185, 173, 144, 35, 90, 109]
     },
     {
       "name": "Identity",
-      "discriminator": [
-        58,
-        132,
-        5,
-        12,
-        176,
-        164,
-        85,
-        112
-      ]
+      "discriminator": [58, 132, 5, 12, 176, 164, 85, 112]
     }
   ],
   "events": [
     {
       "name": "DekResponse",
-      "discriminator": [
-        114,
-        0,
-        186,
-        146,
-        6,
-        67,
-        29,
-        225
-      ]
+      "discriminator": [114, 0, 186, 146, 6, 67, 29, 225]
     },
     {
       "name": "StatusChanged",
-      "discriminator": [
-        146,
-        235,
-        222,
-        125,
-        145,
-        246,
-        34,
-        240
-      ]
+      "discriminator": [146, 235, 222, 125, 145, 246, 34, 240]
     }
   ],
   "errors": [
@@ -590,9 +383,7 @@
         "fields": [
           {
             "name": "context",
-            "docs": [
-              "---- fixed-size header (stable offsets) ----"
-            ],
+            "docs": ["---- fixed-size header (stable offsets) ----"],
             "type": "pubkey"
           },
           {
@@ -659,10 +450,7 @@
           {
             "name": "dek",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           }
         ]

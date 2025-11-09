@@ -1,20 +1,20 @@
-'use client';
+"use client";
 
-import { BookIcon, ChevronDownIcon } from 'lucide-react';
-import type { ComponentProps } from 'react';
+import { BookIcon, ChevronDownIcon } from "lucide-react";
+import type { ComponentProps } from "react";
 
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 
-export type SourcesProps = ComponentProps<'div'>;
+export type SourcesProps = ComponentProps<"div">;
 
 export const Sources = ({ className, ...props }: SourcesProps) => (
   <Collapsible
-    className={cn('not-prose mb-4 text-primary text-xs', className)}
+    className={cn("not-prose mb-4 text-primary text-xs", className)}
     {...props}
   />
 );
@@ -47,15 +47,15 @@ export const SourcesContent = ({
 }: SourcesContentProps) => (
   <CollapsibleContent
     className={cn(
-      'mt-3 flex flex-col gap-2 w-fit',
-      'outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2',
-      className,
+      "mt-3 flex w-fit flex-col gap-2",
+      "data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
+      className
     )}
     {...props}
   />
 );
 
-export type SourceProps = ComponentProps<'a'>;
+export type SourceProps = ComponentProps<"a">;
 
 export const Source = ({ href, title, children, ...props }: SourceProps) => (
   <a

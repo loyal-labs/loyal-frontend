@@ -12,7 +12,7 @@ export function Header() {
 
   if (!mounted) {
     return (
-      <header className="fixed right-6 top-6 z-10">
+      <header className="fixed top-6 right-6 z-[100]">
         {/* Placeholder to prevent layout shift */}
         <div style={{ width: "140px", height: "40px" }} />
       </header>
@@ -20,7 +20,7 @@ export function Header() {
   }
 
   return (
-    <header className="fixed right-6 top-6 z-10">
+    <header className="fixed top-6 right-6 z-[100]">
       <WalletMultiButton />
     </header>
   );

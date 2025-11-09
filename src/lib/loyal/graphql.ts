@@ -1,4 +1,10 @@
-import { cacheExchange, Client, createClient, fetchExchange, gql } from "urql";
+import {
+  type Client,
+  cacheExchange,
+  createClient,
+  fetchExchange,
+  gql,
+} from "urql";
 
 export const IRYS_GRAPHQL_ENDPOINT = "https://uploader.irys.xyz/graphql";
 

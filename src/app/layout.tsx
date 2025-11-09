@@ -19,7 +19,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Loyal: Privacy Preserving Intelligence",
-  description: "True private intelligence network: open-source privacy-preserving AI with confidential compute in TEE and attested runtimes.",
+  description:
+    "True private intelligence network: open-source privacy-preserving AI with confidential compute in TEE and attested runtimes.",
   metadataBase: new URL("https://askloyal.com"),
   alternates: {
     canonical: "/",
@@ -32,15 +33,14 @@ export const metadata: Metadata = {
       { url: "/favicon.ico", rel: "icon" },
     ],
     shortcut: "/favicon.png",
-    apple: [
-      { url: "/favicon.png", sizes: "180x180" },
-    ],
+    apple: [{ url: "/favicon.png", sizes: "180x180" }],
   },
   openGraph: {
     type: "website",
     url: "https://askloyal.com/",
     title: "Loyal: Privacy Preserving Intelligence",
-    description: "True private intelligence network: open-source privacy-preserving AI with confidential compute in TEE and attested runtimes.",
+    description:
+      "True private intelligence network: open-source privacy-preserving AI with confidential compute in TEE and attested runtimes.",
     images: [
       {
         url: "/card1.jpg",
@@ -53,7 +53,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Loyal: Privacy Preserving Intelligence",
-    description: "True private intelligence network: open-source privacy-preserving AI with confidential compute in TEE and attested runtimes.",
+    description:
+      "True private intelligence network: open-source privacy-preserving AI with confidential compute in TEE and attested runtimes.",
     images: [
       {
         url: "/card2.jpg",
@@ -62,7 +63,6 @@ export const metadata: Metadata = {
     ],
   },
 };
-
 
 export default function RootLayout({
   children,

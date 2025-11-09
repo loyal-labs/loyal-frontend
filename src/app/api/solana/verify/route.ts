@@ -83,7 +83,7 @@ const isSerializedSolanaSignInOutput = (
   if (!isSerializedWalletAccount(record.account)) {
     return false;
   }
-  if (!isByteArray(record.signature) || !isByteArray(record.signedMessage)) {
+  if (!(isByteArray(record.signature) && isByteArray(record.signedMessage))) {
     return false;
   }
   if (

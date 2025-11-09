@@ -11,10 +11,10 @@ import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import {
   CoinbaseWalletAdapter,
   PhantomWalletAdapter,
-  SolflareWalletAdapter
+  SolflareWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
 import { clusterApiUrl } from "@solana/web3.js";
-import { FC, ReactNode, useMemo } from "react";
+import { type FC, type ReactNode, useMemo } from "react";
 
 interface SolanaProviderProps {
   children: ReactNode;
@@ -25,13 +25,17 @@ export const SolanaProvider: FC<SolanaProviderProps> = ({ children }) => {
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
 
   const wallets = useMemo(
-    () => [new PhantomWalletAdapter(), new SolflareWalletAdapter({ network }), new CoinbaseWalletAdapter({ network })],
-    [network],
+    () => [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter({ network }),
+      new CoinbaseWalletAdapter({ network }),
+    ],
+    [network]
   );
 
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect>
+      <WalletProvider autoConnect wallets={wallets}>
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>

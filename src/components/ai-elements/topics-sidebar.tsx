@@ -1,6 +1,6 @@
 // components/topics-sidebar.tsx
-'use client';
-import Link from 'next/link';
+"use client";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area"; // shadcn/ui
@@ -14,17 +14,17 @@ interface TopicsSidebarProps {
 
 export function TopicsSidebar({ topics, onNewChat }: TopicsSidebarProps) {
   return (
-    <aside className="w-72 border-r h-screen flex flex-col">
-      <div className="p-3 border-b flex gap-2">
+    <aside className="flex h-screen w-72 flex-col border-r">
+      <div className="flex gap-2 border-b p-3">
         <Button onClick={onNewChat}>New chat</Button>
       </div>
       <ScrollArea className="flex-1">
         <ul className="p-2">
-          {topics.map(t => (
-            <li key={t.id} className="px-2 py-1 rounded hover:bg-muted">
-              <Link href={`/chat/${t.id}`} className="block">
+          {topics.map((t) => (
+            <li className="rounded px-2 py-1 hover:bg-muted" key={t.id}>
+              <Link className="block" href={`/chat/${t.id}`}>
                 <div className="truncate font-medium">{t.title}</div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-muted-foreground text-xs">
                   {new Date(t.updatedAt).toLocaleString()}
                 </div>
               </Link>

@@ -1,4 +1,4 @@
-import { IrysTableOfContents } from "./types";
+import type { IrysTableOfContents } from "./types";
 
 export function createEmptyTableOfContents(): IrysTableOfContents {
   return {

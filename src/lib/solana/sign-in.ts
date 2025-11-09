@@ -58,7 +58,7 @@ export const createSignInData = async (): Promise<SolanaSignInInput> => {
     domain,
     statement: SIGN_IN_STATEMENT,
     version: "1",
-    nonce: nonce,
+    nonce,
     chainId: CHAIN_NETWORK,
     issuedAt: currentDateTime,
   };
@@ -82,10 +82,10 @@ export function verifySIWS(
   if (input.statement !== SIGN_IN_STATEMENT) {
     return false;
   }
-  if (!input.nonce || !NONCE_REGEX.test(input.nonce)) {
+  if (!(input.nonce && NONCE_REGEX.test(input.nonce))) {
     return false;
   }
-  if (!input.issuedAt || !isCanonicalIsoTimestamp(input.issuedAt)) {
+  if (!(input.issuedAt && isCanonicalIsoTimestamp(input.issuedAt))) {
     return false;
   }
 
@@ -109,10 +109,10 @@ export function verifySIWS(
   if (publicKey.length !== 32) {
     return false;
   }
-  if (!isByteArray(output.signature) || !isByteArray(output.signedMessage)) {
+  if (!(isByteArray(output.signature) && isByteArray(output.signedMessage))) {
     return false;
   }
-  if (!output.signature.length || !output.signedMessage.length) {
+  if (!(output.signature.length && output.signedMessage.length)) {
     return false;
   }
 
