@@ -210,250 +210,344 @@ function BentoGridSectionComponent() {
 export const BentoGridSection = memo(BentoGridSectionComponent);
 
 const SkeletonOne = () => {
-  const [particleStage, setParticleStage] = useState(0);
+  const [layerPhase, setLayerPhase] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setParticleStage((prev) => (prev + 1) % 3);
-    }, 2000);
+      setLayerPhase((prev) => (prev + 1) % 60);
+    }, 80);
     return () => clearInterval(interval);
   }, []);
 
-  // Generate particles that appear to "encrypt" the document
-  const particles = Array.from({ length: 12 }, (_, i) => ({
-    id: i,
-    delay: i * 0.08,
-    angle: (i / 12) * Math.PI * 2,
-    radius: 35,
-  }));
+  // Multiple protective layers wrapping around sensitive data
+  const layers = [
+    { size: 80, delay: 0 },
+    { size: 100, delay: 0.15 },
+    { size: 120, delay: 0.3 },
+  ];
 
   return (
-    <motion.div className="flex h-full min-h-[6rem] w-full flex-1 items-center justify-center gap-6 bg-dot-white/[0.2] p-4">
-      {/* Left - Document being encrypted */}
-      <motion.div
-        animate={{
-          scale: particleStage === 0 ? 1 : 0.85,
-          opacity: particleStage === 0 ? 1 : 0.3,
-        }}
-        className="relative"
-        transition={{ duration: 0.5 }}
-      >
-        <div className="flex h-16 w-12 flex-col gap-1 rounded-lg border-2 border-neutral-600 bg-neutral-800/50 p-2">
-          <div className="h-1 w-full rounded-full bg-neutral-600" />
-          <div className="h-1 w-full rounded-full bg-neutral-600" />
-          <div className="h-1 w-5 rounded-full bg-neutral-600" />
-        </div>
-      </motion.div>
-
-      {/* Center - Encryption vault with particles */}
-      <div className="relative flex h-24 w-24 items-center justify-center">
-        {/* Particles orbiting */}
-        {particles.map((particle) => {
-          const x = Math.cos(particle.angle) * particle.radius;
-          const y = Math.sin(particle.angle) * particle.radius;
+    <motion.div className="flex h-full min-h-[6rem] w-full flex-1 items-center justify-center bg-dot-white/[0.2] p-4">
+      <div className="relative flex h-32 w-32 items-center justify-center">
+        {/* Animated protective layers */}
+        {layers.map((layer, index) => {
+          const progress = (layerPhase + index * 20) % 60;
+          const opacity =
+            progress < 30
+              ? 0.15 + (progress / 30) * 0.25
+              : 0.4 - ((progress - 30) / 30) * 0.25;
 
           return (
             <motion.div
               animate={{
-                opacity: particleStage === 1 ? [0, 1, 0.6] : particleStage === 2 ? 0.6 : 0,
-                scale: particleStage === 1 ? [0, 1, 1] : particleStage === 2 ? 1 : 0,
+                opacity,
+                scale: 1 + Math.sin((layerPhase + index * 20) * 0.1) * 0.08,
               }}
-              className="absolute h-1.5 w-1.5 rounded-full bg-neutral-500"
-              key={particle.id}
+              className="absolute rounded-full border border-neutral-600"
+              key={`layer-${index}`}
               style={{
-                left: `calc(50% + ${x}px)`,
-                top: `calc(50% + ${y}px)`,
+                width: `${layer.size}px`,
+                height: `${layer.size}px`,
               }}
-              transition={{
-                duration: 0.6,
-                delay: particle.delay,
-              }}
+              transition={{ duration: 0.2 }}
             />
           );
         })}
 
-        {/* Vault/Safe icon */}
+        {/* Center content - layered data protection */}
+        <div className="relative z-10 flex flex-col items-center gap-3">
+          {/* Data icon stack showing multiple items being protected */}
+          <div className="relative flex h-14 w-14 items-center justify-center">
+            {/* Background stacked documents */}
+            <div className="absolute top-1 left-1 h-12 w-10 rounded-md border border-neutral-600 bg-neutral-800/60" />
+            <div className="absolute top-0.5 left-0.5 h-12 w-10 rounded-md border border-neutral-600 bg-neutral-800/80" />
+
+            {/* Main document with content preview */}
+            <div className="relative z-10 flex h-12 w-10 flex-col gap-1 rounded-md border border-neutral-500 bg-neutral-900 p-1.5">
+              <div className="h-1 w-full rounded-full bg-neutral-600" />
+              <div className="h-1 w-4 rounded-full bg-neutral-600" />
+
+              {/* Lock overlay showing protection */}
+              <motion.div
+                animate={{
+                  opacity: [0.5, 1, 0.5],
+                }}
+                className="absolute inset-0 flex items-center justify-center rounded-md bg-neutral-900/60 backdrop-blur-[1px]"
+                style={{ paddingTop: "14px" }}
+                transition={{
+                  duration: 2,
+                  repeat: Number.POSITIVE_INFINITY,
+                  repeatType: "loop",
+                }}
+              >
+                <IconLock className="h-4 w-4 text-neutral-400" />
+              </motion.div>
+            </div>
+          </div>
+
+          {/* Protection indicators */}
+          <div
+            className="flex items-center gap-1"
+            style={{ marginTop: "-10px" }}
+          >
+            {Array.from({ length: 3 }).map((_, i) => {
+              const dotProgress = (layerPhase - i * 10) % 60;
+              const isActive = dotProgress < 30;
+
+              return (
+                <motion.div
+                  animate={{
+                    opacity: isActive ? 1 : 0.3,
+                    scale: isActive ? 1 : 0.85,
+                  }}
+                  className="h-1 w-1 rounded-full bg-neutral-500"
+                  key={`dot-${i}`}
+                  transition={{ duration: 0.3 }}
+                />
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Floating protection badges at corners */}
         <motion.div
           animate={{
-            scale: particleStage === 2 ? [1, 1.1, 1] : 1,
+            opacity: [0.4, 0.7, 0.4],
+            y: [-2, 2, -2],
           }}
-          className="relative z-10 flex h-20 w-20 items-center justify-center rounded-2xl border-2 border-neutral-600 bg-neutral-900"
-          transition={{ duration: 0.4 }}
+          className="absolute top-0 left-0 rounded border border-neutral-700 bg-neutral-900/90 px-1.5 py-0.5"
+          transition={{
+            duration: 3,
+            repeat: Number.POSITIVE_INFINITY,
+            repeatType: "loop",
+          }}
         >
-          {/* Vault door */}
-          <div className="relative flex h-full w-full items-center justify-center">
-            {/* Circular lock mechanism */}
-            <motion.div
-              animate={{
-                rotate: particleStage === 1 ? [0, 180] : particleStage === 2 ? 180 : 0,
-              }}
-              className="absolute h-10 w-10 rounded-full border-2 border-neutral-500"
-              transition={{ duration: 0.8 }}
-            >
-              <div className="absolute left-1/2 top-0 h-1 w-1 -translate-x-1/2 rounded-full bg-neutral-400" />
-              <div className="absolute bottom-0 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-neutral-400" />
-            </motion.div>
+          <span className="font-mono text-[7px] text-neutral-500">TLS</span>
+        </motion.div>
 
-            {/* Lock icon appears when encrypted */}
-            <motion.div
-              animate={{
-                opacity: particleStage === 2 ? 1 : 0,
-                scale: particleStage === 2 ? 1 : 0.5,
-              }}
-              transition={{ duration: 0.3, delay: 0.4 }}
-            >
-              <IconLock className="h-5 w-5 text-neutral-400" />
-            </motion.div>
-          </div>
+        <motion.div
+          animate={{
+            opacity: [0.4, 0.7, 0.4],
+            y: [2, -2, 2],
+          }}
+          className="absolute top-0 right-0 rounded border border-neutral-700 bg-neutral-900/90 px-1.5 py-0.5"
+          transition={{
+            duration: 3,
+            delay: 1,
+            repeat: Number.POSITIVE_INFINITY,
+            repeatType: "loop",
+          }}
+        >
+          <span className="font-mono text-[7px] text-neutral-500">E2E</span>
+        </motion.div>
+
+        <motion.div
+          animate={{
+            opacity: [0.4, 0.7, 0.4],
+            y: [2, -2, 2],
+          }}
+          className="absolute bottom-0 left-0 rounded border border-neutral-700 bg-neutral-900/90 px-1.5 py-0.5"
+          transition={{
+            duration: 3,
+            delay: 2,
+            repeat: Number.POSITIVE_INFINITY,
+            repeatType: "loop",
+          }}
+        >
+          <span className="font-mono text-[7px] text-neutral-500">AES</span>
         </motion.div>
       </div>
-
-      {/* Right - Encrypted indicator */}
-      <motion.div
-        animate={{
-          opacity: particleStage === 2 ? 1 : 0,
-          x: particleStage === 2 ? 0 : -10,
-        }}
-        className="flex flex-col items-center gap-1"
-        transition={{ duration: 0.4, delay: 0.5 }}
-      >
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-neutral-600 bg-neutral-800/50">
-          <svg
-            className="h-5 w-5 text-neutral-400"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            viewBox="0 0 24 24"
-          >
-            <path
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
-        <span className="font-mono text-[8px] text-neutral-500">Secured</span>
-      </motion.div>
     </motion.div>
   );
 };
 
 const SkeletonTwo = () => {
-  const [activeNode, setActiveNode] = useState(0);
+  const [wavePhase, setWavePhase] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setActiveNode((prev) => (prev + 1) % 5);
-    }, 1400);
+      setWavePhase((prev) => (prev + 1) % 100);
+    }, 50);
     return () => clearInterval(interval);
   }, []);
 
-  // Anonymous network nodes in a hexagonal pattern
-  const nodes = [
-    { x: 50, y: 20, id: 0 },  // Top
-    { x: 80, y: 40, id: 1 },  // Top right
-    { x: 80, y: 70, id: 2 },  // Bottom right
-    { x: 50, y: 90, id: 3 },  // Bottom
-    { x: 20, y: 70, id: 4 },  // Bottom left
-    { x: 20, y: 40, id: 5 },  // Top left
-  ];
-
-  const connections = [
-    [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0],
-  ];
+  // Create fragmented/shattered data blocks that represent anonymized transaction data
+  const fragments = Array.from({ length: 16 }, (_, i) => ({
+    id: i,
+    startX: 10 + (i % 4) * 22,
+    startY: 20 + Math.floor(i / 4) * 20,
+    endX: 50 + (Math.random() - 0.5) * 60,
+    endY: 50 + (Math.random() - 0.5) * 60,
+    rotation: Math.random() * 360,
+  }));
 
   return (
     <motion.div className="relative flex h-full min-h-[6rem] w-full flex-1 items-center justify-center bg-dot-white/[0.2] p-4">
-      <div className="relative h-28 w-28">
-        {/* SVG for connection lines */}
-        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100">
-          {connections.map(([from, to], idx) => {
-            const fromNode = nodes[from];
-            const toNode = nodes[to];
-            const isActive = activeNode === from || activeNode === to;
-
-            return (
-              <motion.line
-                animate={{
-                  opacity: isActive ? 0.6 : 0.15,
-                  strokeWidth: isActive ? 1.5 : 1,
-                }}
-                key={`line-${idx}`}
-                stroke="currentColor"
-                strokeLinecap="round"
-                style={{ color: '#737373' }}
-                transition={{ duration: 0.3 }}
-                x1={fromNode.x}
-                x2={toNode.x}
-                y1={fromNode.y}
-                y2={toNode.y}
-              />
-            );
-          })}
-
-          {/* Transaction path pulse */}
-          <motion.circle
-            animate={{
-              cx: [nodes[activeNode].x, nodes[(activeNode + 1) % 6].x],
-              cy: [nodes[activeNode].y, nodes[(activeNode + 1) % 6].y],
-            }}
-            className="fill-neutral-400"
-            r="2"
-            transition={{ duration: 1.4, ease: "linear" }}
-          />
-        </svg>
-
-        {/* Anonymous nodes */}
-        {nodes.map((node) => {
-          const isActive = activeNode === node.id;
-
-          return (
-            <motion.div
-              animate={{
-                scale: isActive ? 1.3 : 1,
-                opacity: isActive ? 1 : 0.4,
-              }}
-              className="absolute"
-              key={node.id}
-              style={{
-                left: `${node.x}%`,
-                top: `${node.y}%`,
-                transform: 'translate(-50%, -50%)',
-              }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="flex h-6 w-6 items-center justify-center rounded-full border border-neutral-600 bg-neutral-900">
-                {/* Anonymous icon */}
-                <div className="h-2.5 w-2.5 rounded-full bg-neutral-500" />
-              </div>
-
-              {/* Active glow */}
-              {isActive && (
+      <div className="relative h-32 w-full max-w-sm">
+        {/* Left side: Original transaction data as a grid */}
+        <div className="-translate-y-1/2 absolute top-1/2 left-0">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex gap-1.5">
+              {Array.from({ length: 4 }).map((_, i) => (
                 <motion.div
                   animate={{
-                    opacity: [0.3, 0.6, 0.3],
-                    scale: [1, 1.4, 1],
+                    opacity: wavePhase < 30 ? 1 : 0.3,
+                    scale: wavePhase < 30 ? 1 : 0.95,
                   }}
-                  className="absolute inset-0 rounded-full bg-neutral-500/20 blur-sm"
-                  transition={{
-                    duration: 1,
-                    repeat: Number.POSITIVE_INFINITY,
-                    repeatType: "loop",
-                  }}
+                  className="h-3 w-3 rounded-sm bg-neutral-600"
+                  key={`block-0-${i}`}
+                  transition={{ duration: 0.6, delay: i * 0.05 }}
                 />
-              )}
-            </motion.div>
-          );
-        })}
-
-        {/* Center label */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="flex flex-col items-center gap-1 rounded-lg border border-neutral-700 bg-neutral-900/90 px-3 py-1.5 backdrop-blur-sm">
-            <IconLock className="h-4 w-4 text-neutral-500" />
-            <span className="font-mono text-[8px] text-neutral-500">
-              Private
-            </span>
+              ))}
+            </div>
+            <div className="flex gap-1.5">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <motion.div
+                  animate={{
+                    opacity: wavePhase < 30 ? 1 : 0.3,
+                    scale: wavePhase < 30 ? 1 : 0.95,
+                  }}
+                  className="h-3 w-3 rounded-sm bg-neutral-600"
+                  key={`block-1-${i}`}
+                  transition={{ duration: 0.6, delay: i * 0.05 }}
+                />
+              ))}
+            </div>
+            <div className="flex gap-1.5">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <motion.div
+                  animate={{
+                    opacity: wavePhase < 30 ? 1 : 0.3,
+                    scale: wavePhase < 30 ? 1 : 0.95,
+                  }}
+                  className="h-3 w-3 rounded-sm bg-neutral-600"
+                  key={`block-2-${i}`}
+                  transition={{ duration: 0.6, delay: i * 0.05 }}
+                />
+              ))}
+            </div>
+            <div className="flex gap-1.5">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <motion.div
+                  animate={{
+                    opacity: wavePhase < 30 ? 1 : 0.3,
+                    scale: wavePhase < 30 ? 1 : 0.95,
+                  }}
+                  className="h-3 w-3 rounded-sm bg-neutral-600"
+                  key={`block-3-${i}`}
+                  transition={{ duration: 0.6, delay: i * 0.05 }}
+                />
+              ))}
+            </div>
           </div>
+          <span className="mt-2 block font-mono text-[8px] text-neutral-500">
+            Data
+          </span>
+        </div>
+
+        {/* Center: Fragmentation/Anonymization effect */}
+        <div
+          className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2"
+          style={{ marginTop: "-10px" }}
+        >
+          <svg className="h-28 w-28" viewBox="0 0 100 100">
+            {/* Animated wave/distortion lines showing data scrambling */}
+            {Array.from({ length: 5 }).map((_, i) => {
+              const baseY = 30 + i * 10;
+              const offset = Math.sin((wavePhase + i * 10) * 0.1) * 8;
+
+              return (
+                <motion.path
+                  animate={{
+                    opacity: wavePhase >= 25 && wavePhase <= 75 ? 0.4 : 0,
+                  }}
+                  d={`M 20 ${baseY + offset} Q 35 ${baseY - offset} 50 ${baseY + offset} T 80 ${baseY + offset}`}
+                  fill="none"
+                  key={`wave-${i}`}
+                  stroke="#737373"
+                  strokeWidth="1"
+                  transition={{ duration: 0.3 }}
+                />
+              );
+            })}
+
+            {/* Shredding/fragmenting visual */}
+            {fragments.map((frag) => {
+              const progress = Math.max(0, Math.min(1, (wavePhase - 30) / 40));
+              const x = frag.startX + (frag.endX - frag.startX) * progress;
+              const y = frag.startY + (frag.endY - frag.startY) * progress;
+
+              return (
+                <motion.rect
+                  animate={{
+                    opacity:
+                      wavePhase >= 30 && wavePhase <= 70 ? [0, 0.6, 0.3] : 0,
+                    rotate: wavePhase >= 30 ? frag.rotation : 0,
+                  }}
+                  fill="#525252"
+                  height="2"
+                  key={`frag-${frag.id}`}
+                  transition={{ duration: 0.8 }}
+                  width="2"
+                  x={x}
+                  y={y}
+                />
+              );
+            })}
+          </svg>
+
+          {/* Center icon showing anonymization */}
+          <motion.div
+            animate={{
+              scale: wavePhase >= 25 && wavePhase <= 75 ? 1 : 0.8,
+              opacity: wavePhase >= 25 && wavePhase <= 75 ? 1 : 0.3,
+            }}
+            className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2"
+            transition={{ duration: 0.4 }}
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-neutral-700 bg-neutral-900/80 backdrop-blur-sm">
+              <svg
+                className="h-6 w-6 text-neutral-400"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Right side: Anonymous output (question marks representing unknown data) */}
+        <div className="-translate-y-1/2 absolute top-1/2 right-0">
+          <div className="flex flex-col gap-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <motion.div
+                animate={{
+                  opacity: wavePhase > 70 ? 1 : 0.3,
+                  x: wavePhase > 70 ? 0 : -5,
+                }}
+                className="flex items-center gap-1.5"
+                key={`output-${i}`}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+              >
+                <div className="flex h-4 w-4 items-center justify-center rounded border border-neutral-700 bg-neutral-900">
+                  <span className="font-mono text-[10px] text-neutral-500">
+                    ?
+                  </span>
+                </div>
+                <div className="h-1 w-8 rounded-full bg-neutral-800" />
+              </motion.div>
+            ))}
+          </div>
+          <span className="mt-2 block font-mono text-[8px] text-neutral-500">
+            Anonymous
+          </span>
         </div>
       </div>
     </motion.div>
@@ -481,7 +575,7 @@ const SkeletonThree = () => {
     <motion.div className="flex h-full min-h-[6rem] w-full flex-1 items-center justify-center bg-dot-white/[0.2] p-4">
       <div className="relative h-28 w-28">
         {/* Circular progress track */}
-        <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
+        <svg className="-rotate-90 absolute inset-0" viewBox="0 0 100 100">
           {/* Background circle */}
           <circle
             className="stroke-neutral-800"
@@ -513,7 +607,8 @@ const SkeletonThree = () => {
             const angleRad = (step.angle * Math.PI) / 180;
             const x = 50 + 40 * Math.cos(angleRad);
             const y = 50 + 40 * Math.sin(angleRad);
-            const isActive = progress === index + 1 || (progress === 0 && index === 2);
+            const isActive =
+              progress === index + 1 || (progress === 0 && index === 2);
 
             return (
               <g key={step.label}>
@@ -521,7 +616,7 @@ const SkeletonThree = () => {
                 <motion.circle
                   animate={{
                     r: isActive ? 4 : 2.5,
-                    fill: isActive ? '#a3a3a3' : '#737373',
+                    fill: isActive ? "#a3a3a3" : "#737373",
                   }}
                   cx={x}
                   cy={y}
@@ -550,7 +645,7 @@ const SkeletonThree = () => {
         </svg>
 
         {/* Center automation icon */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+        <div className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2">
           <motion.div
             animate={{
               rotate: progress * 120,
@@ -577,10 +672,11 @@ const SkeletonThree = () => {
         {/* Step labels positioned around the circle */}
         {steps.map((step, index) => {
           const angleRad = (step.angle * Math.PI) / 180;
-          const labelRadius = 58;
+          const labelRadius = 65;
           const x = 50 + labelRadius * Math.cos(angleRad);
           const y = 50 + labelRadius * Math.sin(angleRad);
-          const isActive = progress === index + 1 || (progress === 0 && index === 2);
+          const isActive =
+            progress === index + 1 || (progress === 0 && index === 2);
 
           return (
             <div
@@ -589,7 +685,7 @@ const SkeletonThree = () => {
               style={{
                 left: `${x}%`,
                 top: `${y}%`,
-                transform: 'translate(-50%, -50%)',
+                transform: "translate(-50%, -50%)",
               }}
             >
               <motion.span
@@ -611,124 +707,205 @@ const SkeletonThree = () => {
 };
 
 const SkeletonFour = () => {
-  const [batchProgress, setBatchProgress] = useState(0);
+  const [flowPhase, setFlowPhase] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setBatchProgress((prev) => (prev + 1) % 5);
-    }, 1200);
+      setFlowPhase((prev) => (prev + 1) % 100);
+    }, 60);
     return () => clearInterval(interval);
   }, []);
 
-  // Batch processing items
-  const items = [
-    { id: 0, y: 20 },
-    { id: 1, y: 50 },
-    { id: 2, y: 80 },
-  ];
+  // Create task items that flow from left to right
+  const tasks = Array.from({ length: 5 }, (_, i) => ({
+    id: i,
+    delay: i * 8,
+  }));
 
   return (
     <motion.div className="relative flex h-full min-h-[6rem] w-full flex-1 items-center justify-center bg-dot-white/[0.2] p-4">
-      <div className="relative h-28 w-full">
-        {/* Conveyor belt lines */}
-        <div className="absolute left-0 top-[30%] h-0.5 w-full bg-neutral-800" />
-        <div className="absolute left-0 top-[70%] h-0.5 w-full bg-neutral-800" />
+      <div className="relative flex w-full items-center justify-between gap-6 px-4">
+        {/* Left: Repetitive tasks stacking up */}
+        <div className="flex flex-col items-center gap-2">
+          <div className="relative h-20 w-24">
+            {/* Stack of repetitive task cards */}
+            {Array.from({ length: 4 }).map((_, i) => {
+              const shouldShow = (flowPhase + i * 15) % 100 < 25;
 
-        {/* Processing items moving across */}
-        {items.map((item, index) => {
-          const xProgress = ((batchProgress + index) % 4) / 3;
-          const xPercent = xProgress * 100;
-          const isProcessing = xProgress > 0.3 && xProgress < 0.7;
-          const isDone = xProgress >= 0.7;
-
-          return (
-            <motion.div
-              animate={{
-                left: `${xPercent}%`,
-              }}
-              className="absolute"
-              key={item.id}
-              style={{
-                top: `${item.y}%`,
-              }}
-              transition={{
-                duration: 1.2,
-                ease: "linear",
-              }}
-            >
-              <div className="flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-lg border border-neutral-700 bg-neutral-900">
-                {isDone ? (
-                  <svg
-                    className="h-4 w-4 text-neutral-500"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={2.5}
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M5 13l4 4L19 7"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                ) : (
-                  <div className="h-3 w-3 rounded-sm bg-neutral-600" />
-                )}
-              </div>
-
-              {/* Processing glow */}
-              {isProcessing && (
+              return (
                 <motion.div
                   animate={{
-                    opacity: [0.3, 0.6, 0.3],
+                    opacity: shouldShow ? [0, 1, 1, 0.3] : 0.3,
+                    y: shouldShow ? [10, 0, 0, 0] : 0,
+                    scale: shouldShow ? [0.9, 1, 1, 0.95] : 0.95,
                   }}
-                  className="absolute inset-0 rounded-lg bg-neutral-500/20 blur-md"
-                  transition={{
-                    duration: 0.8,
-                    repeat: Number.POSITIVE_INFINITY,
-                    repeatType: "loop",
+                  className="absolute left-0 flex h-14 w-20 items-center justify-center rounded-lg border border-neutral-700 bg-neutral-900/80"
+                  key={`task-stack-${i}`}
+                  style={{
+                    top: `${i * 4}px`,
+                    left: `${i * 2}px`,
                   }}
-                />
-              )}
-            </motion.div>
-          );
-        })}
+                  transition={{ duration: 1.2 }}
+                >
+                  <div className="flex flex-col gap-1 p-2">
+                    <div className="h-1 w-12 rounded-full bg-neutral-600" />
+                    <div className="h-1 w-8 rounded-full bg-neutral-700" />
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+          <span className="mt-1 font-mono text-[8px] text-neutral-500">
+            Repetitive
+          </span>
+        </div>
 
-        {/* Center processor */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <motion.div
-            animate={{
-              scale: [1, 1.05, 1],
-            }}
-            className="flex h-16 w-16 items-center justify-center rounded-xl border-2 border-neutral-700 bg-neutral-900"
-            transition={{
-              duration: 1.5,
-              repeat: Number.POSITIVE_INFINITY,
-              repeatType: "loop",
-            }}
-          >
+        {/* Center: Automation engine with flowing particles */}
+        <div className="relative flex flex-1 flex-col items-center justify-center gap-2">
+          <div className="relative h-20 w-full">
+            {/* Horizontal flow path */}
             <svg
-              className="h-8 w-8 text-neutral-400"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.5}
-              viewBox="0 0 24 24"
+              className="h-full w-full"
+              preserveAspectRatio="none"
+              viewBox="0 0 200 80"
             >
-              <path
-                d="M8.25 3v1.5M4.5 8.25H3m18 0h-1.5M4.5 12H3m18 0h-1.5m-15 3.75H3m18 0h-1.5M8.25 19.5V21M12 3v1.5m0 15V21m3.75-18v1.5m0 15V21m-9-1.5h10.5a2.25 2.25 0 002.25-2.25V6.75a2.25 2.25 0 00-2.25-2.25H6.75A2.25 2.25 0 004.5 6.75v10.5a2.25 2.25 0 002.25 2.25zm.75-12h9v9h-9v-9z"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+              {/* Flow lines */}
+              <motion.path
+                animate={{
+                  strokeDashoffset: [0, -40],
+                }}
+                d="M 0 40 L 200 40"
+                fill="none"
+                stroke="#404040"
+                strokeDasharray="4 4"
+                strokeWidth="1"
+                transition={{
+                  duration: 2,
+                  repeat: Number.POSITIVE_INFINITY,
+                  ease: "linear",
+                }}
               />
+
+              {/* Flowing task particles */}
+              {tasks.map((task) => {
+                const progress = ((flowPhase + task.delay) % 100) / 100;
+                const x = progress * 200;
+                const opacity = progress < 0.1 || progress > 0.9 ? 0 : 1;
+
+                return (
+                  <motion.g key={`particle-${task.id}`}>
+                    <motion.circle
+                      animate={{
+                        opacity,
+                      }}
+                      cx={x}
+                      cy="40"
+                      fill="#737373"
+                      r="2.5"
+                      transition={{ duration: 0.3 }}
+                    />
+                    {/* Trailing glow */}
+                    <motion.circle
+                      animate={{
+                        opacity: opacity * 0.3,
+                      }}
+                      cx={x - 6}
+                      cy="40"
+                      fill="#525252"
+                      r="1.5"
+                      transition={{ duration: 0.3 }}
+                    />
+                  </motion.g>
+                );
+              })}
             </svg>
-          </motion.div>
+
+            {/* Central automation icon */}
+            <div className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2">
+              <motion.div
+                animate={{
+                  scale: [1, 1.08, 1],
+                }}
+                className="flex h-14 w-14 items-center justify-center rounded-xl border-2 border-neutral-600 bg-neutral-900"
+                transition={{
+                  duration: 2,
+                  repeat: Number.POSITIVE_INFINITY,
+                  ease: "easeInOut",
+                }}
+              >
+                {/* Lightning bolt - automation symbol */}
+                <svg
+                  className="h-7 w-7 text-neutral-400"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </motion.div>
+            </div>
+          </div>
+
+          <span className="font-mono text-[8px] text-neutral-500">
+            Automated
+          </span>
         </div>
 
-        {/* Labels */}
-        <div className="absolute bottom-0 left-0">
-          <span className="font-mono text-[9px] text-neutral-500">Queue</span>
-        </div>
-        <div className="absolute bottom-0 right-0">
-          <span className="font-mono text-[9px] text-neutral-500">Done</span>
+        {/* Right: Clean organized output */}
+        <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-col gap-1.5">
+            {Array.from({ length: 3 }).map((_, i) => {
+              const completionPhase = (flowPhase - 50 + i * 10) % 100;
+              const isCompleted = completionPhase < 30;
+
+              return (
+                <motion.div
+                  animate={{
+                    opacity: isCompleted ? 1 : 0.3,
+                    scale: isCompleted ? 1 : 0.9,
+                    x: isCompleted ? 0 : -8,
+                  }}
+                  className="flex items-center gap-2 rounded-lg border border-neutral-700 bg-neutral-900/60 px-3 py-1.5"
+                  key={`output-${i}`}
+                  transition={{ duration: 0.6, delay: i * 0.1 }}
+                >
+                  {/* Checkmark */}
+                  <motion.div
+                    animate={{
+                      scale: isCompleted ? [0.8, 1.2, 1] : 0.8,
+                      opacity: isCompleted ? 1 : 0.4,
+                    }}
+                    className="flex h-3 w-3 items-center justify-center rounded-full bg-neutral-700"
+                    transition={{ duration: 0.4 }}
+                  >
+                    <svg
+                      className="h-2 w-2 text-neutral-400"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={2.5}
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M5 13l4 4L19 7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </motion.div>
+                  {/* Task line */}
+                  <div className="h-1 w-10 rounded-full bg-neutral-700" />
+                </motion.div>
+              );
+            })}
+          </div>
+          <span className="mt-1 font-mono text-[8px] text-neutral-500">
+            Completed
+          </span>
         </div>
       </div>
     </motion.div>
@@ -802,7 +979,8 @@ const SkeletonFiveApp = () => {
           {dataItems.map((item, index) => {
             const isActive = dataIndex === index;
             // Position items in a circle around the wallet
-            const angle = (index / TOTAL_DATA_ITEMS) * 2 * Math.PI - Math.PI / 2;
+            const angle =
+              (index / TOTAL_DATA_ITEMS) * 2 * Math.PI - Math.PI / 2;
             const radius = 50;
             const x = Math.cos(angle) * radius;
             const y = Math.sin(angle) * radius;
@@ -810,8 +988,8 @@ const SkeletonFiveApp = () => {
             return (
               <motion.div
                 animate={{
-                  opacity: isActive ? [0, 1, 0.7, 0] : 0.2,
-                  scale: isActive ? [0.8, 1, 1, 0.8] : 0.8,
+                  opacity: isActive ? [0, 1, 0.7, 0] : 0.5,
+                  scale: isActive ? [0.8, 1, 1, 0.8] : 0.85,
                   x: isActive ? [x, 0] : x,
                   y: isActive ? [y, 0] : y,
                 }}
@@ -889,11 +1067,6 @@ const SkeletonFiveApp = () => {
             );
           })}
         </motion.div>
-
-        {/* Label below */}
-        <span className="mt-2 text-center font-mono text-[10px] text-neutral-400">
-          Your wallet = your data
-        </span>
       </div>
     </motion.div>
   );
