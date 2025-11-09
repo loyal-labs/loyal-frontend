@@ -1,14 +1,5 @@
 "use client";
 
-import { useChat } from "@ai-sdk/react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-import { DefaultChatTransport } from "ai";
-import { ArrowDownIcon, ArrowUpToLine } from "lucide-react";
-import { IBM_Plex_Sans, Plus_Jakarta_Sans } from "next/font/google";
-import localFont from "next/font/local";
-import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
 import { BentoGridSection } from "@/components/bento-grid-section";
 import { Footer } from "@/components/footer";
 import { LoyalTokenTicker } from "@/components/loyal-token-ticker";
@@ -21,6 +12,15 @@ import { CopyIcon, type CopyIconHandle } from "@/components/ui/copy";
 import { MenuIcon, type MenuIconHandle } from "@/components/ui/menu";
 import { PlusIcon, type PlusIconHandle } from "@/components/ui/plus";
 import { stripSkillMarkers } from "@/lib/skills-text";
+import { useChat } from "@ai-sdk/react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import { DefaultChatTransport } from "ai";
+import { ArrowDownIcon, ArrowUpToLine } from "lucide-react";
+import { IBM_Plex_Sans, Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
+import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
 
 const instrumentSerif = localFont({
   src: [
@@ -1292,7 +1292,7 @@ export default function LandingPage() {
                 maxWidth: "100%",
               }}
             >
-              <em>Private</em> intelligence for <em>private</em> people
+              Agentic <em>computer</em> for private <em>people</em>
             </h1>
             <p
               style={{
@@ -1302,8 +1302,7 @@ export default function LandingPage() {
                 lineHeight: 1.45,
               }}
             >
-              Loyal is built for those who want to ask questions with no
-              repercussions.
+              Private onchain intelligence with web2 performance.
             </p>
           </div>
 
