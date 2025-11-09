@@ -433,9 +433,9 @@ const SkeletonFive = () => {
   }, []);
 
   const contracts = [
-    { color: "from-purple-400 to-purple-600", yPercent: 15 },
-    { color: "from-blue-400 to-blue-600", yPercent: 50 },
-    { color: "from-cyan-400 to-cyan-600", yPercent: 85 },
+    { color: "from-neutral-500 to-neutral-600", yPercent: 15 },
+    { color: "from-neutral-500 to-neutral-600", yPercent: 50 },
+    { color: "from-neutral-500 to-neutral-600", yPercent: 85 },
   ];
 
   return (
@@ -501,13 +501,13 @@ const SkeletonFive = () => {
                   offset="0%"
                   stopColor={
                     index === 0
-                      ? "#a78bfa"
+                      ? "#a3a3a3"
                       : index === 1
-                        ? "#60a5fa"
-                        : "#22d3ee"
+                        ? "#a3a3a3"
+                        : "#a3a3a3"
                   }
                 />
-                <stop offset="100%" stopColor="#10b981" />
+                <stop offset="100%" stopColor="#737373" />
               </linearGradient>
             ))}
           </defs>
@@ -531,10 +531,10 @@ const SkeletonFive = () => {
                   <circle
                     fill={
                       index === 0
-                        ? "#a78bfa"
+                        ? "#a3a3a3"
                         : index === 1
-                          ? "#60a5fa"
-                          : "#22d3ee"
+                          ? "#a3a3a3"
+                          : "#a3a3a3"
                     }
                     r="2.5"
                   >
@@ -567,16 +567,16 @@ const SkeletonFive = () => {
           animate={{
             opacity: [0.3, 0.6, 0.3],
           }}
-          className="absolute inset-0 rounded-2xl bg-gradient-to-br from-emerald-400/30 to-green-400/30 blur-xl"
+          className="absolute inset-0 rounded-2xl bg-gradient-to-br from-neutral-400/20 to-neutral-500/20 blur-xl"
           transition={{
             duration: 2,
             repeat: Number.POSITIVE_INFINITY,
             repeatType: "loop",
           }}
         />
-        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-emerald-500/40 bg-emerald-500/10 shadow-lg">
+        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-neutral-600/40 bg-neutral-700/10 shadow-lg">
           <svg
-            className="h-8 w-8 text-emerald-400"
+            className="h-8 w-8 text-neutral-400"
             fill="none"
             stroke="currentColor"
             strokeWidth={2}
@@ -620,8 +620,8 @@ const SkeletonNine = () => {
           className="flex flex-col items-center gap-1.5"
           transition={{ duration: 0.5 }}
         >
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-blue-500/40 bg-blue-500/10">
-            <IconMessage className="h-6 w-6 text-blue-400" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-neutral-600/40 bg-neutral-700/10">
+            <IconMessage className="h-6 w-6 text-neutral-400" />
           </div>
           <span className="font-mono text-[10px] text-neutral-400">Input</span>
         </motion.div>
@@ -632,14 +632,14 @@ const SkeletonNine = () => {
             animate={{
               scaleX: activeStep >= 1 ? 1 : 0,
             }}
-            className="absolute inset-0 origin-left bg-gradient-to-r from-blue-400 to-purple-400"
+            className="absolute inset-0 origin-left bg-gradient-to-r from-neutral-500 to-neutral-600"
             transition={{ duration: 0.6 }}
           />
           {/* Flowing particle */}
           {activeStep === 0 && (
             <motion.div
               animate={{ x: ["0%", "100%"] }}
-              className="-translate-y-1/2 absolute top-1/2 h-2 w-2 rounded-full bg-blue-400 shadow-lg"
+              className="-translate-y-1/2 absolute top-1/2 h-2 w-2 rounded-full bg-neutral-500 shadow-lg"
               transition={{ duration: 0.8, ease: "linear" }}
             />
           )}
@@ -653,7 +653,7 @@ const SkeletonNine = () => {
           className="flex flex-col items-center gap-1.5"
           transition={{ duration: 0.5 }}
         >
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-purple-500/40 bg-purple-500/10">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-neutral-600/40 bg-neutral-700/10">
             <motion.div
               animate={{
                 rotate: activeStep === 1 ? 360 : 0,
@@ -664,7 +664,7 @@ const SkeletonNine = () => {
                 repeat: activeStep === 1 ? Number.POSITIVE_INFINITY : 0,
               }}
             >
-              <IconTableColumn className="h-6 w-6 text-purple-400" />
+              <IconTableColumn className="h-6 w-6 text-neutral-400" />
             </motion.div>
           </div>
           <span className="font-mono text-[10px] text-neutral-400">
@@ -678,14 +678,14 @@ const SkeletonNine = () => {
             animate={{
               scaleX: activeStep >= 2 ? 1 : 0,
             }}
-            className="absolute inset-0 origin-left bg-gradient-to-r from-purple-400 to-emerald-400"
+            className="absolute inset-0 origin-left bg-gradient-to-r from-neutral-500 to-neutral-600"
             transition={{ duration: 0.6 }}
           />
           {/* Flowing particle */}
           {activeStep === 1 && (
             <motion.div
               animate={{ x: ["0%", "100%"] }}
-              className="-translate-y-1/2 absolute top-1/2 h-2 w-2 rounded-full bg-purple-400 shadow-lg"
+              className="-translate-y-1/2 absolute top-1/2 h-2 w-2 rounded-full bg-neutral-500 shadow-lg"
               transition={{ duration: 0.8, ease: "linear" }}
             />
           )}
@@ -699,7 +699,7 @@ const SkeletonNine = () => {
           className="flex flex-col items-center gap-1.5"
           transition={{ duration: 0.5 }}
         >
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-emerald-500/40 bg-emerald-500/10">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-neutral-600/40 bg-neutral-700/10">
             <motion.div
               animate={{
                 scale: activeStep === 2 ? [0, 1] : 1,
@@ -708,7 +708,7 @@ const SkeletonNine = () => {
               transition={{ duration: 0.5 }}
             >
               <svg
-                className="h-6 w-6 text-emerald-400"
+                className="h-6 w-6 text-neutral-400"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth={3}
@@ -763,10 +763,10 @@ const SkeletonEight = () => {
         className="flex items-start gap-2"
         transition={{ duration: 0.4 }}
       >
-        <div className="h-6 w-6 shrink-0 rounded-full bg-gradient-to-br from-blue-400 to-blue-600" />
+        <div className="h-6 w-6 shrink-0 rounded-full bg-gradient-to-br from-neutral-500 to-neutral-600" />
         <div className="flex flex-col gap-0.5">
           <span className="font-mono text-[11px] text-neutral-400">@alice</span>
-          <div className="rounded-2xl rounded-tl-sm border border-blue-500/30 bg-blue-500/10 px-2.5 py-1.5">
+          <div className="rounded-2xl rounded-tl-sm border border-neutral-600/30 bg-neutral-700/10 px-2.5 py-1.5">
             <span className="text-neutral-300 text-xs">Send 5 SOL</span>
           </div>
         </div>
@@ -788,7 +788,7 @@ const SkeletonEight = () => {
         >
           <div className="relative">
             {/* Coin */}
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-purple-400 via-purple-500 to-purple-600 shadow-lg">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-neutral-500 via-neutral-600 to-neutral-700 shadow-lg">
               <span className="font-bold text-white text-xs">5</span>
             </div>
             {/* Privacy particles/shimmer */}
@@ -797,7 +797,7 @@ const SkeletonEight = () => {
                 opacity: stage === "sending" ? [0.3, 0.8, 0.3] : 0,
                 scale: stage === "sending" ? [1, 1.5, 1] : 1,
               }}
-              className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-400/40 to-purple-400/40 blur-md"
+              className="absolute inset-0 rounded-full bg-gradient-to-br from-neutral-400/30 to-neutral-500/30 blur-md"
               transition={{
                 duration: 0.8,
                 repeat: stage === "sending" ? Number.POSITIVE_INFINITY : 0,
@@ -813,11 +813,11 @@ const SkeletonEight = () => {
             opacity: stage === "sending" ? 1 : 0,
             scale: stage === "sending" ? 1 : 0.8,
           }}
-          className="flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5"
+          className="flex items-center gap-1 rounded-full border border-neutral-600/40 bg-neutral-700/10 px-2 py-0.5"
           transition={{ duration: 0.3 }}
         >
-          <IconLock className="h-3 w-3 text-emerald-400" />
-          <span className="font-mono text-[10px] text-emerald-400">
+          <IconLock className="h-3 w-3 text-neutral-400" />
+          <span className="font-mono text-[10px] text-neutral-400">
             Private
           </span>
         </motion.div>
@@ -834,11 +834,11 @@ const SkeletonEight = () => {
       >
         <div className="flex flex-col items-end gap-0.5">
           <span className="font-mono text-[11px] text-neutral-400">@bob</span>
-          <div className="rounded-2xl rounded-tr-sm border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5">
+          <div className="rounded-2xl rounded-tr-sm border border-neutral-600/30 bg-neutral-700/10 px-2.5 py-1.5">
             <span className="text-neutral-300 text-xs">Received 5 SOL</span>
           </div>
         </div>
-        <div className="h-6 w-6 shrink-0 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600" />
+        <div className="h-6 w-6 shrink-0 rounded-full bg-gradient-to-br from-neutral-500 to-neutral-600" />
       </motion.div>
     </motion.div>
   );
@@ -876,7 +876,7 @@ const SkeletonSeven = () => {
             scale: isSecured ? [1, 1.15, 1] : 1,
             opacity: isSecured ? [0.4, 0.6, 0.4] : 0.2,
           }}
-          className="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-400/30 to-cyan-400/30 blur-xl"
+          className="absolute inset-0 rounded-full bg-gradient-to-br from-neutral-400/20 to-neutral-500/20 blur-xl"
           transition={{
             duration: 1.5,
             ease: "easeInOut",
@@ -915,8 +915,8 @@ const SkeletonSeven = () => {
                 y1="0%"
                 y2="100%"
               >
-                <stop offset="0%" stopColor="rgb(52, 211, 153)" />
-                <stop offset="100%" stopColor="rgb(34, 211, 238)" />
+                <stop offset="0%" stopColor="rgb(163, 163, 163)" />
+                <stop offset="100%" stopColor="rgb(115, 115, 115)" />
               </linearGradient>
             </defs>
           </svg>
@@ -927,7 +927,7 @@ const SkeletonSeven = () => {
               scale: isSecured ? 1 : 0.7,
               opacity: isSecured ? 1 : 0.4,
             }}
-            className="z-20 text-emerald-400"
+            className="z-20 text-neutral-400"
             transition={{ duration: 0.5 }}
           >
             <IconLock className="h-6 w-6" />
@@ -954,12 +954,12 @@ const SkeletonSeven = () => {
                       opacity: 0.4,
                     }
               }
-              className="absolute h-2 w-2 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500"
+              className="absolute h-2 w-2 rounded-full bg-gradient-to-br from-neutral-400 to-neutral-500"
               key={`particle-${index}`}
               style={{
                 boxShadow: isSecured
-                  ? "0 0 8px rgba(34, 211, 238, 0.6)"
-                  : "0 0 4px rgba(34, 211, 238, 0.3)",
+                  ? "0 0 8px rgba(163, 163, 163, 0.4)"
+                  : "0 0 4px rgba(163, 163, 163, 0.2)",
               }}
               transition={{
                 duration: 1.2,
@@ -1018,14 +1018,14 @@ const SkeletonSix = () => {
                 ? { y: 0, opacity: 1, scale: 1 }
                 : { y: -20, opacity: 0, scale: 0.8 }
             }
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600 shadow-lg"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-neutral-400 via-neutral-500 to-neutral-600 shadow-lg"
             key={`coin-${index}`}
             transition={{
               delay: index * COIN_DELAY_PER_INDEX,
               duration: COIN_ANIMATION_DURATION,
             }}
           >
-            <div className="h-5 w-5 rounded-full border-2 border-amber-200/40" />
+            <div className="h-5 w-5 rounded-full border-2 border-neutral-300/40" />
           </motion.div>
         ))}
       </div>
@@ -1036,7 +1036,7 @@ const SkeletonSix = () => {
           <span className="font-mono text-neutral-400 text-xs">Query</span>
           <motion.span
             animate={{ scale: [1, PRICE_SCALE_MAX, 1] }}
-            className="font-mono font-semibold text-emerald-400"
+            className="font-mono font-semibold text-neutral-300"
             key={count}
             transition={{ duration: PRICE_ANIMATION_DURATION }}
           >
@@ -1053,7 +1053,7 @@ const SkeletonSix = () => {
             >
               <motion.div
                 animate={idx <= count ? { scaleX: width } : { scaleX: 0 }}
-                className="h-full origin-left bg-gradient-to-r from-emerald-400 to-cyan-400"
+                className="h-full origin-left bg-gradient-to-r from-neutral-400 to-neutral-500"
                 transition={{ duration: BAR_ANIMATION_DURATION }}
               />
             </div>
