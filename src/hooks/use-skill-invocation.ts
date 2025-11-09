@@ -193,46 +193,9 @@ export const useSkillInvocation = ({
   }, [syncSegments]);
 
   const detectSlash = useCallback(() => {
-    if (pendingRecipientSelection) {
-      return;
-    }
-
-    const textarea = textareaRef.current;
-    if (!textarea) {
-      return;
-    }
-
-    const text = textarea.value;
-    const cursorPos = textarea.selectionStart;
-    const textBeforeCursor = text.slice(0, cursorPos);
-    const lastSlashIndex = textBeforeCursor.lastIndexOf("/");
-
-    if (lastSlashIndex !== -1) {
-      const textAfterSlash = textBeforeCursor.slice(lastSlashIndex + 1);
-
-      if (!textAfterSlash.includes(" ")) {
-        const filtered = ACTION_SKILLS.filter((skill) =>
-          skill.label.toLowerCase().startsWith(textAfterSlash.toLowerCase())
-        );
-
-        if (filtered.length > 0) {
-          const position = calculateDropdownPosition(textBeforeCursor);
-
-          setSlashIndex(lastSlashIndex);
-          setFilteredSkills(filtered);
-          setDropdownPosition(position);
-          setIsDropdownOpen(true);
-          setSelectedSkillIndex(0);
-          return;
-        }
-      }
-    }
-
-    setIsDropdownOpen(false);
-    setSlashIndex(null);
-    setRecipientTriggerIndex(null);
-    setFilteredSkills(ACTION_SKILLS);
-  }, [calculateDropdownPosition, pendingRecipientSelection, textareaRef]);
+    // Disabled for production: slash skill activation removed
+    return;
+  }, []);
 
   const updateRecipientSuggestions = useCallback(() => {
     const textarea = textareaRef.current;
