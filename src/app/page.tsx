@@ -66,6 +66,7 @@ export default function LandingPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [hasShownModal, setHasShownModal] = useState(false);
   const [hoveredChatId, setHoveredChatId] = useState<string | null>(null);
   const [hoveredNavIndex, setHoveredNavIndex] = useState<number | null>(null);
   const menuIconRef = useRef<MenuIconHandle>(null);
@@ -122,6 +123,14 @@ export default function LandingPage() {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
+  }, []);
+
+  // Check if testers modal has been shown before
+  useEffect(() => {
+    const modalShown = localStorage.getItem("loyal-testers-modal-shown");
+    if (modalShown === "true") {
+      setHasShownModal(true);
+    }
   }, []);
 
   // Control menu icon animation based on sidebar state
@@ -1768,6 +1777,14 @@ export default function LandingPage() {
                   }
                   onChange={(e) => {
                     setInput(e.target.value);
+
+                    // Show modal on first typing
+                    if (!hasShownModal && e.target.value.length > 0) {
+                      setIsModalOpen(true);
+                      setHasShownModal(true);
+                      localStorage.setItem("loyal-testers-modal-shown", "true");
+                    }
+
                     // Auto-resize textarea
                     if (inputRef.current) {
                       inputRef.current.style.height = "auto";
@@ -2119,7 +2136,7 @@ export default function LandingPage() {
                 lineHeight: 1.3,
               }}
             >
-              Thank you for joining the first test batch!
+              Thank you for joining Loyal open test!
             </h2>
 
             {/* Modal body */}
@@ -2134,33 +2151,42 @@ export default function LandingPage() {
               }}
             >
               <p style={{ margin: 0 }}>
-                Please note: Loyal is a test product for evaluation purposes
-                only. Functionality may be incomplete, may change without
-                notice, and may contain errors.
-              </p>
-
-              <p style={{ margin: 0 }}>
                 <strong style={{ color: "#fff", fontWeight: 600 }}>
-                  What makes Loyal different from regular LLM chats:
+                  What is it:
                 </strong>{" "}
-                your queries run in fully private, confidential compute—even the
-                Loyal team cannot access them. Conversation state is written
-                on-chain and anchored to a per-user Solana PDA.
+                you&apos;re looking at fully private on-chain AI. Every message
+                is encrypted and facilitated on-chain with AI itself running in
+                confidential VM. Neither Loyal devs nor compute node owners can
+                access your data.
               </p>
 
               <p style={{ margin: 0 }}>
-                This app may look like a simple chat, but under the hood
-                you&apos;re talking to a fully on-chain AI. In the coming weeks,
-                we&apos;ll ship more AI apps built on this Loyal backbone.
-              </p>
-
-              <p style={{ margin: 0 }}>
-                For this test run, there&apos;s no per-query fee—only wallet
+                For this open test, there&apos;s no per-query fee but the wallet
                 verification is required.
               </p>
 
               <p style={{ margin: 0 }}>
-                Please report any bugs to our discord testing channel.
+                <strong style={{ color: "#ef4444", fontWeight: 600 }}>
+                  WARNING:
+                </strong>{" "}
+                this is an early stage product and some features may be
+                incomplete or contain errors.
+              </p>
+
+              <p style={{ margin: 0 }}>
+                You will help our cause if you report any bugs/drop your
+                feedback or ideas in our discord community:{" "}
+                <a
+                  href="https://discord.askloyal.com"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: "#60a5fa",
+                    textDecoration: "underline",
+                  }}
+                  target="_blank"
+                >
+                  https://discord.askloyal.com
+                </a>
               </p>
             </div>
 
