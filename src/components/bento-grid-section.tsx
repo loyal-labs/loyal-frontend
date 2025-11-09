@@ -10,7 +10,7 @@ import {
   IconSignature,
   IconTableColumn,
 } from "@tabler/icons-react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import localFont from "next/font/local";
 import { memo, type ReactNode, useEffect, useRef, useState } from "react";
 import { type BentoItemVisualKey, bentoTabs } from "@/data/bento";
@@ -190,18 +190,24 @@ function BentoGridSectionComponent() {
           </div>
         </div>
 
-        <BentoGrid className="mx-auto max-w-4xl md:auto-rows-[20rem]">
-          {tabs[activeTab].content.map((item, i) => (
-            <BentoGridItem
-              className={cn("[&>p:text-lg]", item.className)}
-              description={item.description}
-              header={item.header}
-              icon={item.icon}
-              key={i}
-              title={item.title}
-            />
-          ))}
-        </BentoGrid>
+        <AnimatePresence mode="wait">
+          <BentoGrid
+            className="mx-auto max-w-4xl md:auto-rows-[20rem]"
+            key={activeTab}
+          >
+            {tabs[activeTab].content.map((item, i) => (
+              <BentoGridItem
+                animationDelay={i * 0.03}
+                className={cn("[&>p:text-lg]", item.className)}
+                description={item.description}
+                header={item.header}
+                icon={item.icon}
+                key={`${activeTab}-${i}`}
+                title={item.title}
+              />
+            ))}
+          </BentoGrid>
+        </AnimatePresence>
       </div>
     </section>
   );
