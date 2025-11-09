@@ -3,7 +3,11 @@ export type BentoItemVisualKey =
   | "cardTwo"
   | "cardThree"
   | "cardFour"
-  | "cardFive";
+  | "cardFive"
+  | "cardSix"
+  | "cardSeven"
+  | "cardEight"
+  | "cardNine";
 
 export type BentoItemCopy = {
   visualKey: BentoItemVisualKey;
@@ -50,24 +54,24 @@ const sectionOneItmes: BentoItemCopy[] = [
 
 const sectionTwoItems: BentoItemCopy[] = [
   {
-    visualKey: "cardOne",
+    visualKey: "cardSix",
     title: "Per-query micropayments",
     description: "Pay for what you use, no upfront costs.",
   },
   {
-    visualKey: "cardTwo",
+    visualKey: "cardSeven",
     title: "Data ownership",
     description:
       "Your data, your rules. No third parties, no centralization. No one can take it away.",
   },
   {
-    visualKey: "cardThree",
+    visualKey: "cardEight",
     title: "Telegram private payments",
     description:
       "Transfer Solana tokens using Telegram handles, no need for a wallet. Completely private and anonymous.",
   },
   {
-    visualKey: "cardFour",
+    visualKey: "cardNine",
     title: "Workflow builder & executor",
     description:
       "Help your sales team stay on top of messages, help your community builders with branded agents and conversation analytics.",
