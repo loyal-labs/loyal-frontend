@@ -6,6 +6,9 @@ Fully private, on-chain AI platform built on Solana.
 
 Loyal is a web application that provides AI chat capabilities with end-to-end encryption and on-chain data storage. Every message is encrypted and facilitated on-chain with AI running in confidential compute environments. Neither Loyal developers nor compute node owners can access your data.
 
+
+[![Repo Card](https://github-readme-stats.vercel.app/api/pin/?username=loyal-labs&repo=loyal-frontend&show_owner=true&theme=prussian)](https://github.com/loyal-labs/loyal-frontend)
+
 ## Key Features
 
 - **Fully Private AI**: Messages encrypted client-side, processed in confidential VMs
