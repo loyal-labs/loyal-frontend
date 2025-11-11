@@ -29,14 +29,20 @@ export const MessageContent = ({
 }: MessageContentProps) => (
   <div
     className={cn(
-      "flex flex-col gap-2 overflow-hidden rounded-lg px-4 py-3 text-foreground text-sm",
+      "flex flex-col gap-2 overflow-hidden rounded-lg px-4 py-3 text-sm",
       "group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground",
-      "group-[.is-assistant]:bg-secondary group-[.is-assistant]:text-foreground",
+      // Dark glassmorphic background for assistant messages
+      "group-[.is-assistant]:border group-[.is-assistant]:border-white/10 group-[.is-assistant]:backdrop-blur-[10px]",
       className
     )}
+    style={{
+      background: "rgba(0, 0, 0, 0.3)",
+    }}
     {...props}
   >
-    <div className="is-user:dark">{children}</div>
+    <div className="is-user:dark" style={{ color: "rgba(255, 255, 255, 0.9)" }}>
+      {children}
+    </div>
   </div>
 );
 
