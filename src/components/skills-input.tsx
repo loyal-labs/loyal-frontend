@@ -220,6 +220,15 @@ const SkillsInput = React.forwardRef<HTMLInputElement, SkillsInputProps>(
             setSelectedSkillIndex(0);
             calculateDropdownPosition();
           }
+        } else if (e.key === "Backspace" && pendingInput.length === 0) {
+          // If input is empty and user presses backspace, go back to FROM currency
+          e.preventDefault();
+          setSwapData({ fromCurrency: null, amount: null, toCurrency: null });
+          setSwapStep("from_currency");
+          setFilteredSkills(CURRENCY_SKILLS);
+          setIsDropdownOpen(true);
+          setSelectedSkillIndex(0);
+          calculateDropdownPosition();
         }
         return;
       }
@@ -240,16 +249,24 @@ const SkillsInput = React.forwardRef<HTMLInputElement, SkillsInputProps>(
           e.preventDefault();
           setIsDropdownOpen(false);
           setPendingInput("");
+        } else if (e.key === "Backspace" && pendingInput.length === 0) {
+          // Close dropdown and trigger pill removal
+          e.preventDefault();
+          setIsDropdownOpen(false);
+          // Don't return - fall through to pill removal logic below
         } else if (e.key === "ArrowDown") {
           e.preventDefault();
           setSelectedSkillIndex((prev) =>
             prev < filteredSkills.length - 1 ? prev + 1 : prev
           );
+          return;
         } else if (e.key === "ArrowUp") {
           e.preventDefault();
           setSelectedSkillIndex((prev) => (prev > 0 ? prev - 1 : prev));
+          return;
+        } else {
+          return;
         }
-        return;
       }
 
       // Handle slash to open skill dropdown
@@ -266,14 +283,39 @@ const SkillsInput = React.forwardRef<HTMLInputElement, SkillsInputProps>(
         setSelectedSkillIndex(0);
         calculateDropdownPosition();
         setPendingInput("@");
-      } else if (
-        e.key === "Backspace" &&
-        pendingInput.length === 0 &&
-        value.length > 0
-      ) {
+      } else if (e.key === "Backspace" && pendingInput.length === 0) {
         e.preventDefault();
-        const lastSkill = value[value.length - 1];
-        removeSkill(lastSkill);
+
+        // Handle swap data removal in reverse order
+        if (swapData.toCurrency) {
+          // Remove TO currency
+          setSwapData({ ...swapData, toCurrency: null });
+          setSwapStep("to_currency");
+          const availableToCurrencies = CURRENCY_SKILLS.filter(
+            (curr) => curr.label !== swapData.fromCurrency
+          );
+          setFilteredSkills(availableToCurrencies);
+          setIsDropdownOpen(true);
+          setSelectedSkillIndex(0);
+          calculateDropdownPosition();
+        } else if (swapData.amount) {
+          // Remove amount
+          setSwapData({ ...swapData, amount: null, toCurrency: null });
+          setSwapStep("amount");
+          setPendingInput("");
+        } else if (swapData.fromCurrency) {
+          // Remove FROM currency
+          setSwapData({ fromCurrency: null, amount: null, toCurrency: null });
+          setSwapStep("from_currency");
+          setFilteredSkills(CURRENCY_SKILLS);
+          setIsDropdownOpen(true);
+          setSelectedSkillIndex(0);
+          calculateDropdownPosition();
+        } else if (value.length > 0) {
+          // Remove last skill from array
+          const lastSkill = value[value.length - 1];
+          removeSkill(lastSkill);
+        }
       }
     };
 
