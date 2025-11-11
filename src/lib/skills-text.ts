@@ -18,7 +18,10 @@ const findSkillByLabel = (label: string): LoyalSkill | undefined =>
   );
 
 // Pattern to match amount+currency (e.g., "10 SOL", "5.5 USD")
-const AMOUNT_PATTERN = /^(\d+(?:\.\d+)?)\s+(SOL|USD)$/;
+const AMOUNT_PATTERN = /^(\d+(?:\.\d+)?)\s+(SOL|USD|USDC|USDT|BONK)$/;
+
+// Pattern to match swap amount+currency (e.g., "10 SOL", "5.5 USDC")
+const SWAP_AMOUNT_PATTERN = /^(\d+(?:\.\d+)?)\s+(\w+)$/;
 
 const parseAmountSkill = (text: string): LoyalSkill | undefined => {
   const match = text.match(AMOUNT_PATTERN);
@@ -105,3 +108,70 @@ export const stripSkillMarkers = (value: string): string =>
     .replaceAll(SKILL_PREFIX, "")
     .replaceAll(SKILL_SUFFIX, "")
     .replaceAll(SKILL_TRAILING_SPACE, " ");
+
+/**
+ * Detects if text contains a completed Swap skill
+ * Pattern: Swap [amount fromCurrency] [toCurrency]
+ * Example: Swap 10 SOL USDC
+ */
+export type SwapSkillData = {
+  amount: string;
+  fromCurrency: string;
+  toCurrency: string;
+};
+
+export const detectSwapSkill = (value: string): SwapSkillData | null => {
+  const segments = splitSkillSegments(value);
+
+  // Find the Swap action skill
+  const hasSwapSkill = segments.some(
+    (seg) => seg.isSkill && seg.skill?.id === "swap"
+  );
+
+  if (!hasSwapSkill) {
+    return null;
+  }
+
+  // Look for amount+fromCurrency segment
+  let swapAmount: string | null = null;
+  let fromCurrency: string | null = null;
+  let toCurrency: string | null = null;
+
+  for (const segment of segments) {
+    if (!segment.isSkill || !segment.skill) {
+      continue;
+    }
+
+    // Check if this is an amount skill (comes after Swap)
+    if (
+      segment.skill.category === "amount" ||
+      SWAP_AMOUNT_PATTERN.test(segment.text)
+    ) {
+      const match = segment.text.match(SWAP_AMOUNT_PATTERN);
+      if (match) {
+        [, swapAmount, fromCurrency] = match;
+      }
+    }
+
+    // Check if this is a standalone currency (the TO currency)
+    if (
+      segment.skill.category === "currency" &&
+      swapAmount &&
+      fromCurrency &&
+      !toCurrency
+    ) {
+      toCurrency = segment.skill.label;
+    }
+  }
+
+  // Return only if we have all three components
+  if (swapAmount && fromCurrency && toCurrency) {
+    return {
+      amount: swapAmount,
+      fromCurrency,
+      toCurrency,
+    };
+  }
+
+  return null;
+};

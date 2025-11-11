@@ -20,6 +20,11 @@ const SKILL_VERTICAL_PADDING_REM = 0.15;
 export type SkillsTextareaProps =
   TextareaHTMLAttributes<HTMLTextAreaElement> & {
     onSkillSelect?: (skill: LoyalSkill, slashIndex: number) => void;
+    onSwapComplete?: (data: {
+      amount: string;
+      fromCurrency: string;
+      toCurrency: string;
+    }) => void;
   } & {
     placeholder?: string;
   };
@@ -65,6 +70,8 @@ export const SkillsTextarea = forwardRef<
     selectSkill,
     pendingAmountInput,
     showDeactivatedHint,
+    pendingSwapToCurrency,
+    swapData,
   } = useSkillInvocation({
     textareaRef: internalRef,
     onChange,

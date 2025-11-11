@@ -21,6 +21,12 @@ export const AVAILABLE_SKILLS: LoyalSkill[] = [
     category: "action",
   },
   {
+    id: "swap",
+    label: "Swap",
+    description: "Swap tokens on blockchain",
+    category: "action",
+  },
+  {
     id: "recipient-chris",
     label: "@chris",
     category: "recipient",
@@ -43,6 +49,21 @@ export const AVAILABLE_SKILLS: LoyalSkill[] = [
   {
     id: "currency-usd",
     label: "USD",
+    category: "currency",
+  },
+  {
+    id: "currency-usdc",
+    label: "USDC",
+    category: "currency",
+  },
+  {
+    id: "currency-usdt",
+    label: "USDT",
+    category: "currency",
+  },
+  {
+    id: "currency-bonk",
+    label: "BONK",
     category: "currency",
   },
 ];
