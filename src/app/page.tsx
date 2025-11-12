@@ -722,14 +722,6 @@ export default function LandingPage() {
     if (result.success) {
       setSwapStatus("success");
       setSwapResult({ signature: result.signature });
-      // Auto-hide after 5 seconds
-      setTimeout(() => {
-        setShowSwapWidget(false);
-        setPendingSwapData(null);
-        pendingSwapDataRef.current = null;
-        setSwapStatus(null);
-        setSwapResult(null);
-      }, 5000);
     } else {
       setSwapStatus("error");
       setSwapResult({
@@ -760,14 +752,6 @@ export default function LandingPage() {
     if (result.success) {
       setSendStatus("success");
       setSendResult({ signature: result.signature });
-      // Auto-hide after 5 seconds
-      setTimeout(() => {
-        setShowSendWidget(false);
-        setPendingSendData(null);
-        pendingSendDataRef.current = null;
-        setSendStatus(null);
-        setSendResult(null);
-      }, 5000);
     } else {
       setSendStatus("error");
       setSendResult({

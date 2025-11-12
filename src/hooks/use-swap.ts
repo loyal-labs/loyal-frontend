@@ -285,8 +285,19 @@ export function useSwap() {
           success: true,
         };
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Swap execution failed";
+        let errorMessage = "Swap execution failed";
+
+        if (err instanceof Error) {
+          // Handle timeout errors specifically
+          if (err.message.includes("timeout") || err.message.includes("Timeout")) {
+            errorMessage = "Transaction signing timed out. Please try again and approve the transaction in your wallet promptly.";
+          } else if (err.message.includes("User rejected")) {
+            errorMessage = "Transaction was rejected in your wallet.";
+          } else {
+            errorMessage = err.message;
+          }
+        }
+
         setError(errorMessage);
         console.error("Swap execution error:", err);
         setLoading(false);

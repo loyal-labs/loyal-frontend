@@ -28,6 +28,15 @@ export const SolanaProvider: FC<SolanaProviderProps> = ({ children }) => {
     []
   );
 
+  // Configure connection with appropriate timeout and commitment settings
+  const config = useMemo(
+    () => ({
+      commitment: "confirmed" as const,
+      confirmTransactionInitialTimeout: 60000, // 60 seconds
+    }),
+    []
+  );
+
   const wallets = useMemo(
     () => [
       new PhantomWalletAdapter(),
@@ -38,7 +47,7 @@ export const SolanaProvider: FC<SolanaProviderProps> = ({ children }) => {
   );
 
   return (
-    <ConnectionProvider endpoint={endpoint}>
+    <ConnectionProvider endpoint={endpoint} config={config}>
       <WalletProvider autoConnect wallets={wallets}>
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>

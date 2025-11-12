@@ -56,7 +56,9 @@ export function SwapTransactionWidget({
             ? "rgba(134, 239, 172, 0.5)"
             : status === "error"
               ? "rgba(248, 113, 113, 0.5)"
-              : "rgba(255, 255, 255, 0.12)",
+              : status === "pending"
+                ? "rgba(251, 191, 36, 0.5)"
+                : "rgba(255, 255, 255, 0.12)",
         backdropFilter: "blur(24px) saturate(180%)",
         WebkitBackdropFilter: "blur(24px) saturate(180%)",
         boxShadow:
@@ -64,7 +66,9 @@ export function SwapTransactionWidget({
             ? "0 8px 32px rgba(134, 239, 172, 0.3), 0 2px 8px rgba(134, 239, 172, 0.2), inset 0 1px 0 rgba(134, 239, 172, 0.1)"
             : status === "error"
               ? "0 8px 32px rgba(248, 113, 113, 0.3), 0 2px 8px rgba(248, 113, 113, 0.2), inset 0 1px 0 rgba(248, 113, 113, 0.1)"
-              : "0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08)",
+              : status === "pending"
+                ? "0 8px 32px rgba(251, 191, 36, 0.3), 0 2px 8px rgba(251, 191, 36, 0.2), inset 0 1px 0 rgba(251, 191, 36, 0.1)"
+                : "0 8px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08)",
         borderRadius: "20px",
         padding: "1.75rem",
         maxWidth: "420px",
@@ -73,7 +77,9 @@ export function SwapTransactionWidget({
         animation:
           status === "success" || status === "error"
             ? "borderBlink 0.6s ease-in-out 1"
-            : "none",
+            : status === "pending"
+              ? "borderPulse 1.5s ease-in-out infinite"
+              : "none",
       }}
     >
       {/* Header */}
@@ -99,13 +105,17 @@ export function SwapTransactionWidget({
                 ? "linear-gradient(135deg, rgba(134, 239, 172, 0.15) 0%, rgba(34, 197, 94, 0.15) 100%)"
                 : status === "error"
                   ? "linear-gradient(135deg, rgba(248, 113, 113, 0.15) 0%, rgba(239, 68, 68, 0.15) 100%)"
-                  : "linear-gradient(135deg, rgba(147, 197, 253, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%)",
+                  : status === "pending"
+                    ? "linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%)"
+                    : "linear-gradient(135deg, rgba(147, 197, 253, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%)",
             border:
               status === "success"
                 ? "1px solid rgba(134, 239, 172, 0.25)"
                 : status === "error"
                   ? "1px solid rgba(248, 113, 113, 0.25)"
-                  : "1px solid rgba(147, 197, 253, 0.25)",
+                  : status === "pending"
+                    ? "1px solid rgba(251, 191, 36, 0.25)"
+                    : "1px solid rgba(147, 197, 253, 0.25)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -115,7 +125,9 @@ export function SwapTransactionWidget({
                 ? "0 2px 8px rgba(134, 239, 172, 0.15)"
                 : status === "error"
                   ? "0 2px 8px rgba(248, 113, 113, 0.15)"
-                  : "0 2px 8px rgba(147, 197, 253, 0.15)",
+                  : status === "pending"
+                    ? "0 2px 8px rgba(251, 191, 36, 0.15)"
+                    : "0 2px 8px rgba(147, 197, 253, 0.15)",
           }}
         >
           {status === "success" ? (
@@ -125,6 +137,14 @@ export function SwapTransactionWidget({
             />
           ) : status === "error" ? (
             <XCircle size={24} style={{ color: "rgba(248, 113, 113, 0.9)" }} />
+          ) : status === "pending" ? (
+            <Loader2
+              size={24}
+              style={{
+                color: "rgba(251, 191, 36, 0.9)",
+                animation: "spin 0.8s linear infinite",
+              }}
+            />
           ) : (
             <Repeat2 size={24} style={{ color: "rgba(147, 197, 253, 0.9)" }} />
           )}
@@ -143,7 +163,9 @@ export function SwapTransactionWidget({
               ? "Swap Successful!"
               : status === "error"
                 ? "Transaction Failed"
-                : "Swap Preview"}
+                : status === "pending"
+                  ? "Processing Swap..."
+                  : "Swap Preview"}
           </h3>
           <p
             style={{
@@ -158,7 +180,9 @@ export function SwapTransactionWidget({
               ? "Transaction confirmed"
               : status === "error"
                 ? result?.error || "Transaction failed"
-                : "Review transaction details"}
+                : status === "pending"
+                  ? "Confirming transaction on blockchain..."
+                  : "Review transaction details"}
           </p>
         </div>
       </div>
@@ -379,7 +403,32 @@ export function SwapTransactionWidget({
       )}
 
       {/* Action Buttons */}
-      {!status && (
+      {!status || status === "pending" ? (
+        status === "pending" ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.75rem",
+              padding: "1.25rem",
+              background: "rgba(251, 191, 36, 0.08)",
+              border: "1px solid rgba(251, 191, 36, 0.2)",
+              borderRadius: "14px",
+              color: "rgba(251, 191, 36, 0.9)",
+              fontSize: "0.875rem",
+              fontWeight: 600,
+            }}
+          >
+            <Loader2
+              size={18}
+              style={{
+                animation: "spin 0.8s linear infinite",
+              }}
+            />
+            <span>Transaction in progress...</span>
+          </div>
+        ) : (
         <div style={{ display: "flex", gap: "0.75rem" }}>
           <button
             disabled={isExecuting}
@@ -481,7 +530,8 @@ export function SwapTransactionWidget({
             )}
           </button>
         </div>
-      )}
+        )
+      ) : null}
 
       {/* Loading Spinner Animation */}
       <style>{`
@@ -496,6 +546,16 @@ export function SwapTransactionWidget({
           }
           50% {
             opacity: 0.4;
+          }
+        }
+        @keyframes borderPulse {
+          0%, 100% {
+            border-color: rgba(251, 191, 36, 0.5);
+            box-shadow: 0 8px 32px rgba(251, 191, 36, 0.3), 0 2px 8px rgba(251, 191, 36, 0.2), inset 0 1px 0 rgba(251, 191, 36, 0.1);
+          }
+          50% {
+            border-color: rgba(251, 191, 36, 0.7);
+            box-shadow: 0 8px 40px rgba(251, 191, 36, 0.4), 0 4px 12px rgba(251, 191, 36, 0.3), inset 0 1px 0 rgba(251, 191, 36, 0.15);
           }
         }
       `}</style>
