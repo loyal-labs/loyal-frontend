@@ -79,6 +79,15 @@ export default function LandingPage() {
       toCurrency: string | null;
     };
   } | null>(null);
+  const [sendFlowState, setSendFlowState] = useState<{
+    isActive: boolean;
+    isComplete: boolean;
+    sendData: {
+      currency: string | null;
+      amount: string | null;
+      walletAddress: string | null;
+    };
+  } | null>(null);
   const [isChatModeLocal, setIsChatModeLocal] = useState(false);
   const { setIsChatMode } = useChatMode();
 
@@ -118,10 +127,11 @@ export default function LandingPage() {
 
   // Smart input validation: enable send when:
   // 1. There's regular text OR skills (but not in the middle of a skill flow)
-  // 2. OR swap flow is complete
+  // 2. OR swap/send flow is complete
   const hasUsableInput =
     (pendingText.trim().length > 0 || input.length > 0) &&
-    (!swapFlowState?.isActive || swapFlowState?.isComplete);
+    (!swapFlowState?.isActive || swapFlowState?.isComplete) &&
+    (!sendFlowState?.isActive || sendFlowState?.isComplete);
 
   // Swap functionality
   const {
@@ -549,7 +559,12 @@ export default function LandingPage() {
       const hasSendSkill = input.some((skill) => skill.id === "send");
       const sendData = pendingSendDataRef.current;
       if (hasSendSkill && sendData) {
-        const sendMessage = `Send ${sendData.amount} ${sendData.currency} to ${sendData.walletAddress}`;
+        // Truncate wallet address for display (keep first 6 and last 4 chars)
+        const truncatedAddress =
+          sendData.walletAddress.length > 12
+            ? `${sendData.walletAddress.slice(0, 6)}...${sendData.walletAddress.slice(-4)}`
+            : sendData.walletAddress;
+        const sendMessage = `Send ${sendData.amount} ${sendData.currency} to ${truncatedAddress}`;
 
         // Add user's send message to chat
         setMessages((prev) => [
@@ -2127,6 +2142,7 @@ export default function LandingPage() {
                   }}
                   onPendingTextChange={setPendingText}
                   onSendComplete={handleSendComplete}
+                  onSendFlowChange={setSendFlowState}
                   onSwapComplete={handleSwapComplete}
                   onSwapFlowChange={setSwapFlowState}
                   placeholder={

@@ -28,6 +28,15 @@ type SkillsInputProps = Omit<
     fromCurrency: string;
     toCurrency: string;
   }) => void;
+  onSendFlowChange?: (data: {
+    isActive: boolean;
+    isComplete: boolean;
+    sendData: {
+      currency: string | null;
+      amount: string | null;
+      walletAddress: string | null;
+    };
+  }) => void;
   onSendComplete?: (data: {
     currency: string;
     amount: string;
@@ -52,6 +61,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       onPendingTextChange,
       onSwapFlowChange,
       onSwapComplete,
+      onSendFlowChange,
       onSendComplete,
       ...props
     },
@@ -182,6 +192,22 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         swapData,
       });
     }, [swapStep, swapData, hasSwapSkill, onSwapFlowChange]);
+
+    // Notify parent of send flow state changes
+    React.useEffect(() => {
+      const isActive = sendStep !== null;
+      const isComplete =
+        hasSendSkill &&
+        sendData.currency !== null &&
+        sendData.amount !== null &&
+        sendData.walletAddress !== null;
+
+      onSendFlowChange?.({
+        isActive,
+        isComplete,
+        sendData,
+      });
+    }, [sendStep, sendData, hasSendSkill, onSendFlowChange]);
 
     const addSkill = (skill: LoyalSkill) => {
       // Handle swap flow
@@ -363,6 +389,14 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             setPendingInput("");
             // Notify parent that Send is complete
             onSendComplete?.(completedSend);
+            // Submit the form immediately after Send is complete
+            const form = e.currentTarget.closest("form");
+            if (form) {
+              // Use setTimeout to allow state updates to complete first
+              setTimeout(() => {
+                form.requestSubmit();
+              }, 0);
+            }
           }
         } else if (e.key === "Backspace" && pendingInput.length === 0) {
           // If input is empty and user presses backspace, go back to amount
