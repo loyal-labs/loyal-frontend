@@ -23,6 +23,16 @@ const TOKEN_MINTS: Record<string, string> = {
   USDC: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
   USDT: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
   BONK: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+  LOYAL: "LYLikzBQtpa9ZgVrJsqYGQpR3cC1WMJrBHaXGrQmeta",
+};
+
+// Token decimals mapping
+const TOKEN_DECIMALS: Record<string, number> = {
+  SOL: 9,
+  USDC: 6,
+  USDT: 6,
+  BONK: 5,
+  LOYAL: 6,
 };
 
 /**
@@ -133,8 +143,8 @@ export function useSend() {
 
         const mintPubkey = new PublicKey(tokenMint);
 
-        // Get decimals for the token (6 for USDC/USDT, 9 for SOL, 5 for BONK)
-        const decimals = currency.toUpperCase() === "BONK" ? 5 : 6;
+        // Get decimals for the token
+        const decimals = TOKEN_DECIMALS[currency.toUpperCase()] || 6;
         const amountInSmallestUnit = Math.floor(
           Number.parseFloat(amount) * 10 ** decimals
         );

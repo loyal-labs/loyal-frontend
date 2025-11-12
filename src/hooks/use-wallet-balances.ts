@@ -24,6 +24,10 @@ const KNOWN_TOKENS: Record<string, { symbol: string; decimals: number }> = {
     symbol: "BONK",
     decimals: 5,
   },
+  LYLikzBQtpa9ZgVrJsqYGQpR3cC1WMJrBHaXGrQmeta: {
+    symbol: "LOYAL",
+    decimals: 6,
+  },
 };
 
 export function useWalletBalances() {
