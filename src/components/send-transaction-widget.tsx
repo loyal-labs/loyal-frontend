@@ -189,8 +189,8 @@ export function SendTransactionWidget({
         <div
           style={{
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
+            flexDirection: "column",
+            gap: "0.5rem",
           }}
         >
           <span
@@ -204,19 +204,18 @@ export function SendTransactionWidget({
           >
             To address
           </span>
-          <div style={{ textAlign: "right" }}>
-            <div
-              style={{
-                fontSize: "0.9375rem",
-                fontWeight: 600,
-                color: "rgba(134, 239, 172, 1)",
-                letterSpacing: "-0.01em",
-                fontFamily: "monospace",
-              }}
-              title={sendData.walletAddress}
-            >
-              {truncatedAddress}
-            </div>
+          <div
+            style={{
+              fontSize: "0.9375rem",
+              fontWeight: 600,
+              color: "rgba(134, 239, 172, 1)",
+              letterSpacing: "-0.01em",
+              fontFamily: "monospace",
+              wordBreak: "break-all",
+            }}
+            title={sendData.walletAddress}
+          >
+            {truncatedAddress}
           </div>
         </div>
       </div>
@@ -353,7 +352,7 @@ export function SendTransactionWidget({
             </>
           ) : (
             <>
-              <span>Approve & Sign</span>
+              <span>Approve</span>
               <Check size={16} />
             </>
           )}

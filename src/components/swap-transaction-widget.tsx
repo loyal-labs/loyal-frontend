@@ -371,7 +371,7 @@ export function SwapTransactionWidget({
             </>
           ) : (
             <>
-              <span>Approve & Sign</span>
+              <span>Approve</span>
               <Check size={16} />
             </>
           )}
