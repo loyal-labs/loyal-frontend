@@ -1,9 +1,12 @@
 import {
+  createAssociatedTokenAccountInstruction,
   createTransferInstruction,
   getAssociatedTokenAddress,
+  getAccount,
 } from "@solana/spl-token";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import {
+  ComputeBudgetProgram,
   LAMPORTS_PER_SOL,
   PublicKey,
   SystemProgram,
@@ -176,7 +179,50 @@ export function useSend() {
           to: toTokenAccount.toBase58(),
         });
 
-        const transaction = new Transaction().add(
+        // Check if recipient's ATA exists, create it if not
+        let needsATA = false;
+
+        try {
+          await getAccount(connection, toTokenAccount);
+          console.log("Recipient's token account exists");
+        } catch (error) {
+          // Account doesn't exist, will need to create it
+          console.log("Recipient's token account doesn't exist, will create it");
+          needsATA = true;
+        }
+
+        // Construct transaction
+        const transaction = new Transaction();
+
+        // Add priority fee and compute budget if creating ATA
+        if (needsATA) {
+          console.log("Adding ATA creation instructions...");
+          // Increase compute budget for ATA creation + transfer
+          transaction.add(
+            ComputeBudgetProgram.setComputeUnitLimit({
+              units: 300000,
+            })
+          );
+          // Add priority fee
+          transaction.add(
+            ComputeBudgetProgram.setComputeUnitPrice({
+              microLamports: 1000,
+            })
+          );
+
+          // Add ATA creation instruction
+          transaction.add(
+            createAssociatedTokenAccountInstruction(
+              publicKey, // payer
+              toTokenAccount, // ata
+              recipientPubkey, // owner
+              mintPubkey // mint
+            )
+          );
+        }
+
+        // Add transfer instruction
+        transaction.add(
           createTransferInstruction(
             fromTokenAccount,
             toTokenAccount,
@@ -185,7 +231,7 @@ export function useSend() {
           )
         );
 
-        // Get latest blockhash
+        // Get latest blockhash AFTER all instructions are added
         const { blockhash } = await connection.getLatestBlockhash();
         transaction.recentBlockhash = blockhash;
         transaction.feePayer = publicKey;
