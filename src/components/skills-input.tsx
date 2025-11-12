@@ -77,7 +77,22 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       toCurrency: null,
     });
 
+    // Send flow state
+    const [sendStep, setSendStep] = React.useState<
+      null | "currency" | "amount" | "recipient"
+    >(null);
+    const [sendData, setSendData] = React.useState<{
+      currency: string | null;
+      amount: string | null;
+      recipient: string | null;
+    }>({
+      currency: null,
+      amount: null,
+      recipient: null,
+    });
+
     const hasSwapSkill = value.some((skill) => skill.id === "swap");
+    const hasSendSkill = value.some((skill) => skill.id === "send");
 
     // Auto-resize textarea on mount and when pendingInput changes
     React.useEffect(() => {
@@ -100,6 +115,12 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                 fromCurrency: null,
                 amount: null,
                 toCurrency: null,
+              });
+              setSendStep(null);
+              setSendData({
+                currency: null,
+                amount: null,
+                recipient: null,
               });
               setIsDropdownOpen(false);
             };
@@ -192,8 +213,33 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         setIsDropdownOpen(false);
         setPendingInput("");
         onSwapComplete?.(completedSwap);
+      } else if (skill.id === "send") {
+        // Handle send flow - Add Send skill to the skills array
+        const newSkills = [...value, skill];
+        onChange(newSkills);
+        setSendStep("currency");
+        setFilteredSkills(CURRENCY_SKILLS);
+        setIsDropdownOpen(true);
+        setSelectedSkillIndex(0);
+        calculateDropdownPosition();
+      } else if (sendStep === "currency" && skill.category === "currency") {
+        // Store currency in sendData, DON'T add to skills array
+        setSendData({ ...sendData, currency: skill.label });
+        setSendStep("amount");
+        setIsDropdownOpen(false);
+        setPendingInput("");
+      } else if (sendStep === "recipient" && skill.category === "recipient") {
+        // Store recipient in sendData and complete the Send flow
+        setSendData({
+          currency: sendData.currency,
+          amount: sendData.amount,
+          recipient: skill.label,
+        });
+        setSendStep(null);
+        setIsDropdownOpen(false);
+        setPendingInput("");
       } else {
-        // Regular skill (not part of swap flow) - add to array
+        // Regular skill (not part of swap or send flow) - add to array
         const newSkills = [...value, skill];
         onChange(newSkills);
         setIsDropdownOpen(false);
@@ -209,6 +255,13 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       if (skillToRemove.id === "swap") {
         setSwapStep(null);
         setSwapData({ fromCurrency: null, amount: null, toCurrency: null });
+        setIsDropdownOpen(false);
+      }
+
+      // Reset send flow if Send skill is removed
+      if (skillToRemove.id === "send") {
+        setSendStep(null);
+        setSendData({ currency: null, amount: null, recipient: null });
         setIsDropdownOpen(false);
       }
     };
@@ -253,6 +306,36 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         return;
       }
 
+      // Handle amount input during send
+      if (sendStep === "amount") {
+        // Prevent default Enter behavior (new line) for send amount entry
+        if (e.key === "Enter") {
+          e.preventDefault();
+        }
+        if (e.key === "Enter" && pendingInput.trim()) {
+          const amount = Number.parseFloat(pendingInput.trim());
+          if (amount > 0) {
+            setSendData({ ...sendData, amount: pendingInput.trim() });
+            setSendStep("recipient");
+            setPendingInput("");
+            setFilteredSkills(RECIPIENT_SKILLS);
+            setIsDropdownOpen(true);
+            setSelectedSkillIndex(0);
+            calculateDropdownPosition();
+          }
+        } else if (e.key === "Backspace" && pendingInput.length === 0) {
+          // If input is empty and user presses backspace, go back to currency selection
+          e.preventDefault();
+          setSendData({ currency: null, amount: null, recipient: null });
+          setSendStep("currency");
+          setFilteredSkills(CURRENCY_SKILLS);
+          setIsDropdownOpen(true);
+          setSelectedSkillIndex(0);
+          calculateDropdownPosition();
+        }
+        return;
+      }
+
       // Handle dropdown navigation
       if (isDropdownOpen) {
         if (e.key === "Tab" || e.key === "Enter") {
@@ -266,7 +349,8 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             }, 0);
           }
           return;
-        } else if (e.key === "Escape") {
+        }
+        if (e.key === "Escape") {
           e.preventDefault();
           setIsDropdownOpen(false);
           setPendingInput("");
@@ -318,8 +402,30 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       } else if (e.key === "Backspace" && pendingInput.length === 0) {
         e.preventDefault();
 
-        // Handle swap data removal in reverse order
-        if (swapData.toCurrency) {
+        // Handle send data removal in reverse order
+        if (sendData.recipient) {
+          // Remove recipient
+          setSendData({ ...sendData, recipient: null });
+          setSendStep("recipient");
+          setFilteredSkills(RECIPIENT_SKILLS);
+          setIsDropdownOpen(true);
+          setSelectedSkillIndex(0);
+          calculateDropdownPosition();
+        } else if (sendData.amount) {
+          // Remove amount
+          setSendData({ ...sendData, amount: null, recipient: null });
+          setSendStep("amount");
+          setPendingInput("");
+        } else if (sendData.currency) {
+          // Remove currency
+          setSendData({ currency: null, amount: null, recipient: null });
+          setSendStep("currency");
+          setFilteredSkills(CURRENCY_SKILLS);
+          setIsDropdownOpen(true);
+          setSelectedSkillIndex(0);
+          calculateDropdownPosition();
+        } else if (swapData.toCurrency) {
+          // Handle swap data removal in reverse order
           // Remove TO currency
           setSwapData({ ...swapData, toCurrency: null });
           setSwapStep("to_currency");
@@ -361,8 +467,13 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
       }
 
-      // Don't open dropdown during amount input
-      if (swapStep === "amount" || swapStep === "to_currency") {
+      // Don't open dropdown during amount input for swap or send
+      if (
+        swapStep === "amount" ||
+        swapStep === "to_currency" ||
+        sendStep === "amount" ||
+        sendStep === "recipient"
+      ) {
         return;
       }
 
@@ -393,12 +504,26 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         return "Select TO currency...";
       }
 
-      // Hide placeholder if there's any content (skills, swap data, or pending text)
+      // Show send-specific placeholders during send flow
+      if (sendStep === "currency") {
+        return "Select currency (SOL, USDC, etc.)...";
+      }
+      if (sendStep === "amount" && !sendData.amount) {
+        return "Type amount (e.g., 10) then press Enter...";
+      }
+      if (sendStep === "recipient") {
+        return "Select recipient...";
+      }
+
+      // Hide placeholder if there's any content (skills, swap data, send data, or pending text)
       const hasContent =
         value.length > 0 ||
         swapData.fromCurrency ||
         swapData.amount ||
         swapData.toCurrency ||
+        sendData.currency ||
+        sendData.amount ||
+        sendData.recipient ||
         pendingInput.length > 0;
 
       if (hasContent) {
@@ -433,16 +558,24 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       swapData.amount &&
       swapData.toCurrency;
 
+    // Check if send is complete
+    const isSendComplete =
+      hasSendSkill &&
+      sendData.currency &&
+      sendData.amount &&
+      sendData.recipient;
+
     return (
       <div style={{ position: "relative", width: "100%", flex: 1 }}>
         <div
           className={cn(
             "flex min-h-[60px] w-full flex-wrap items-center gap-2 rounded-[20px] px-7 py-5 text-base ring-offset-white transition-all",
             "bg-white/5 backdrop-blur-[40px]",
-            hasSwapSkill && !isSwapComplete
+            (hasSwapSkill && !isSwapComplete) ||
+              (hasSendSkill && !isSendComplete)
               ? "shadow-[0_0_0_2px_rgba(255,255,255,0.6),0_0_20px_rgba(255,255,255,0.4),0_0_40px_rgba(255,255,255,0.2)]"
               : "",
-            isSwapComplete
+            isSwapComplete || isSendComplete
               ? "shadow-[0_0_0_2px_rgba(34,197,94,0.6),0_0_20px_rgba(34,197,94,0.4),0_0_40px_rgba(34,197,94,0.2)]"
               : "",
             className
@@ -543,6 +676,88 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                     (curr) => curr.label !== swapData.fromCurrency
                   );
                   setFilteredSkills(availableToCurrencies);
+                  setIsDropdownOpen(true);
+                  setSelectedSkillIndex(0);
+                  calculateDropdownPosition();
+                }}
+                onFocus={(e) => e.currentTarget.blur()}
+                tabIndex={-1}
+                type="button"
+              >
+                <XIcon className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          )}
+          {sendData.currency && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
+                "shadow-lg backdrop-blur-[18px]",
+                "border-white/25 bg-white/10 text-white"
+              )}
+            >
+              {sendData.currency}
+              <button
+                className="ml-1 h-3 w-3 cursor-pointer border-0 bg-transparent p-0 transition-transform duration-200 hover:scale-125"
+                onClick={() => {
+                  setSendData({
+                    currency: null,
+                    amount: null,
+                    recipient: null,
+                  });
+                  setSendStep("currency");
+                  setFilteredSkills(CURRENCY_SKILLS);
+                  setIsDropdownOpen(true);
+                  setSelectedSkillIndex(0);
+                  calculateDropdownPosition();
+                }}
+                onFocus={(e) => e.currentTarget.blur()}
+                tabIndex={-1}
+                type="button"
+              >
+                <XIcon className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          )}
+          {sendData.amount && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
+                "shadow-lg backdrop-blur-[18px]",
+                "border-green-400/40 bg-green-400/25 text-white"
+              )}
+            >
+              {sendData.amount}
+              <button
+                className="ml-1 h-3 w-3 cursor-pointer border-0 bg-transparent p-0 transition-transform duration-200 hover:scale-125"
+                onClick={() => {
+                  setSendData({ ...sendData, amount: null, recipient: null });
+                  setSendStep("amount");
+                  setPendingInput("");
+                }}
+                onFocus={(e) => e.currentTarget.blur()}
+                tabIndex={-1}
+                type="button"
+              >
+                <XIcon className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          )}
+          {sendData.recipient && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
+                "shadow-lg backdrop-blur-[18px]",
+                "border-blue-400/40 bg-blue-400/25 text-white"
+              )}
+            >
+              {sendData.recipient}
+              <button
+                className="ml-1 h-3 w-3 cursor-pointer border-0 bg-transparent p-0 transition-transform duration-200 hover:scale-125"
+                onClick={() => {
+                  setSendData({ ...sendData, recipient: null });
+                  setSendStep("recipient");
+                  setFilteredSkills(RECIPIENT_SKILLS);
                   setIsDropdownOpen(true);
                   setSelectedSkillIndex(0);
                   calculateDropdownPosition();

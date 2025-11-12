@@ -1,7 +1,7 @@
 "use client";
 
-import * as React from "react";
 import { XIcon } from "lucide-react";
+import * as React from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,7 @@ const InputTags = React.forwardRef<HTMLInputElement, InputTagsProps>(
     return (
       <div
         className={cn(
-          "has-[:focus-visible]:outline-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-neutral-950 has-[:focus-visible]:ring-offset-2 dark:has-[:focus-visible]:ring-neutral-300 min-h-10 flex w-full flex-wrap gap-2 rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm ring-offset-white disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-800 dark:bg-neutral-950 dark:ring-offset-neutral-950",
+          "flex min-h-10 w-full flex-wrap gap-2 rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm ring-offset-white disabled:cursor-not-allowed disabled:opacity-50 has-[:focus-visible]:outline-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-neutral-950 has-[:focus-visible]:ring-offset-2 dark:border-neutral-800 dark:bg-neutral-950 dark:ring-offset-neutral-950 dark:has-[:focus-visible]:ring-neutral-300",
           className
         )}
       >
@@ -62,7 +62,6 @@ const InputTags = React.forwardRef<HTMLInputElement, InputTagsProps>(
         ))}
         <input
           className="flex-1 outline-none placeholder:text-neutral-500 dark:placeholder:text-neutral-400"
-          value={pendingDataPoint}
           onChange={(e) => setPendingDataPoint(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === ",") {
@@ -77,6 +76,7 @@ const InputTags = React.forwardRef<HTMLInputElement, InputTagsProps>(
               onChange(value.slice(0, -1));
             }
           }}
+          value={pendingDataPoint}
           {...props}
           ref={ref}
         />

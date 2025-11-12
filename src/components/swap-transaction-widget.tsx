@@ -74,10 +74,7 @@ export function SwapTransactionWidget({
             boxShadow: "0 2px 8px rgba(147, 197, 253, 0.15)",
           }}
         >
-          <Repeat2
-            size={24}
-            style={{ color: "rgba(147, 197, 253, 0.9)" }}
-          />
+          <Repeat2 size={24} style={{ color: "rgba(147, 197, 253, 0.9)" }} />
         </div>
         <div>
           <h3

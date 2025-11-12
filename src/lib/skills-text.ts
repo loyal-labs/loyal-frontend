@@ -182,7 +182,6 @@ export const detectSwapSkill = (value: string): SwapSkillData | null => {
       const numMatch = trimmed.match(/^(\d+(?:\.\d+)?)$/);
       if (numMatch) {
         swapAmount = numMatch[1];
-        continue;
       }
     }
   }

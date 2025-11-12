@@ -204,7 +204,7 @@ export function useSwap() {
         const inputMint = getTokenMint(fromToken);
         const outputMint = getTokenMint(toToken);
 
-        if (!inputMint || !outputMint) {
+        if (!(inputMint && outputMint)) {
           throw new Error("Invalid token mints");
         }
 

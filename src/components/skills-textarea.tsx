@@ -238,7 +238,9 @@ export const SkillsTextarea = forwardRef<
           caretColor: props.style?.color || "#fff",
         }}
       />
-      {(pendingAmountInput || pendingCurrencySelection || pendingSwapToCurrency) && (
+      {(pendingAmountInput ||
+        pendingCurrencySelection ||
+        pendingSwapToCurrency) && (
         <div
           style={{
             position: "absolute",
