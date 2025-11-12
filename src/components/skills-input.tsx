@@ -1,6 +1,6 @@
 "use client";
 
-import { XIcon } from "lucide-react";
+import { Repeat2, Send, XIcon } from "lucide-react";
 import * as React from "react";
 
 import { SkillDropdown } from "@/components/ai-elements/skill-dropdown";
@@ -620,6 +620,18 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       }
     };
 
+    // Get skill icon based on id
+    const getSkillIcon = (skill: LoyalSkill): React.ReactNode => {
+      switch (skill.id) {
+        case "send":
+          return <Send size={14} />;
+        case "swap":
+          return <Repeat2 size={14} />;
+        default:
+          return null;
+      }
+    };
+
     // Check if swap is complete
     const isSwapComplete =
       hasSwapSkill &&
@@ -660,6 +672,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
               )}
               key={skill.id}
             >
+              {getSkillIcon(skill)}
               {skill.label}
               <button
                 className="ml-1 h-3 w-3 cursor-pointer border-0 bg-transparent p-0 transition-transform duration-200 hover:scale-125"
@@ -772,7 +785,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                   setSendData({
                     currency: null,
                     amount: null,
-                    recipient: null,
+                    walletAddress: null,
                   });
                   setSendStep("currency");
                   setFilteredSkills(CURRENCY_SKILLS);
@@ -800,7 +813,11 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
               <button
                 className="ml-1 h-3 w-3 cursor-pointer border-0 bg-transparent p-0 transition-transform duration-200 hover:scale-125"
                 onClick={() => {
-                  setSendData({ ...sendData, amount: null, recipient: null });
+                  setSendData({
+                    ...sendData,
+                    amount: null,
+                    walletAddress: null,
+                  });
                   setSendStep("amount");
                   setPendingInput("");
                 }}
