@@ -388,16 +388,30 @@ export function SwapTransactionWidget({
             >
               Transaction Signature
             </span>
-            <span
+            <a
+              href={`https://solscan.io/tx/${result.signature}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "rgba(134, 239, 172, 1)";
+                e.currentTarget.style.textDecoration = "underline";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "rgba(147, 197, 253, 0.9)";
+                e.currentTarget.style.textDecoration = "none";
+              }}
               style={{
-                color: "rgba(255, 255, 255, 0.7)",
+                color: "rgba(147, 197, 253, 0.9)",
                 fontFamily: "monospace",
                 fontSize: "0.75rem",
                 wordBreak: "break-all",
+                textDecoration: "none",
+                transition: "all 0.2s ease",
+                cursor: "pointer",
               }}
             >
               {result.signature}
-            </span>
+            </a>
           </div>
         </div>
       )}
