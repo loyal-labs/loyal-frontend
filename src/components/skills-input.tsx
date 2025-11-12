@@ -984,9 +984,11 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             {...props}
             className={cn(
               "resize-none overflow-hidden bg-transparent text-white outline-none placeholder:text-white/50",
-              getPlaceholder()
-                ? "w-full md:w-auto md:min-w-[100px] md:flex-1"
-                : "min-w-[100px] flex-1"
+              isSendComplete || isSwapComplete
+                ? "w-0 h-0 min-w-0"
+                : getPlaceholder()
+                  ? "w-full md:w-auto md:min-w-[100px] md:flex-1"
+                  : "min-w-[100px] flex-1"
             )}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
