@@ -1148,6 +1148,15 @@ export default function LandingPage() {
                 setInput([]);
                 // Clear all messages to start a completely new chat
                 setMessages([]);
+                // Reset widget states
+                setShowSwapWidget(false);
+                setShowSendWidget(false);
+                setPendingSwapData(null);
+                setPendingSendData(null);
+                setSwapStatus(null);
+                setSendStatus(null);
+                setSwapResult(null);
+                setSendResult(null);
                 setTimeout(() => {
                   inputRef.current?.focus();
                 }, 100);
