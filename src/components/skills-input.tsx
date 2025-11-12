@@ -330,11 +330,15 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             setSwapData({ ...swapData, amount: pendingInput.trim() });
             setSwapStep("to_currency");
             setPendingInput("");
-            // Filter out FROM currency from TO options
-            const availableToCurrencies = CURRENCY_SKILLS.filter(
-              (curr) => curr.label !== swapData.fromCurrency
-            );
-            setFilteredSkills(availableToCurrencies);
+            // Only allow swapping TO Loyal token
+            const loyalCurrency = [
+              {
+                id: "currency-loyal",
+                label: "LOYAL",
+                category: "currency" as const,
+              },
+            ];
+            setFilteredSkills(loyalCurrency);
             setIsDropdownOpen(true);
             setSelectedSkillIndex(0);
             calculateDropdownPosition();
@@ -510,10 +514,15 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
           // Remove TO currency
           setSwapData({ ...swapData, toCurrency: null });
           setSwapStep("to_currency");
-          const availableToCurrencies = CURRENCY_SKILLS.filter(
-            (curr) => curr.label !== swapData.fromCurrency
-          );
-          setFilteredSkills(availableToCurrencies);
+          // Only allow swapping TO Loyal token
+          const loyalCurrency = [
+            {
+              id: "currency-loyal",
+              label: "LOYAL",
+              category: "currency" as const,
+            },
+          ];
+          setFilteredSkills(loyalCurrency);
           setIsDropdownOpen(true);
           setSelectedSkillIndex(0);
           calculateDropdownPosition();
@@ -584,7 +593,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         return "Type amount (e.g., 10) then press Enter...";
       }
       if (swapStep === "to_currency") {
-        return "Select TO currency...";
+        return "Swapping to LOYAL...";
       }
 
       // Show send-specific placeholders during send flow
@@ -770,10 +779,15 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                 onClick={() => {
                   setSwapData({ ...swapData, toCurrency: null });
                   setSwapStep("to_currency");
-                  const availableToCurrencies = CURRENCY_SKILLS.filter(
-                    (curr) => curr.label !== swapData.fromCurrency
-                  );
-                  setFilteredSkills(availableToCurrencies);
+                  // Only allow swapping TO Loyal token
+                  const loyalCurrency = [
+                    {
+                      id: "currency-loyal",
+                      label: "LOYAL",
+                      category: "currency" as const,
+                    },
+                  ];
+                  setFilteredSkills(loyalCurrency);
                   setIsDropdownOpen(true);
                   setSelectedSkillIndex(0);
                   calculateDropdownPosition();
