@@ -227,7 +227,8 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         onChange(newSkills);
         setSwapStep("from_currency");
         setFilteredSkills(CURRENCY_SKILLS);
-        setIsDropdownOpen(true);
+        // Only open dropdown if there are currencies available
+        setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
         setSelectedSkillIndex(0);
         calculateDropdownPosition();
       } else if (
@@ -261,7 +262,8 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         onChange(newSkills);
         setSendStep("currency");
         setFilteredSkills(CURRENCY_SKILLS);
-        setIsDropdownOpen(true);
+        // Only open dropdown if there are currencies available
+        setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
         setSelectedSkillIndex(0);
         calculateDropdownPosition();
       } else if (sendStep === "currency" && skill.category === "currency") {
@@ -343,7 +345,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
           setSwapData({ fromCurrency: null, amount: null, toCurrency: null });
           setSwapStep("from_currency");
           setFilteredSkills(CURRENCY_SKILLS);
-          setIsDropdownOpen(true);
+          setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
           setSelectedSkillIndex(0);
           calculateDropdownPosition();
         }
@@ -369,7 +371,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
           setSendData({ currency: null, amount: null, walletAddress: null });
           setSendStep("currency");
           setFilteredSkills(CURRENCY_SKILLS);
-          setIsDropdownOpen(true);
+          setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
           setSelectedSkillIndex(0);
           calculateDropdownPosition();
         }
@@ -500,7 +502,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
           setSendData({ currency: null, amount: null, walletAddress: null });
           setSendStep("currency");
           setFilteredSkills(CURRENCY_SKILLS);
-          setIsDropdownOpen(true);
+          setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
           setSelectedSkillIndex(0);
           calculateDropdownPosition();
         } else if (swapData.toCurrency) {
@@ -525,7 +527,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
           setSwapData({ fromCurrency: null, amount: null, toCurrency: null });
           setSwapStep("from_currency");
           setFilteredSkills(CURRENCY_SKILLS);
-          setIsDropdownOpen(true);
+          setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
           setSelectedSkillIndex(0);
           calculateDropdownPosition();
         } else if (value.length > 0) {
@@ -574,7 +576,9 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
     const getPlaceholder = (): string => {
       // Show swap-specific placeholders during swap flow
       if (swapStep === "from_currency") {
-        return "Select FROM currency (SOL, USDC, etc.)...";
+        return CURRENCY_SKILLS.length === 0
+          ? "No tokens available in wallet. Please add funds."
+          : "Select FROM currency (SOL, USDC, etc.)...";
       }
       if (swapStep === "amount" && !swapData.amount) {
         return "Type amount (e.g., 10) then press Enter...";
@@ -585,7 +589,9 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
 
       // Show send-specific placeholders during send flow
       if (sendStep === "currency") {
-        return "Select currency (SOL, USDC, etc.)...";
+        return CURRENCY_SKILLS.length === 0
+          ? "No tokens available in wallet. Please add funds."
+          : "Select currency (SOL, USDC, etc.)...";
       }
       if (sendStep === "amount" && !sendData.amount) {
         return "Type amount (e.g., 10) then press Enter...";
@@ -714,7 +720,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                   });
                   setSwapStep("from_currency");
                   setFilteredSkills(CURRENCY_SKILLS);
-                  setIsDropdownOpen(true);
+                  setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
                   setSelectedSkillIndex(0);
                   calculateDropdownPosition();
                 }}
@@ -799,7 +805,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                   });
                   setSendStep("currency");
                   setFilteredSkills(CURRENCY_SKILLS);
-                  setIsDropdownOpen(true);
+                  setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
                   setSelectedSkillIndex(0);
                   calculateDropdownPosition();
                 }}
