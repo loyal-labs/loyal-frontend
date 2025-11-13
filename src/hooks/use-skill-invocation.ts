@@ -430,33 +430,6 @@ export const useSkillInvocation = ({
           return;
         }
 
-        // Swap: Second currency selection (TO) - happens after amount entry
-        if (
-          hasSwapSkill &&
-          swapFromCurrency &&
-          amountValue &&
-          pendingSwapToCurrency &&
-          pendingCurrencySelection
-        ) {
-          // Second currency selection in swap - this is the TO currency
-          const currencyToken = `${SKILL_PREFIX}${skill.label}${SKILL_SUFFIX}${SKILL_TRAILING_SPACE}`;
-          const newText = before + currencyToken + after;
-          const newCursorPos = slashIndex + currencyToken.length;
-
-          onSkillSelect?.(skill, slashIndex);
-          applyTextMutation(newText, newCursorPos);
-
-          // All swap data collected
-          setSwapAmount(amountValue);
-          setAmountValue("");
-          setAmountTriggerIndex(null);
-          setPendingCurrencySelection(false);
-          setPendingSwapToCurrency(false);
-          setIsDropdownOpen(false);
-          setSlashIndex(null);
-          return;
-        }
-
         // Send flow - currency selection (first step after /send)
         if (!(hasSwapSkill || sendCurrency) && pendingCurrencySelection) {
           // First currency selection in Send - store it and prompt for amount
@@ -717,22 +690,29 @@ export const useSkillInvocation = ({
 
           // Handle amount input
           if (pendingAmountInput) {
-            // Only allow numbers and decimal point
-            const char = inputEvent.data;
-            if (char && /[0-9.]/.test(char)) {
-              const currentText = textarea.value.slice(
-                amountTriggerIndex || 0,
-                cursorPos
-              );
-              setAmountValue(currentText);
+            const insertedText = inputEvent.data ?? "";
+            const amountStartIndex = amountTriggerIndex ?? 0;
+            const newAmountText = textarea.value.slice(
+              amountStartIndex,
+              cursorPos
+            );
+            const amountPattern = /^\d*(\.\d*)?$/;
+
+            if (insertedText && amountPattern.test(newAmountText)) {
+              setAmountValue(newAmountText);
               setSkillSegments(splitSkillSegments(textarea.value));
             } else {
-              // Block non-numeric input
+              // Block invalid numeric input (including multiple decimals)
               event.preventDefault();
               const prevValue = currentSegments.map((s) => s.text).join("");
               textarea.value = prevValue;
-              textarea.selectionStart = cursorPos - 1;
-              textarea.selectionEnd = cursorPos - 1;
+              const selectionPosRaw = cursorPos - insertedText.length;
+              const selectionPos = Math.max(
+                Math.max(selectionPosRaw, amountStartIndex),
+                0
+              );
+              textarea.selectionStart = selectionPos;
+              textarea.selectionEnd = selectionPos;
             }
             return;
           }

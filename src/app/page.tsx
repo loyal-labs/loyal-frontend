@@ -228,9 +228,18 @@ export default function LandingPage() {
 
   // Check if testers modal has been shown before
   useEffect(() => {
-    const modalShown = localStorage.getItem("loyal-testers-modal-shown");
-    if (modalShown === "true") {
-      setHasShownModal(true);
+    if (typeof window === "undefined" || !window.localStorage) {
+      return;
+    }
+    try {
+      const modalShown = window.localStorage.getItem(
+        "loyal-testers-modal-shown"
+      );
+      if (modalShown === "true") {
+        setHasShownModal(true);
+      }
+    } catch (error) {
+      console.warn("Unable to read testers modal flag from storage", error);
     }
   }, []);
 
@@ -2134,7 +2143,19 @@ export default function LandingPage() {
                     if (!hasShownModal && skills.length > 0) {
                       setIsModalOpen(true);
                       setHasShownModal(true);
-                      localStorage.setItem("loyal-testers-modal-shown", "true");
+                      if (typeof window !== "undefined" && window.localStorage) {
+                        try {
+                          window.localStorage.setItem(
+                            "loyal-testers-modal-shown",
+                            "true"
+                          );
+                        } catch (error) {
+                          console.warn(
+                            "Unable to persist testers modal flag to storage",
+                            error
+                          );
+                        }
+                      }
                     }
                   }}
                   onPendingTextChange={setPendingText}
