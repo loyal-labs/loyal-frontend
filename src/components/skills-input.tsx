@@ -87,15 +87,17 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
     const { balances } = useWalletBalances();
 
     // Create currency skills from actual wallet balances
-    const CURRENCY_SKILLS = React.useMemo(() => {
-      return balances.map((balance) => ({
-        id: `currency-${balance.symbol.toLowerCase()}`,
-        label: balance.symbol,
-        category: "currency" as const,
-        mint: balance.mint,
-        decimals: balance.decimals,
-      }));
-    }, [balances]);
+    const CURRENCY_SKILLS = React.useMemo(
+      () =>
+        balances.map((balance) => ({
+          id: `currency-${balance.symbol.toLowerCase()}`,
+          label: balance.symbol,
+          category: "currency" as const,
+          mint: balance.mint,
+          decimals: balance.decimals,
+        })),
+      [balances]
+    );
 
     // Swap flow state
     const [swapStep, setSwapStep] = React.useState<
@@ -398,12 +400,12 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
           // If input is empty and user presses backspace, go back to FROM currency
           e.preventDefault();
           setSwapData({
-          fromCurrency: null,
-          fromCurrencyMint: null,
-          fromCurrencyDecimals: null,
-          amount: null,
-          toCurrency: null,
-        });
+            fromCurrency: null,
+            fromCurrencyMint: null,
+            fromCurrencyDecimals: null,
+            amount: null,
+            toCurrency: null,
+          });
           setSwapStep("from_currency");
           setFilteredSkills(CURRENCY_SKILLS);
           setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
@@ -430,12 +432,12 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
           // If input is empty and user presses backspace, go back to currency selection
           e.preventDefault();
           setSendData({
-          currency: null,
-          currencyMint: null,
-          currencyDecimals: null,
-          amount: null,
-          walletAddress: null,
-        });
+            currency: null,
+            currencyMint: null,
+            currencyDecimals: null,
+            amount: null,
+            walletAddress: null,
+          });
           setSendStep("currency");
           setFilteredSkills(CURRENCY_SKILLS);
           setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
@@ -569,12 +571,12 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         } else if (sendData.currency) {
           // Remove currency
           setSendData({
-          currency: null,
-          currencyMint: null,
-          currencyDecimals: null,
-          amount: null,
-          walletAddress: null,
-        });
+            currency: null,
+            currencyMint: null,
+            currencyDecimals: null,
+            amount: null,
+            walletAddress: null,
+          });
           setSendStep("currency");
           setFilteredSkills(CURRENCY_SKILLS);
           setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
@@ -610,12 +612,12 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         } else if (swapData.fromCurrency) {
           // Remove FROM currency
           setSwapData({
-          fromCurrency: null,
-          fromCurrencyMint: null,
-          fromCurrencyDecimals: null,
-          amount: null,
-          toCurrency: null,
-        });
+            fromCurrency: null,
+            fromCurrencyMint: null,
+            fromCurrencyDecimals: null,
+            amount: null,
+            toCurrency: null,
+          });
           setSwapStep("from_currency");
           setFilteredSkills(CURRENCY_SKILLS);
           setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
@@ -757,7 +759,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       <div style={{ position: "relative", width: "100%", flex: 1 }}>
         <div
           className={cn(
-            "flex min-h-[60px] w-full flex-wrap items-center gap-2 rounded-[20px] pl-7 pr-16 py-5 text-base ring-offset-white transition-all",
+            "flex min-h-[60px] w-full flex-wrap items-center gap-2 rounded-[20px] py-5 pr-16 pl-7 text-base ring-offset-white transition-all",
             "bg-white/5 backdrop-blur-[40px]",
             (hasSwapSkill && !isSwapComplete) ||
               (hasSendSkill && !isSendComplete)
@@ -987,7 +989,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             className={cn(
               "resize-none overflow-hidden bg-transparent text-white outline-none placeholder:text-white/50",
               isSendComplete || isSwapComplete
-                ? "w-0 h-0 min-w-0"
+                ? "h-0 w-0 min-w-0"
                 : getPlaceholder()
                   ? "w-full md:w-auto md:min-w-[100px] md:flex-1"
                   : "min-w-[100px] flex-1"

@@ -81,7 +81,9 @@ export function useWalletBalances() {
 
           // Include all tokens with balance > 0, not just known ones
           tokenBalances.push({
-            symbol: tokenInfo?.symbol || `${mintAddress.slice(0, 4)}...${mintAddress.slice(-4)}`,
+            symbol:
+              tokenInfo?.symbol ||
+              `${mintAddress.slice(0, 4)}...${mintAddress.slice(-4)}`,
             balance,
             mint: mintAddress,
             decimals: parsedInfo.tokenAmount.decimals,

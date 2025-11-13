@@ -32,7 +32,7 @@ export const SolanaProvider: FC<SolanaProviderProps> = ({ children }) => {
   const config = useMemo(
     () => ({
       commitment: "confirmed" as const,
-      confirmTransactionInitialTimeout: 60000, // 60 seconds
+      confirmTransactionInitialTimeout: 60_000, // 60 seconds
     }),
     []
   );
@@ -47,7 +47,7 @@ export const SolanaProvider: FC<SolanaProviderProps> = ({ children }) => {
   );
 
   return (
-    <ConnectionProvider endpoint={endpoint} config={config}>
+    <ConnectionProvider config={config} endpoint={endpoint}>
       <WalletProvider autoConnect wallets={wallets}>
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>

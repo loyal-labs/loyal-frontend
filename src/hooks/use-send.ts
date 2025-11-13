@@ -1,8 +1,8 @@
 import {
   createAssociatedTokenAccountInstruction,
   createTransferInstruction,
-  getAssociatedTokenAddress,
   getAccount,
+  getAssociatedTokenAddress,
 } from "@solana/spl-token";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import {
@@ -144,13 +144,16 @@ export function useSend() {
         // Use provided tokenMint if available, otherwise try to look it up
         const resolvedTokenMint = tokenMint || getTokenMint(currency);
         if (!resolvedTokenMint) {
-          throw new Error(`Unknown token: ${currency}. Please provide token mint address.`);
+          throw new Error(
+            `Unknown token: ${currency}. Please provide token mint address.`
+          );
         }
 
         const mintPubkey = new PublicKey(resolvedTokenMint);
 
         // Get decimals for the token - use provided decimals or look up in mapping
-        const decimals = tokenDecimals ?? TOKEN_DECIMALS[currency.toUpperCase()] ?? 6;
+        const decimals =
+          tokenDecimals ?? TOKEN_DECIMALS[currency.toUpperCase()] ?? 6;
         const amountInSmallestUnit = Math.floor(
           Number.parseFloat(amount) * 10 ** decimals
         );
@@ -187,7 +190,9 @@ export function useSend() {
           console.log("Recipient's token account exists");
         } catch (error) {
           // Account doesn't exist, will need to create it
-          console.log("Recipient's token account doesn't exist, will create it");
+          console.log(
+            "Recipient's token account doesn't exist, will create it"
+          );
           needsATA = true;
         }
 
@@ -200,7 +205,7 @@ export function useSend() {
           // Increase compute budget for ATA creation + transfer
           transaction.add(
             ComputeBudgetProgram.setComputeUnitLimit({
-              units: 300000,
+              units: 300_000,
             })
           );
           // Add priority fee
@@ -270,8 +275,12 @@ export function useSend() {
 
         if (err instanceof Error) {
           // Handle timeout errors specifically
-          if (err.message.includes("timeout") || err.message.includes("Timeout")) {
-            errorMessage = "Transaction signing timed out. Please try again and approve the transaction in your wallet promptly.";
+          if (
+            err.message.includes("timeout") ||
+            err.message.includes("Timeout")
+          ) {
+            errorMessage =
+              "Transaction signing timed out. Please try again and approve the transaction in your wallet promptly.";
           } else if (err.message.includes("User rejected")) {
             errorMessage = "Transaction was rejected in your wallet.";
           } else {

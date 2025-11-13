@@ -351,15 +351,9 @@ export function SendTransactionWidget({
               type="button"
             >
               {isCopied ? (
-                <Check
-                  size={16}
-                  style={{ color: "rgba(134, 239, 172, 1)" }}
-                />
+                <Check size={16} style={{ color: "rgba(134, 239, 172, 1)" }} />
               ) : (
-                <Copy
-                  size={16}
-                  style={{ color: "rgba(134, 239, 172, 0.9)" }}
-                />
+                <Copy size={16} style={{ color: "rgba(134, 239, 172, 0.9)" }} />
               )}
             </button>
           </div>
@@ -431,8 +425,6 @@ export function SendTransactionWidget({
             </span>
             <a
               href={`https://solscan.io/tx/${result.signature}`}
-              target="_blank"
-              rel="noopener noreferrer"
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "rgba(134, 239, 172, 1)";
                 e.currentTarget.style.textDecoration = "underline";
@@ -441,6 +433,7 @@ export function SendTransactionWidget({
                 e.currentTarget.style.color = "rgba(147, 197, 253, 0.9)";
                 e.currentTarget.style.textDecoration = "none";
               }}
+              rel="noopener noreferrer"
               style={{
                 color: "rgba(147, 197, 253, 0.9)",
                 fontFamily: "monospace",
@@ -450,6 +443,7 @@ export function SendTransactionWidget({
                 transition: "all 0.2s ease",
                 cursor: "pointer",
               }}
+              target="_blank"
             >
               {result.signature}
             </a>
@@ -484,107 +478,111 @@ export function SendTransactionWidget({
             <span>Transaction in progress...</span>
           </div>
         ) : (
-        <div style={{ display: "flex", gap: "0.75rem" }}>
-          <button
-            disabled={isExecuting}
-            onClick={onCancel}
-            onMouseEnter={(e) => {
-              if (!isExecuting) {
-                e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
-                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.2)";
-                e.currentTarget.style.transform = "translateY(-1px)";
+          <div style={{ display: "flex", gap: "0.75rem" }}>
+            <button
+              disabled={isExecuting}
+              onClick={onCancel}
+              onMouseEnter={(e) => {
+                if (!isExecuting) {
+                  e.currentTarget.style.background =
+                    "rgba(255, 255, 255, 0.08)";
+                  e.currentTarget.style.borderColor =
+                    "rgba(255, 255, 255, 0.2)";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 12px rgba(0, 0, 0, 0.15)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)";
+                e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.12)";
+                e.currentTarget.style.transform = "translateY(0)";
                 e.currentTarget.style.boxShadow =
-                  "0 4px 12px rgba(0, 0, 0, 0.15)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(255, 255, 255, 0.04)";
-              e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.12)";
-              e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = "0 2px 4px rgba(0, 0, 0, 0.1)";
-            }}
-            style={{
-              flex: 1,
-              padding: "0.875rem 1.5rem",
-              borderRadius: "14px",
-              fontSize: "0.875rem",
-              fontWeight: 600,
-              border: "1px solid rgba(255, 255, 255, 0.12)",
-              background: "rgba(255, 255, 255, 0.04)",
-              color: "rgba(255, 255, 255, 0.75)",
-              cursor: isExecuting ? "not-allowed" : "pointer",
-              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-              opacity: isExecuting ? BUTTON_DISABLED_OPACITY : 1,
-              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
-              letterSpacing: "0.01em",
-            }}
-            type="button"
-          >
-            Cancel
-          </button>
-          <button
-            disabled={isExecuting || loading}
-            onClick={handleApprove}
-            onMouseEnter={(e) => {
-              if (!(isExecuting || loading)) {
+                  "0 2px 4px rgba(0, 0, 0, 0.1)";
+              }}
+              style={{
+                flex: 1,
+                padding: "0.875rem 1.5rem",
+                borderRadius: "14px",
+                fontSize: "0.875rem",
+                fontWeight: 600,
+                border: "1px solid rgba(255, 255, 255, 0.12)",
+                background: "rgba(255, 255, 255, 0.04)",
+                color: "rgba(255, 255, 255, 0.75)",
+                cursor: isExecuting ? "not-allowed" : "pointer",
+                transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                opacity: isExecuting ? BUTTON_DISABLED_OPACITY : 1,
+                boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+                letterSpacing: "0.01em",
+              }}
+              type="button"
+            >
+              Cancel
+            </button>
+            <button
+              disabled={isExecuting || loading}
+              onClick={handleApprove}
+              onMouseEnter={(e) => {
+                if (!(isExecuting || loading)) {
+                  e.currentTarget.style.background =
+                    "linear-gradient(135deg, rgba(134, 239, 172, 0.28) 0%, rgba(34, 197, 94, 0.28) 100%)";
+                  e.currentTarget.style.borderColor =
+                    "rgba(134, 239, 172, 0.5)";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 8px 24px rgba(134, 239, 172, 0.25), 0 4px 8px rgba(0, 0, 0, 0.15)";
+                }
+              }}
+              onMouseLeave={(e) => {
                 e.currentTarget.style.background =
-                  "linear-gradient(135deg, rgba(134, 239, 172, 0.28) 0%, rgba(34, 197, 94, 0.28) 100%)";
-                e.currentTarget.style.borderColor = "rgba(134, 239, 172, 0.5)";
-                e.currentTarget.style.transform = "translateY(-2px)";
+                  "linear-gradient(135deg, rgba(134, 239, 172, 0.18) 0%, rgba(34, 197, 94, 0.18) 100%)";
+                e.currentTarget.style.borderColor = "rgba(134, 239, 172, 0.35)";
+                e.currentTarget.style.transform = "translateY(0)";
                 e.currentTarget.style.boxShadow =
-                  "0 8px 24px rgba(134, 239, 172, 0.25), 0 4px 8px rgba(0, 0, 0, 0.15)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background =
-                "linear-gradient(135deg, rgba(134, 239, 172, 0.18) 0%, rgba(34, 197, 94, 0.18) 100%)";
-              e.currentTarget.style.borderColor = "rgba(134, 239, 172, 0.35)";
-              e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow =
-                "0 4px 12px rgba(134, 239, 172, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1)";
-            }}
-            style={{
-              flex: 1,
-              padding: "0.875rem 1.5rem",
-              borderRadius: "14px",
-              fontSize: "0.875rem",
-              fontWeight: 600,
-              border: "1px solid rgba(134, 239, 172, 0.35)",
-              background:
-                "linear-gradient(135deg, rgba(134, 239, 172, 0.18) 0%, rgba(34, 197, 94, 0.18) 100%)",
-              color: "rgba(134, 239, 172, 1)",
-              cursor: isExecuting || loading ? "not-allowed" : "pointer",
-              transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-              opacity: isExecuting || loading ? BUTTON_LOADING_OPACITY : 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.5rem",
-              boxShadow:
-                "0 4px 12px rgba(134, 239, 172, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1)",
-              letterSpacing: "0.01em",
-              whiteSpace: "nowrap",
-            }}
-            type="button"
-          >
-            {isExecuting || loading ? (
-              <>
-                <Loader2
-                  size={16}
-                  style={{
-                    animation: "spin 0.8s linear infinite",
-                  }}
-                />
-                <span>Processing...</span>
-              </>
-            ) : (
-              <>
-                <span>Approve</span>
-                <Check size={16} />
-              </>
-            )}
-          </button>
-        </div>
+                  "0 4px 12px rgba(134, 239, 172, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1)";
+              }}
+              style={{
+                flex: 1,
+                padding: "0.875rem 1.5rem",
+                borderRadius: "14px",
+                fontSize: "0.875rem",
+                fontWeight: 600,
+                border: "1px solid rgba(134, 239, 172, 0.35)",
+                background:
+                  "linear-gradient(135deg, rgba(134, 239, 172, 0.18) 0%, rgba(34, 197, 94, 0.18) 100%)",
+                color: "rgba(134, 239, 172, 1)",
+                cursor: isExecuting || loading ? "not-allowed" : "pointer",
+                transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                opacity: isExecuting || loading ? BUTTON_LOADING_OPACITY : 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "0.5rem",
+                boxShadow:
+                  "0 4px 12px rgba(134, 239, 172, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1)",
+                letterSpacing: "0.01em",
+                whiteSpace: "nowrap",
+              }}
+              type="button"
+            >
+              {isExecuting || loading ? (
+                <>
+                  <Loader2
+                    size={16}
+                    style={{
+                      animation: "spin 0.8s linear infinite",
+                    }}
+                  />
+                  <span>Processing...</span>
+                </>
+              ) : (
+                <>
+                  <span>Approve</span>
+                  <Check size={16} />
+                </>
+              )}
+            </button>
+          </div>
         )
       ) : null}
 

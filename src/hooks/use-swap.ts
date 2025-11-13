@@ -108,7 +108,9 @@ export function useSwap() {
         const outputMint = getTokenMint(toToken);
 
         if (!inputMint) {
-          throw new Error(`Unknown token: ${fromToken}. Please provide token mint address.`);
+          throw new Error(
+            `Unknown token: ${fromToken}. Please provide token mint address.`
+          );
         }
         if (!outputMint) {
           throw new Error(`Unknown token: ${toToken}`);
@@ -116,7 +118,8 @@ export function useSwap() {
 
         // Convert amount to lamports (smallest unit)
         // Use provided decimals if available, otherwise default based on token
-        const decimals = fromTokenDecimals ?? (fromToken.toUpperCase() === "SOL" ? 9 : 6);
+        const decimals =
+          fromTokenDecimals ?? (fromToken.toUpperCase() === "SOL" ? 9 : 6);
         const amountInSmallestUnit = Math.floor(
           Number.parseFloat(amount) * 10 ** decimals
         ).toString();
@@ -296,8 +299,12 @@ export function useSwap() {
 
         if (err instanceof Error) {
           // Handle timeout errors specifically
-          if (err.message.includes("timeout") || err.message.includes("Timeout")) {
-            errorMessage = "Transaction signing timed out. Please try again and approve the transaction in your wallet promptly.";
+          if (
+            err.message.includes("timeout") ||
+            err.message.includes("Timeout")
+          ) {
+            errorMessage =
+              "Transaction signing timed out. Please try again and approve the transaction in your wallet promptly.";
           } else if (err.message.includes("User rejected")) {
             errorMessage = "Transaction was rejected in your wallet.";
           } else {
