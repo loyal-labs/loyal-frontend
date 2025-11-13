@@ -96,6 +96,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
     const [filteredSkills, setFilteredSkills] =
       React.useState<LoyalSkill[]>(ACTION_SKILLS);
     const [pendingInput, setPendingInput] = React.useState("");
+    const [shouldSubmitForm, setShouldSubmitForm] = React.useState(false);
     const [dropdownPosition, setDropdownPosition] = React.useState({
       top: 0,
       left: 0,
@@ -167,6 +168,18 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
       }
     }, [pendingInput]);
+
+    // Submit surrounding form once send flow completes
+    React.useEffect(() => {
+      if (!shouldSubmitForm) {
+        return;
+      }
+      const form = textareaRef.current?.closest("form");
+      if (form) {
+        form.requestSubmit();
+      }
+      setShouldSubmitForm(false);
+    }, [shouldSubmitForm]);
 
     // Expose clear method to parent while maintaining textarea element methods
     React.useImperativeHandle(ref, () => {
@@ -495,14 +508,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             setPendingInput("");
             // Notify parent that Send is complete
             onSendComplete?.(completedSend);
-            // Submit the form immediately after Send is complete
-            const form = e.currentTarget.closest("form");
-            if (form) {
-              // Use setTimeout to allow state updates to complete first
-              setTimeout(() => {
-                form.requestSubmit();
-              }, 0);
-            }
+            setShouldSubmitForm(true);
           }
         } else if (e.key === "Backspace" && pendingInput.length === 0) {
           // If input is empty and user presses backspace, go back to amount
