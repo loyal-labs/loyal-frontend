@@ -305,6 +305,45 @@ export default function LandingPage() {
     return () => clearTimeout(timer);
   }, []); // Empty dependency array = run once on mount
 
+  // Handle initial page load with hash in URL
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    if (hash) {
+      // Wait for DOM to be ready
+      const timer = setTimeout(() => {
+        const navHeight = 80;
+        let sectionId = "";
+
+        switch (hash) {
+          case "about":
+            sectionId = "about-section";
+            break;
+          case "roadmap":
+            sectionId = "roadmap-section";
+            break;
+          case "links":
+            sectionId = "footer-section";
+            break;
+        }
+
+        if (sectionId) {
+          const section = document.getElementById(sectionId);
+          if (section) {
+            const elementPosition = section.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.scrollY - navHeight;
+
+            window.scrollTo({
+              top: offsetPosition,
+              behavior: "smooth",
+            });
+          }
+        }
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   // Auto-focus input when entering chat mode with multiple fallback strategies
   useEffect(() => {
     if (isChatMode && inputRef.current) {
@@ -736,6 +775,9 @@ export default function LandingPage() {
         top: offsetPosition,
         behavior: "smooth",
       });
+
+      // Update URL hash
+      window.history.pushState(null, "", "#about");
     }
   };
 
@@ -744,6 +786,9 @@ export default function LandingPage() {
       top: 0,
       behavior: "smooth",
     });
+
+    // Remove hash from URL
+    window.history.pushState(null, "", window.location.pathname);
   };
 
   const handleScrollToRoadmap = () => {
@@ -757,6 +802,9 @@ export default function LandingPage() {
         top: offsetPosition,
         behavior: "smooth",
       });
+
+      // Update URL hash
+      window.history.pushState(null, "", "#roadmap");
     }
   };
 
@@ -771,6 +819,9 @@ export default function LandingPage() {
         top: offsetPosition,
         behavior: "smooth",
       });
+
+      // Update URL hash
+      window.history.pushState(null, "", "#links");
     }
   };
 
