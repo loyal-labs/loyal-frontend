@@ -69,7 +69,7 @@ const customComponents: Partial<Components> = {
   a: ({ children, href, ...props }) => (
     <a
       href={href}
-      rel="noreferrer"
+      rel="noopener noreferrer"
       style={{
         color: "rgba(147, 197, 253, 1)",
         textDecoration: "underline",
