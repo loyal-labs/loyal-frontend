@@ -557,12 +557,13 @@ export default function LandingPage() {
     if (hasSwapSkill && swapData) {
         const swapMessage = `Swap ${swapData.amount} ${swapData.fromCurrency} to ${swapData.toCurrency}`;
         const timestamp = Date.now();
+        const userMessageId = `user-swap-${timestamp}`;
 
         // Add user's swap message to chat
         setMessages((prev) => [
           ...prev,
           {
-            id: `user-swap-${timestamp}`,
+            id: userMessageId,
             role: "user",
             createdAt: timestamp,
             parts: [
@@ -587,9 +588,10 @@ export default function LandingPage() {
         if (quoteResult) {
           setShowSwapWidget(true);
         } else {
+          // Remove the user's swap message and add error message
           const errorTimestamp = Date.now();
           setMessages((prev) => [
-            ...prev,
+            ...prev.filter((m) => m.id !== userMessageId),
             {
               id: `swap-quote-error-${errorTimestamp}`,
               role: "assistant",
@@ -605,9 +607,10 @@ export default function LandingPage() {
         }
       } catch (err) {
         console.error("Failed to get swap quote:", err);
+        // Remove the user's swap message and add error message
         const errorTimestamp = Date.now();
         setMessages((prev) => [
-          ...prev,
+          ...prev.filter((m) => m.id !== userMessageId),
           {
             id: `swap-quote-error-${errorTimestamp}`,
             role: "assistant",
