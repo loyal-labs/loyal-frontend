@@ -843,12 +843,7 @@ export default function LandingPage() {
     setSwapStatus("pending");
 
     try {
-      const result = await executeSwap(
-        pendingSwapData.fromCurrency,
-        pendingSwapData.toCurrency,
-        pendingSwapData.amount,
-        pendingSwapData.fromCurrencyMint || undefined
-      );
+      const result = await executeSwap();
 
       if (result.success) {
         setSwapStatus("success");
