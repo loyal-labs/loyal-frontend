@@ -128,11 +128,11 @@ export type TickerPriceProps = HTMLAttributes<HTMLSpanElement> & {
 
 export const TickerPrice = memo(
   ({ price, className, ...props }: TickerPriceProps) => {
-    const context = useTickerContext();
+    const { formatter } = useTickerContext();
 
     const formattedPrice = useMemo(
-      () => context.formatter.format(price),
-      [price, context]
+      () => formatter.format(price),
+      [price, formatter]
     );
 
     return (
@@ -152,14 +152,14 @@ export type TickerPriceChangeProps = HTMLAttributes<HTMLSpanElement> & {
 export const TickerPriceChange = memo(
   ({ change, isPercent, className, ...props }: TickerPriceChangeProps) => {
     const isPositiveChange = useMemo(() => change >= 0, [change]);
-    const context = useTickerContext();
+    const { formatter } = useTickerContext();
 
     const changeFormatted = useMemo(() => {
       if (isPercent) {
         return `${change.toFixed(2)}%`;
       }
-      return context.formatter.format(change);
-    }, [change, isPercent, context]);
+      return formatter.format(change);
+    }, [change, isPercent, formatter]);
 
     return (
       <span
