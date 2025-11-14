@@ -779,20 +779,27 @@ export default function LandingPage() {
 
     setSwapStatus("pending");
 
-    const result = await executeSwap(
-      pendingSwapData.fromCurrency,
-      pendingSwapData.toCurrency,
-      pendingSwapData.amount,
-      pendingSwapData.fromCurrencyMint || undefined
-    );
+    try {
+      const result = await executeSwap(
+        pendingSwapData.fromCurrency,
+        pendingSwapData.toCurrency,
+        pendingSwapData.amount,
+        pendingSwapData.fromCurrencyMint || undefined
+      );
 
-    if (result.success) {
-      setSwapStatus("success");
-      setSwapResult({ signature: result.signature });
-    } else {
+      if (result.success) {
+        setSwapStatus("success");
+        setSwapResult({ signature: result.signature });
+      } else {
+        setSwapStatus("error");
+        setSwapResult({
+          error: result.error || "Transaction failed. Please try again.",
+        });
+      }
+    } catch (error) {
       setSwapStatus("error");
       setSwapResult({
-        error: result.error || "Transaction failed. Please try again.",
+        error: error instanceof Error ? error.message : "Unexpected error occurred",
       });
     }
   };
@@ -810,21 +817,28 @@ export default function LandingPage() {
 
     setSendStatus("pending");
 
-    const result = await executeSend(
-      pendingSendData.currency,
-      pendingSendData.amount,
-      pendingSendData.walletAddress,
-      pendingSendData.currencyMint || undefined,
-      pendingSendData.currencyDecimals || undefined
-    );
+    try {
+      const result = await executeSend(
+        pendingSendData.currency,
+        pendingSendData.amount,
+        pendingSendData.walletAddress,
+        pendingSendData.currencyMint || undefined,
+        pendingSendData.currencyDecimals || undefined
+      );
 
-    if (result.success) {
-      setSendStatus("success");
-      setSendResult({ signature: result.signature });
-    } else {
+      if (result.success) {
+        setSendStatus("success");
+        setSendResult({ signature: result.signature });
+      } else {
+        setSendStatus("error");
+        setSendResult({
+          error: result.error || "Transaction failed. Please try again.",
+        });
+      }
+    } catch (error) {
       setSendStatus("error");
       setSendResult({
-        error: result.error || "Transaction failed. Please try again.",
+        error: error instanceof Error ? error.message : "Unexpected error occurred",
       });
     }
   };
