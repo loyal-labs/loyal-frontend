@@ -51,8 +51,10 @@ export const Ticker = memo(
       }
     }, [currency, locale]);
 
+    const contextValue = useMemo(() => ({ formatter }), [formatter]);
+
     return (
-      <TickerContext.Provider value={{ formatter }}>
+      <TickerContext.Provider value={contextValue}>
         <button
           className={cn(
             "inline-flex items-center gap-1.5 whitespace-nowrap align-middle",
