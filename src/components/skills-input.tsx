@@ -77,6 +77,59 @@ const SWAP_TARGET_TOKENS: LoyalSkill[] = [
 // Solana address validation regex (base58, 32-44 characters)
 const SOLANA_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
+// Strict numeric format regex - allows integers and decimals like 123, 123.45
+const NUMERIC_FORMAT_REGEX = /^\d+(\.\d+)?$/;
+
+// Maximum allowed amount (using a reasonable business limit)
+const MAX_AMOUNT = Number.MAX_SAFE_INTEGER;
+
+/**
+ * Validates numeric input for amount fields
+ * @param input - The raw input string
+ * @returns Object with isValid boolean and error message if invalid, or parsed number if valid
+ */
+const validateAmountInput = (
+  input: string
+): { isValid: true; value: number } | { isValid: false; error: string } => {
+  const trimmedInput = input.trim();
+
+  // Check for empty input
+  if (!trimmedInput) {
+    return { isValid: false, error: "Amount cannot be empty" };
+  }
+
+  // Check strict numeric format
+  if (!NUMERIC_FORMAT_REGEX.test(trimmedInput)) {
+    return {
+      isValid: false,
+      error: "Amount must be a valid number (e.g., 10 or 10.5)",
+    };
+  }
+
+  // Parse the number
+  const parsedAmount = Number.parseFloat(trimmedInput);
+
+  // Check for NaN
+  if (Number.isNaN(parsedAmount)) {
+    return { isValid: false, error: "Amount must be a valid number" };
+  }
+
+  // Check for non-positive values
+  if (parsedAmount <= 0) {
+    return { isValid: false, error: "Amount must be greater than 0" };
+  }
+
+  // Check for excessive values
+  if (parsedAmount > MAX_AMOUNT) {
+    return {
+      isValid: false,
+      error: `Amount cannot exceed ${MAX_AMOUNT.toExponential(2)}`,
+    };
+  }
+
+  return { isValid: true, value: parsedAmount };
+};
+
 const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
   (
     {
@@ -163,6 +216,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
     const [walletAddressError, setWalletAddressError] = React.useState<
       string | null
     >(null);
+    const [amountError, setAmountError] = React.useState<string | null>(null);
 
     const hasSwapSkill = value.some((skill) => skill.id === "swap");
     const hasSendSkill = value.some((skill) => skill.id === "send");
@@ -431,17 +485,26 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
           e.preventDefault();
         }
         if (e.key === "Enter" && pendingInput.trim()) {
-          const amount = Number.parseFloat(pendingInput.trim());
-          if (amount > 0) {
-            setSwapData({ ...swapData, amount: pendingInput.trim() });
-            setSwapStep("to_currency");
-            setPendingInput("");
-            // Allow swapping TO Bonk or Loyal tokens
-            setFilteredSkills(SWAP_TARGET_TOKENS);
-            setIsDropdownOpen(SWAP_TARGET_TOKENS.length > 0);
-            setSelectedSkillIndex(0);
-            calculateDropdownPosition();
+          const validation = validateAmountInput(pendingInput);
+
+          if (!validation.isValid) {
+            // Show error and prevent submission
+            setAmountError(validation.error);
+            return;
           }
+
+          // Clear any previous error
+          setAmountError(null);
+
+          // Proceed with valid amount
+          setSwapData({ ...swapData, amount: pendingInput.trim() });
+          setSwapStep("to_currency");
+          setPendingInput("");
+          // Allow swapping TO Bonk or Loyal tokens
+          setFilteredSkills(SWAP_TARGET_TOKENS);
+          setIsDropdownOpen(SWAP_TARGET_TOKENS.length > 0);
+          setSelectedSkillIndex(0);
+          calculateDropdownPosition();
         } else if (e.key === "Backspace" && pendingInput.length === 0) {
           // If input is empty and user presses backspace, go back to FROM currency
           e.preventDefault();
@@ -470,12 +533,21 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
           e.preventDefault();
         }
         if (e.key === "Enter" && pendingInput.trim()) {
-          const amount = Number.parseFloat(pendingInput.trim());
-          if (amount > 0) {
-            setSendData({ ...sendData, amount: pendingInput.trim() });
-            setSendStep("wallet_address");
-            setPendingInput("");
+          const validation = validateAmountInput(pendingInput);
+
+          if (!validation.isValid) {
+            // Show error and prevent submission
+            setAmountError(validation.error);
+            return;
           }
+
+          // Clear any previous error
+          setAmountError(null);
+
+          // Proceed with valid amount
+          setSendData({ ...sendData, amount: pendingInput.trim() });
+          setSendStep("wallet_address");
+          setPendingInput("");
         } else if (e.key === "Backspace" && pendingInput.length === 0) {
           // If input is empty and user presses backspace, go back to currency selection
           e.preventDefault();
@@ -696,6 +768,14 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       // Clear wallet address error when user starts typing
       if (sendStep === "wallet_address" && walletAddressError) {
         setWalletAddressError(null);
+      }
+
+      // Clear amount error when user starts typing
+      if (
+        (swapStep === "amount" || sendStep === "amount") &&
+        amountError
+      ) {
+        setAmountError(null);
       }
 
       // Don't open dropdown during amount input for swap or send, or during wallet address input
@@ -1058,9 +1138,9 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             rows={1}
             value={pendingInput}
           />
-          {walletAddressError && (
-            <div className="mt-2 rounded-md bg-red-500/20 px-3 py-2 text-sm text-white">
-              {walletAddressError}
+          {(walletAddressError || amountError) && (
+            <div className="mt-2 w-full rounded-md bg-red-500/20 px-3 py-2 text-sm text-white">
+              {walletAddressError || amountError}
             </div>
           )}
         </div>
