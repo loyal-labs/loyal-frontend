@@ -38,11 +38,19 @@ function BentoGridSectionComponent() {
   const [activeTab, setActiveTab] = useState(0);
   const [hoveredTab, setHoveredTab] = useState<number | null>(null);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    // Force re-render after refs are populated
+    setIsReady(true);
+  }, []);
 
   const getIndicatorStyle = () => {
     const index = hoveredTab !== null ? hoveredTab : activeTab;
     const tab = tabRefs.current[index];
-    if (!tab) return { left: 0, width: 0, opacity: 0 };
+    if (!tab) {
+      return { left: 0, width: 0, opacity: 0 };
+    }
 
     return {
       left: tab.offsetLeft,

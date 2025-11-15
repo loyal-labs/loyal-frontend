@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Ticker,
   TickerIcon,
@@ -10,6 +10,10 @@ import {
 } from "@/components/kibo-ui/ticker";
 
 const LOYAL_TOKEN_ADDRESS = "LYLikzBQtpa9ZgVrJsqYGQpR3cC1WMJrBHaXGrQmeta";
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 2000;
+const FETCH_TIMEOUT = 10_000;
+const REFRESH_INTERVAL = 60_000;
 
 type TokenData = {
   symbol: string;
@@ -17,73 +21,123 @@ type TokenData = {
   usdPrice: number;
 };
 
+type FetchResult = {
+  success: boolean;
+  data?: TokenData;
+  shouldRetry: boolean;
+};
+
+async function performFetch(controller: AbortController): Promise<FetchResult> {
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+
+  try {
+    const response = await fetch(
+      `https://lite-api.jup.ag/tokens/v2/search?query=${LOYAL_TOKEN_ADDRESS}`,
+      { signal: controller.signal }
+    );
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      return { success: false, shouldRetry: true };
+    }
+
+    const data = await response.json();
+
+    if (data && data.length > 0) {
+      const token = data[0];
+      return {
+        success: true,
+        shouldRetry: false,
+        data: {
+          symbol: token.symbol,
+          icon: token.icon,
+          usdPrice: token.usdPrice,
+        },
+      };
+    }
+
+    return { success: false, shouldRetry: true };
+  } catch (error) {
+    clearTimeout(timeoutId);
+
+    if (error instanceof Error && error.name === "AbortError") {
+      return { success: false, shouldRetry: false };
+    }
+
+    return { success: false, shouldRetry: true };
+  }
+}
+
+async function fetchWithRetry(
+  abortControllerRef: React.MutableRefObject<AbortController | null>,
+  mounted: () => boolean
+): Promise<TokenData | null> {
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
+    if (!mounted()) {
+      return null;
+    }
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    const result = await performFetch(controller);
+
+    if (!mounted()) {
+      return null;
+    }
+
+    if (result.success && result.data) {
+      return result.data;
+    }
+
+    if (!result.shouldRetry) {
+      return null;
+    }
+
+    if (attempt < MAX_RETRIES) {
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
+    }
+  }
+
+  return null;
+}
+
 export function LoyalTokenTicker() {
   const [tokenData, setTokenData] = useState<TokenData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
     const fetchTokenData = async () => {
-      try {
-        // Add timeout to prevent hanging requests
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10_000); // 10 second timeout
+      const data = await fetchWithRetry(abortControllerRef, () => mounted);
 
-        const response = await fetch(
-          `https://lite-api.jup.ag/tokens/v2/search?query=${LOYAL_TOKEN_ADDRESS}`,
-          { signal: controller.signal }
-        );
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (mounted && data && data.length > 0) {
-          const token = data[0];
-          setTokenData({
-            symbol: token.symbol,
-            icon: token.icon,
-            usdPrice: token.usdPrice,
-          });
-          setLoading(false);
-          setRetryCount(0); // Reset retry count on success
-        } else if (mounted && retryCount < 3) {
-          // Retry if no data and haven't retried too many times
-          setTimeout(() => {
-            setRetryCount((prev) => prev + 1);
-          }, 2000); // Retry after 2 seconds
-        } else if (mounted) {
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error("Failed to fetch token data:", error);
-        if (mounted && retryCount < 3) {
-          // Retry on error
-          setTimeout(() => {
-            setRetryCount((prev) => prev + 1);
-          }, 2000);
-        } else if (mounted) {
-          setLoading(false);
-        }
+      if (data) {
+        setTokenData(data);
+        setLoading(false);
+      } else if (mounted) {
+        setLoading(false);
       }
     };
 
     fetchTokenData();
 
-    // Refresh every 60 seconds
-    const interval = setInterval(fetchTokenData, 60_000);
+    const interval = setInterval(fetchTokenData, REFRESH_INTERVAL);
 
     return () => {
       mounted = false;
       clearInterval(interval);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
-  }, [retryCount]);
+  }, []);
 
   if (loading || !tokenData) {
     return (

@@ -76,6 +76,10 @@ export const useSkillInvocation = ({
   const [showDeactivatedHint, setShowDeactivatedHint] = useState(false);
   const prevHadActionSkillRef = useRef(false);
 
+  // Refs for optimized dropdown position calculation
+  const canvasContextRef = useRef<CanvasRenderingContext2D | null>(null);
+  const cachedFontStringRef = useRef<string | null>(null);
+
   // Swap-specific state
   const [_pendingSwapFromCurrency, setPendingSwapFromCurrency] =
     useState(false);
@@ -86,18 +90,90 @@ export const useSkillInvocation = ({
   // Send-specific state
   const [sendCurrency, setSendCurrency] = useState<string | null>(null);
 
-  const calculateDropdownPosition = useCallback((textBeforeCursor: string) => {
-    const lines = textBeforeCursor.split("\n");
-    const currentLine = lines.length;
-    const lineHeight = 24;
-    const charWidth = 8;
-    const lastLineLength = lines.at(-1)?.length ?? 0;
+  const calculateDropdownPosition = useCallback(
+    (textBeforeCursor: string) => {
+      const textarea = textareaRef.current;
 
-    return {
-      top: currentLine * lineHeight,
-      left: lastLineLength * charWidth,
-    };
-  }, []);
+      // Bail early if no textarea available
+      if (!textarea) {
+        return { top: 0, left: 0 };
+      }
+
+      const lines = textBeforeCursor.split("\n");
+      const currentLine = lines.length;
+      const lastLineText = lines.at(-1) ?? "";
+
+      // Fallback values
+      const FALLBACK_LINE_HEIGHT = 24;
+      const FALLBACK_CHAR_WIDTH = 8;
+      const NORMAL_LINE_HEIGHT_MULTIPLIER = 1.2; // CSS "normal" line-height is ~1.2x font size
+
+      try {
+        // Get computed styles from the textarea
+        const styles = window.getComputedStyle(textarea);
+        const fontSize = styles.fontSize;
+        const fontFamily = styles.fontFamily;
+        const fontWeight = styles.fontWeight;
+        const fontStyle = styles.fontStyle;
+
+        // Parse line-height (can be "normal", px value, or unitless number)
+        let lineHeight = FALLBACK_LINE_HEIGHT;
+        const lineHeightValue = styles.lineHeight;
+
+        if (lineHeightValue === "normal") {
+          // "normal" is typically 1.2 * fontSize
+          const fontSizeNum = Number.parseFloat(fontSize);
+          lineHeight = Number.isNaN(fontSizeNum)
+            ? FALLBACK_LINE_HEIGHT
+            : fontSizeNum * NORMAL_LINE_HEIGHT_MULTIPLIER;
+        } else {
+          const parsedLineHeight = Number.parseFloat(lineHeightValue);
+          lineHeight = Number.isNaN(parsedLineHeight)
+            ? FALLBACK_LINE_HEIGHT
+            : parsedLineHeight;
+        }
+
+        // Build font string for canvas (format: "style weight size family")
+        const fontString = `${fontStyle} ${fontWeight} ${fontSize} ${fontFamily}`;
+
+        // Initialize or reuse canvas context for text measurement
+        if (!canvasContextRef.current) {
+          const canvas = document.createElement("canvas");
+          canvasContextRef.current = canvas.getContext("2d");
+        }
+
+        const ctx = canvasContextRef.current;
+        if (!ctx) {
+          // Fallback if canvas not available
+          return {
+            top: currentLine * lineHeight,
+            left: lastLineText.length * FALLBACK_CHAR_WIDTH,
+          };
+        }
+
+        // Update font only if changed (optimization)
+        if (cachedFontStringRef.current !== fontString) {
+          ctx.font = fontString;
+          cachedFontStringRef.current = fontString;
+        }
+
+        // Measure the actual text width
+        const textWidth = ctx.measureText(lastLineText).width;
+
+        return {
+          top: currentLine * lineHeight,
+          left: Number.isNaN(textWidth) ? 0 : textWidth,
+        };
+      } catch (_error) {
+        // Fallback to hardcoded values if any error occurs
+        return {
+          top: currentLine * FALLBACK_LINE_HEIGHT,
+          left: lastLineText.length * FALLBACK_CHAR_WIDTH,
+        };
+      }
+    },
+    [textareaRef]
+  );
 
   const applyTextMutation = useCallback(
     (newValue: string, caretPosition: number) => {
@@ -239,19 +315,33 @@ export const useSkillInvocation = ({
         if (filtered.length > 0) {
           const position = calculateDropdownPosition(textBeforeCursor);
 
-          setSlashIndex(lastSlashIndex);
-          setFilteredSkills(filtered);
-          setDropdownPosition(position);
-          setIsDropdownOpen(true);
-          setSelectedSkillIndex(0);
+          setSlashIndex((prev) =>
+            prev !== lastSlashIndex ? lastSlashIndex : prev
+          );
+          setFilteredSkills((prev) => {
+            if (
+              prev.length !== filtered.length ||
+              prev.some((s, i) => s.id !== filtered[i]?.id)
+            ) {
+              return filtered;
+            }
+            return prev;
+          });
+          setDropdownPosition((prev) =>
+            prev.top !== position.top || prev.left !== position.left
+              ? position
+              : prev
+          );
+          setIsDropdownOpen((prev) => (prev !== true ? true : prev));
+          setSelectedSkillIndex((prev) => (prev !== 0 ? 0 : prev));
         } else {
-          setIsDropdownOpen(false);
+          setIsDropdownOpen((prev) => (prev !== false ? false : prev));
         }
         return;
       }
     }
 
-    setIsDropdownOpen(false);
+    setIsDropdownOpen((prev) => (prev !== false ? false : prev));
   }, [textareaRef, calculateDropdownPosition, pendingRecipientSelection]);
 
   const updateRecipientSuggestions = useCallback(() => {
@@ -272,10 +362,15 @@ export const useSkillInvocation = ({
 
       const rawQuery = text.slice(triggerIndex, cursorPos);
       if (rawQuery.includes(" ") || rawQuery.includes("\n")) {
-        setPendingRecipientSelection(false);
-        setRecipientTriggerIndex(null);
-        setFilteredSkills(ACTION_SKILLS);
-        setIsDropdownOpen(false);
+        setPendingRecipientSelection((prev) => (prev !== false ? false : prev));
+        setRecipientTriggerIndex((prev) => (prev !== null ? null : prev));
+        setFilteredSkills((prev) =>
+          prev.length !== ACTION_SKILLS.length ||
+          prev.some((s, i) => s.id !== ACTION_SKILLS[i]?.id)
+            ? ACTION_SKILLS
+            : prev
+        );
+        setIsDropdownOpen((prev) => (prev !== false ? false : prev));
         return;
       }
 
@@ -289,11 +384,23 @@ export const useSkillInvocation = ({
           )
         : RECIPIENT_SKILLS;
 
-      setFilteredSkills(filtered.length ? filtered : RECIPIENT_SKILLS);
-      setSelectedSkillIndex(0);
-      setIsDropdownOpen(true);
-      setDropdownPosition(
-        calculateDropdownPosition(text.slice(0, triggerIndex))
+      const finalFiltered = filtered.length ? filtered : RECIPIENT_SKILLS;
+      setFilteredSkills((prev) => {
+        if (
+          prev.length !== finalFiltered.length ||
+          prev.some((s, i) => s.id !== finalFiltered[i]?.id)
+        ) {
+          return finalFiltered;
+        }
+        return prev;
+      });
+      setSelectedSkillIndex((prev) => (prev !== 0 ? 0 : prev));
+      setIsDropdownOpen((prev) => (prev !== true ? true : prev));
+      const position = calculateDropdownPosition(text.slice(0, triggerIndex));
+      setDropdownPosition((prev) =>
+        prev.top !== position.top || prev.left !== position.left
+          ? position
+          : prev
       );
       return;
     }
@@ -312,18 +419,32 @@ export const useSkillInvocation = ({
             )
           : RECIPIENT_SKILLS;
 
-        setPendingRecipientSelection(true);
-        setRecipientTriggerIndex(lastAt);
-        setFilteredSkills(filtered.length ? filtered : RECIPIENT_SKILLS);
-        setSelectedSkillIndex(0);
-        setDropdownPosition(calculateDropdownPosition(text.slice(0, lastAt)));
-        setIsDropdownOpen(true);
+        const finalFiltered = filtered.length ? filtered : RECIPIENT_SKILLS;
+        setPendingRecipientSelection((prev) => (prev !== true ? true : prev));
+        setRecipientTriggerIndex((prev) => (prev !== lastAt ? lastAt : prev));
+        setFilteredSkills((prev) => {
+          if (
+            prev.length !== finalFiltered.length ||
+            prev.some((s, i) => s.id !== finalFiltered[i]?.id)
+          ) {
+            return finalFiltered;
+          }
+          return prev;
+        });
+        setSelectedSkillIndex((prev) => (prev !== 0 ? 0 : prev));
+        const position = calculateDropdownPosition(text.slice(0, lastAt));
+        setDropdownPosition((prev) =>
+          prev.top !== position.top || prev.left !== position.left
+            ? position
+            : prev
+        );
+        setIsDropdownOpen((prev) => (prev !== true ? true : prev));
         return;
       }
     }
 
-    setPendingRecipientSelection(false);
-    setRecipientTriggerIndex(null);
+    setPendingRecipientSelection((prev) => (prev !== false ? false : prev));
+    setRecipientTriggerIndex((prev) => (prev !== null ? null : prev));
   }, [
     calculateDropdownPosition,
     pendingRecipientSelection,
@@ -425,33 +546,6 @@ export const useSkillInvocation = ({
           setPendingCurrencySelection(false);
           setPendingAmountInput(true);
           setAmountTriggerIndex(newCursorPos);
-          setIsDropdownOpen(false);
-          setSlashIndex(null);
-          return;
-        }
-
-        // Swap: Second currency selection (TO) - happens after amount entry
-        if (
-          hasSwapSkill &&
-          swapFromCurrency &&
-          amountValue &&
-          pendingSwapToCurrency &&
-          pendingCurrencySelection
-        ) {
-          // Second currency selection in swap - this is the TO currency
-          const currencyToken = `${SKILL_PREFIX}${skill.label}${SKILL_SUFFIX}${SKILL_TRAILING_SPACE}`;
-          const newText = before + currencyToken + after;
-          const newCursorPos = slashIndex + currencyToken.length;
-
-          onSkillSelect?.(skill, slashIndex);
-          applyTextMutation(newText, newCursorPos);
-
-          // All swap data collected
-          setSwapAmount(amountValue);
-          setAmountValue("");
-          setAmountTriggerIndex(null);
-          setPendingCurrencySelection(false);
-          setPendingSwapToCurrency(false);
           setIsDropdownOpen(false);
           setSlashIndex(null);
           return;
@@ -717,22 +811,29 @@ export const useSkillInvocation = ({
 
           // Handle amount input
           if (pendingAmountInput) {
-            // Only allow numbers and decimal point
-            const char = inputEvent.data;
-            if (char && /[0-9.]/.test(char)) {
-              const currentText = textarea.value.slice(
-                amountTriggerIndex || 0,
-                cursorPos
-              );
-              setAmountValue(currentText);
+            const insertedText = inputEvent.data ?? "";
+            const amountStartIndex = amountTriggerIndex ?? 0;
+            const newAmountText = textarea.value.slice(
+              amountStartIndex,
+              cursorPos
+            );
+            const amountPattern = /^\d*(\.\d*)?$/;
+
+            if (insertedText && amountPattern.test(newAmountText)) {
+              setAmountValue(newAmountText);
               setSkillSegments(splitSkillSegments(textarea.value));
             } else {
-              // Block non-numeric input
+              // Block invalid numeric input (including multiple decimals)
               event.preventDefault();
               const prevValue = currentSegments.map((s) => s.text).join("");
               textarea.value = prevValue;
-              textarea.selectionStart = cursorPos - 1;
-              textarea.selectionEnd = cursorPos - 1;
+              const selectionPosRaw = cursorPos - insertedText.length;
+              const selectionPos = Math.max(
+                Math.max(selectionPosRaw, amountStartIndex),
+                0
+              );
+              textarea.selectionStart = selectionPos;
+              textarea.selectionEnd = selectionPos;
             }
             return;
           }
@@ -777,10 +878,20 @@ export const useSkillInvocation = ({
     ]
   );
 
+  // Store callbacks in refs to avoid effect dependency issues
+  const detectSlashRef = useRef(detectSlash);
+  const updateRecipientSuggestionsRef = useRef(updateRecipientSuggestions);
+
   useEffect(() => {
-    detectSlash();
-    updateRecipientSuggestions();
-  }, [detectSlash, updateRecipientSuggestions]);
+    detectSlashRef.current = detectSlash;
+    updateRecipientSuggestionsRef.current = updateRecipientSuggestions;
+  });
+
+  // Run detection only when currentValue changes externally (not on every callback change)
+  useEffect(() => {
+    detectSlashRef.current();
+    updateRecipientSuggestionsRef.current();
+  }, [currentValue]);
 
   // Auto-hide deactivation hint after 2 seconds
   useEffect(() => {

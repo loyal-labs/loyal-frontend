@@ -1,5 +1,3 @@
-
-
 # Ultracite Code Standards
 
 This project uses **Ultracite**, a zero-config Biome preset that enforces strict code quality standards through automated formatting and linting.
@@ -123,3 +121,7 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 ---
 
 Most formatting and common issues are automatically fixed by Biome. Run `npx ultracite fix` before committing to ensure compliance.
+
+
+# Development Workflow
+- When you're done with a task where code was created or files edited, please run the gitbutler mcp update_branches command.

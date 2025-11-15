@@ -21,7 +21,7 @@ export type BentoTabContent = {
   items: BentoItemCopy[];
 };
 
-const sectionOneItmes: BentoItemCopy[] = [
+const sectionOneItems: BentoItemCopy[] = [
   {
     visualKey: "cardOne",
     title: "Sensitive data protected",
@@ -86,6 +86,6 @@ const sectionTwoItems: BentoItemCopy[] = [
 ];
 
 export const bentoTabs: BentoTabContent[] = [
-  { label: "Applications", items: sectionOneItmes },
+  { label: "Applications", items: sectionOneItems },
   { label: "Infrastructure", items: sectionTwoItems },
 ];

@@ -250,6 +250,15 @@
       transform: translateY(-0.5rem);
     }
   }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
 }
 
 @layer base {
@@ -359,19 +368,20 @@
   }
 
   /* Enhanced Liquid Glass Modal Styling */
+  /* Wrapper must NOT have backdrop-filter to avoid breaking position:fixed in Safari */
   .wallet-adapter-modal-wrapper {
     background: transparent !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     box-shadow: none !important;
   }
 
-  /* ONLY style the actual modal dialog, not wrapper or container */
+  /* Modal dialog - apply backdrop-filter here only */
   .wallet-adapter-modal {
-    background: rgba(0, 0, 0, 0.7) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    background: rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(40px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
     border-radius: 32px !important;
     box-shadow:
       0 8px 32px 0 rgba(0, 0, 0, 0.5),
@@ -552,19 +562,17 @@
     color: currentColor !important;
   }
 
-  /* Animation for modal entrance */
+  /* Animation for modal entrance - Safari-compatible (no transform) */
   .wallet-adapter-modal {
-    animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    animation: modalFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   }
 
-  @keyframes modalSlideIn {
+  @keyframes modalFadeIn {
     from {
       opacity: 0;
-      transform: scale(0.95) translateY(10px);
     }
     to {
       opacity: 1;
-      transform: scale(1) translateY(0);
     }
   }
 

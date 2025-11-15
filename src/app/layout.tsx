@@ -2,6 +2,7 @@ import "./globals.css";
 
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import { SolanaProvider } from "@/components/solana/solana-provider";
 import { Header } from "@/components/ui/header";
 import { ChatModeProvider } from "@/contexts/chat-mode-context";
@@ -82,6 +83,27 @@ export default function RootLayout({
             </ChatModeProvider>
           </UserChatsProvider>
         </SolanaProvider>
+
+        {/* Productlane Widget */}
+        <Script id="productlane-init" strategy="afterInteractive">
+          {`
+            (function(w){
+              const P=(w.Productlane={queue:{}});
+              ["set","open","close","toggle","on","off","init","enable","disable"].forEach(m=>{
+                P[m]=(n=>function(){P.queue[n]={args:arguments}})(m)
+              })
+            })(window);
+
+            Productlane.init({
+              widgetKey: "a1926941-a6d8-47b8-baa8-794d3f75303d"
+            });
+          `}
+        </Script>
+        <Script
+          crossOrigin="anonymous"
+          src="https://widget.productlane.com/latest.productlane-widget.min.js"
+          strategy="lazyOnload"
+        />
       </body>
     </html>
   );

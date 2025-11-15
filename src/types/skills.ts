@@ -5,6 +5,8 @@ export type LoyalSkill = {
   label: string;
   description?: string;
   category: SkillCategory;
+  mint?: string;
+  decimals?: number;
 };
 
 export type SkillInvocation = {

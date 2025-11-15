@@ -1,9 +1,12 @@
 import {
+  createAssociatedTokenAccountInstruction,
   createTransferInstruction,
+  getAccount,
   getAssociatedTokenAddress,
 } from "@solana/spl-token";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import {
+  ComputeBudgetProgram,
   LAMPORTS_PER_SOL,
   PublicKey,
   SystemProgram,
@@ -23,6 +26,16 @@ const TOKEN_MINTS: Record<string, string> = {
   USDC: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
   USDT: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
   BONK: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+  LOYAL: "LYLikzBQtpa9ZgVrJsqYGQpR3cC1WMJrBHaXGrQmeta",
+};
+
+// Token decimals mapping
+const TOKEN_DECIMALS: Record<string, number> = {
+  SOL: 9,
+  USDC: 6,
+  USDT: 6,
+  BONK: 5,
+  LOYAL: 6,
 };
 
 /**
@@ -37,7 +50,7 @@ const getTokenMint = (symbol: string): string | undefined => {
 
 export function useSend() {
   const { connection } = useConnection();
-  const { publicKey, sendTransaction } = useWallet();
+  const { publicKey, signTransaction } = useWallet();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,9 +58,11 @@ export function useSend() {
     async (
       currency: string,
       amount: string,
-      recipientAddress: string
+      recipientAddress: string,
+      tokenMint?: string,
+      tokenDecimals?: number
     ): Promise<SendResult> => {
-      if (!publicKey) {
+      if (!(publicKey && signTransaction)) {
         const error = "Wallet not connected";
         setError(error);
         return { success: false, error };
@@ -95,8 +110,13 @@ export function useSend() {
           transaction.recentBlockhash = blockhash;
           transaction.feePayer = publicKey;
 
-          console.log("Sending transaction...");
-          const signature = await sendTransaction(transaction, connection);
+          console.log("Signing transaction...");
+          const signedTransaction = await signTransaction(transaction);
+
+          console.log("Sending signed transaction...");
+          const signature = await connection.sendRawTransaction(
+            signedTransaction.serialize()
+          );
 
           console.log("Transaction sent:", signature);
 
@@ -121,15 +141,19 @@ export function useSend() {
           };
         }
         // Send SPL Token
-        const tokenMint = getTokenMint(currency);
-        if (!tokenMint) {
-          throw new Error(`Unknown token: ${currency}`);
+        // Use provided tokenMint if available, otherwise try to look it up
+        const resolvedTokenMint = tokenMint || getTokenMint(currency);
+        if (!resolvedTokenMint) {
+          throw new Error(
+            `Unknown token: ${currency}. Please provide token mint address.`
+          );
         }
 
-        const mintPubkey = new PublicKey(tokenMint);
+        const mintPubkey = new PublicKey(resolvedTokenMint);
 
-        // Get decimals for the token (6 for USDC/USDT, 9 for SOL, 5 for BONK)
-        const decimals = currency.toUpperCase() === "BONK" ? 5 : 6;
+        // Get decimals for the token - use provided decimals or look up in mapping
+        const decimals =
+          tokenDecimals ?? TOKEN_DECIMALS[currency.toUpperCase()] ?? 6;
         const amountInSmallestUnit = Math.floor(
           Number.parseFloat(amount) * 10 ** decimals
         );
@@ -158,7 +182,52 @@ export function useSend() {
           to: toTokenAccount.toBase58(),
         });
 
-        const transaction = new Transaction().add(
+        // Check if recipient's ATA exists, create it if not
+        let needsATA = false;
+
+        try {
+          await getAccount(connection, toTokenAccount);
+          console.log("Recipient's token account exists");
+        } catch (error) {
+          // Account doesn't exist, will need to create it
+          console.log(
+            "Recipient's token account doesn't exist, will create it"
+          );
+          needsATA = true;
+        }
+
+        // Construct transaction
+        const transaction = new Transaction();
+
+        // Add priority fee and compute budget if creating ATA
+        if (needsATA) {
+          console.log("Adding ATA creation instructions...");
+          // Increase compute budget for ATA creation + transfer
+          transaction.add(
+            ComputeBudgetProgram.setComputeUnitLimit({
+              units: 300_000,
+            })
+          );
+          // Add priority fee
+          transaction.add(
+            ComputeBudgetProgram.setComputeUnitPrice({
+              microLamports: 1000,
+            })
+          );
+
+          // Add ATA creation instruction
+          transaction.add(
+            createAssociatedTokenAccountInstruction(
+              publicKey, // payer
+              toTokenAccount, // ata
+              recipientPubkey, // owner
+              mintPubkey // mint
+            )
+          );
+        }
+
+        // Add transfer instruction
+        transaction.add(
           createTransferInstruction(
             fromTokenAccount,
             toTokenAccount,
@@ -167,13 +236,18 @@ export function useSend() {
           )
         );
 
-        // Get latest blockhash
+        // Get latest blockhash AFTER all instructions are added
         const { blockhash } = await connection.getLatestBlockhash();
         transaction.recentBlockhash = blockhash;
         transaction.feePayer = publicKey;
 
-        console.log("Sending transaction...");
-        const signature = await sendTransaction(transaction, connection);
+        console.log("Signing transaction...");
+        const signedTransaction = await signTransaction(transaction);
+
+        console.log("Sending signed transaction...");
+        const signature = await connection.sendRawTransaction(
+          signedTransaction.serialize()
+        );
 
         console.log("Transaction sent:", signature);
 
@@ -197,15 +271,30 @@ export function useSend() {
           success: true,
         };
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Send execution failed";
+        let errorMessage = "Send execution failed";
+
+        if (err instanceof Error) {
+          // Handle timeout errors specifically
+          if (
+            err.message.includes("timeout") ||
+            err.message.includes("Timeout")
+          ) {
+            errorMessage =
+              "Transaction signing timed out. Please try again and approve the transaction in your wallet promptly.";
+          } else if (err.message.includes("User rejected")) {
+            errorMessage = "Transaction was rejected in your wallet.";
+          } else {
+            errorMessage = err.message;
+          }
+        }
+
         setError(errorMessage);
         console.error("Send execution error:", err);
         setLoading(false);
         return { success: false, error: errorMessage };
       }
     },
-    [publicKey, sendTransaction, connection]
+    [publicKey, signTransaction, connection]
   );
 
   return {

@@ -1,6 +1,23 @@
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { VersionedTransaction } from "@solana/web3.js";
+import {
+  type ParsedAccountData,
+  PublicKey,
+  VersionedTransaction,
+} from "@solana/web3.js";
 import { useCallback, useState } from "react";
+
+// Debug logger that only emits in development
+const logger = {
+  debug: (...args: unknown[]) => {
+    if (process.env.NODE_ENV === "development") {
+      // biome-ignore lint/suspicious/noConsole: Development logging
+      console.log(...args);
+    }
+  },
+};
+
+// Constants
+const PERCENTAGE_MULTIPLIER = 100;
 
 export type SwapQuote = {
   inputAmount: string;
@@ -17,10 +34,20 @@ export type SwapResult = {
   error?: string;
 };
 
-// Use Jupiter public API for quotes (works with CORS)
-const JUPITER_QUOTE_API_URL = "https://public.jupiterapi.com/quote";
-// Use Jupiter Dial (Blinks) for swap execution - handles CORS properly
-const JUPITER_DIAL_BASE_URL = "https://jupiter.dial.to";
+// Use Jupiter Swap v1 API with paid tier endpoint
+const JUPITER_QUOTE_API_URL = "https://api.jup.ag/swap/v1/quote";
+const JUPITER_SWAP_API_URL = "https://api.jup.ag/swap/v1/swap";
+
+// Get Jupiter API key from environment variable
+const getJupiterApiKey = (): string => {
+  const apiKey = process.env.NEXT_PUBLIC_JUPITER_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "NEXT_PUBLIC_JUPITER_API_KEY environment variable is not set. Please add it to your .env file."
+    );
+  }
+  return apiKey;
+};
 
 // Token mint address mapping for Solana mainnet
 const TOKEN_MINTS: Record<string, string> = {
@@ -28,6 +55,7 @@ const TOKEN_MINTS: Record<string, string> = {
   USDC: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
   USDT: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
   BONK: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+  LOYAL: "LYLikzBQtpa9ZgVrJsqYGQpR3cC1WMJrBHaXGrQmeta",
 };
 
 /**
@@ -76,11 +104,6 @@ type JupiterSwapResponse = {
   prioritizationFeeLamports: number;
 };
 
-type BlinkActionResponse = {
-  transaction: string;
-  message?: string;
-};
-
 export function useSwap() {
   const { connection } = useConnection();
   const { publicKey, signTransaction } = useWallet();
@@ -89,72 +112,108 @@ export function useSwap() {
   const [quote, setQuote] = useState<SwapQuote | null>(null);
   const [quoteResponse, setQuoteResponse] =
     useState<JupiterQuoteResponse | null>(null);
+  const getTokenDecimals = useCallback(
+    async (mintAddress: string): Promise<number> => {
+      const mintPublicKey = new PublicKey(mintAddress);
+      const accountInfo = await connection.getParsedAccountInfo(mintPublicKey);
+      const data = accountInfo.value?.data;
+
+      if (data && typeof data === "object" && "parsed" in data) {
+        const parsedData = data as ParsedAccountData;
+        const decimals = parsedData.parsed?.info?.decimals;
+        if (typeof decimals === "number") {
+          return decimals;
+        }
+      }
+
+      throw new Error(
+        `Unable to determine token decimals for mint ${mintAddress}`
+      );
+    },
+    [connection]
+  );
 
   const getQuote = useCallback(
     async (
       fromToken: string,
       toToken: string,
-      amount: string
+      amount: string,
+      fromTokenMint?: string,
+      fromTokenDecimals?: number,
+      toTokenDecimals?: number
     ): Promise<SwapQuote | null> => {
       try {
         setError(null);
 
         // Convert token symbols to mint addresses
-        const inputMint = getTokenMint(fromToken);
+        // Use provided mints if available, otherwise look up
+        const inputMint = fromTokenMint || getTokenMint(fromToken);
         const outputMint = getTokenMint(toToken);
 
         if (!inputMint) {
-          throw new Error(`Unknown token: ${fromToken}`);
+          throw new Error(
+            `Unknown token: ${fromToken}. Please provide token mint address.`
+          );
         }
         if (!outputMint) {
           throw new Error(`Unknown token: ${toToken}`);
         }
 
         // Convert amount to lamports (smallest unit)
-        // For SOL: 1 SOL = 1,000,000,000 lamports
-        // For SPL tokens: usually 1 token = 1,000,000 (6 decimals) or 1,000,000,000 (9 decimals)
-        // We'll use 9 decimals for SOL and 6 for others
-        const decimals = fromToken.toUpperCase() === "SOL" ? 9 : 6;
+        // Use provided decimals if available, otherwise fetch from mint account
+        const inputDecimalsPromise = fromTokenDecimals
+          ? Promise.resolve(fromTokenDecimals)
+          : getTokenDecimals(inputMint);
+        const outputDecimalsPromise = toTokenDecimals
+          ? Promise.resolve(toTokenDecimals)
+          : getTokenDecimals(outputMint);
+        const inputDecimals = await inputDecimalsPromise;
         const amountInSmallestUnit = Math.floor(
-          Number.parseFloat(amount) * 10 ** decimals
+          Number.parseFloat(amount) * 10 ** inputDecimals
         ).toString();
 
-        console.log("Token conversion:", {
+        logger.debug("Token conversion:", {
           fromToken,
           inputMint,
           toToken,
           outputMint,
           amount,
           amountInSmallestUnit,
-          decimals,
+          decimals: inputDecimals,
         });
 
         // Build Jupiter Quote API URL
         const url = `${JUPITER_QUOTE_API_URL}?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amountInSmallestUnit}&slippageBps=50`;
-        console.log("Fetching quote from:", url);
+        logger.debug("Fetching quote from Jupiter API:", url);
 
-        const response = await fetch(url);
+        const response = await fetch(url, {
+          headers: {
+            "x-api-key": getJupiterApiKey(),
+          },
+        });
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error("Quote API error:", errorText);
+          logger.debug("Quote API error:", errorText);
           throw new Error(`Failed to get quote: ${response.statusText}`);
         }
 
         const data: JupiterQuoteResponse = await response.json();
-        console.log("Jupiter Quote response:", data);
+        logger.debug("Jupiter Quote response:", data);
 
         // Store the full quote response for later use in executeSwap
         setQuoteResponse(data);
 
         // Convert output amount from smallest unit back to tokens
-        const outputDecimals = toToken.toUpperCase() === "SOL" ? 9 : 6;
+        const outputDecimals = await outputDecimalsPromise;
         const outputAmount = (
-          Number.parseInt(data.outAmount) /
+          Number.parseInt(data.outAmount, 10) /
           10 ** outputDecimals
-        ).toFixed(outputDecimals === 9 ? 4 : 2);
+        ).toFixed(outputDecimals);
 
-        const priceImpact = `${(Number.parseFloat(data.priceImpactPct) * 100).toFixed(2)}%`;
+        const priceImpact = `${(
+          Number.parseFloat(data.priceImpactPct) * PERCENTAGE_MULTIPLIER
+        ).toFixed(2)}%`;
 
         const quoteData: SwapQuote = {
           inputAmount: amount,
@@ -165,139 +224,151 @@ export function useSwap() {
           fee: undefined,
         };
 
-        console.log("Parsed quote data:", quoteData);
+        logger.debug("Parsed quote data:", quoteData);
         setQuote(quoteData);
         return quoteData;
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Failed to get quote";
         setError(errorMessage);
-        console.error("Quote error:", err);
+        logger.debug("Quote error:", err);
         return null;
       }
     },
-    []
+    [getTokenDecimals]
   );
 
-  const executeSwap = useCallback(
-    async (
-      fromToken: string,
-      toToken: string,
-      amount: string
-    ): Promise<SwapResult> => {
-      if (!(publicKey && signTransaction)) {
-        const error = "Wallet not connected";
-        setError(error);
-        return { success: false, error };
-      }
+  const executeSwap = useCallback(async (): Promise<SwapResult> => {
+    if (!(publicKey && signTransaction)) {
+      const errorMsg = "Wallet not connected";
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    }
 
-      if (!quoteResponse) {
-        const error = "No quote available. Please get a quote first.";
-        setError(error);
-        return { success: false, error };
-      }
+    if (!quoteResponse) {
+      const errorMsg = "No quote available. Please get a quote first.";
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    }
 
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      try {
-        console.log("Executing swap with quote:", quoteResponse);
+    try {
+      logger.debug("Executing swap with quote:", quoteResponse);
 
-        // Get token mints for Dial API
-        const inputMint = getTokenMint(fromToken);
-        const outputMint = getTokenMint(toToken);
+      // Step 1: Call Jupiter Swap API to get transaction
+      logger.debug("Calling Jupiter Swap API...");
 
-        if (!(inputMint && outputMint)) {
-          throw new Error("Invalid token mints");
-        }
-
-        // Convert amount to smallest unit
-        const decimals = fromToken.toUpperCase() === "SOL" ? 9 : 6;
-        const amountInSmallestUnit = Math.floor(
-          Number.parseFloat(amount) * 10 ** decimals
-        );
-
-        // Step 1: Call Jupiter Dial Blinks API to get transaction
-        // Format: POST /api/v0/swap/{inputMint}-{outputMint}/{amount}
-        const dialUrl = `${JUPITER_DIAL_BASE_URL}/api/v0/swap/${inputMint}-${outputMint}/${amountInSmallestUnit}`;
-        console.log("Calling Dial API:", dialUrl);
-
-        const dialResponse = await fetch(dialUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+      const swapResponse = await fetch(JUPITER_SWAP_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": getJupiterApiKey(),
+        },
+        body: JSON.stringify({
+          userPublicKey: publicKey.toBase58(),
+          quoteResponse,
+          wrapAndUnwrapSol: true,
+          dynamicComputeUnitLimit: true,
+          prioritizationFeeLamports: {
+            priorityLevelWithMaxLamports: {
+              priorityLevel: "veryHigh",
+              maxLamports: 50_000_000, // 0.05 SOL max for priority
+              global: true, // Use global fee market
+            },
           },
-          body: JSON.stringify({
-            account: publicKey.toBase58(),
-          }),
-        });
+        }),
+      });
 
-        if (!dialResponse.ok) {
-          const errorText = await dialResponse.text();
-          console.error("Dial API error:", errorText);
-          throw new Error(`Dial API failed: ${dialResponse.statusText}`);
-        }
-
-        const dialData: BlinkActionResponse = await dialResponse.json();
-        console.log("Dial transaction response:", dialData);
-
-        const { transaction: serializedTx } = dialData;
-        if (!serializedTx) {
-          throw new Error("No transaction returned from Dial API");
-        }
-
-        // Step 2: Deserialize and sign transaction
-        const txBuffer = Buffer.from(serializedTx, "base64");
-        const transaction = VersionedTransaction.deserialize(txBuffer);
-
-        console.log("Transaction deserialized, requesting signature...");
-        const signedTx = await signTransaction(transaction);
-
-        // Step 3: Send transaction
-        console.log("Sending transaction...");
-        const signature = await connection.sendRawTransaction(
-          signedTx.serialize(),
-          {
-            skipPreflight: false,
-            preflightCommitment: "confirmed",
-          }
-        );
-
-        console.log("Transaction sent:", signature);
-
-        // Step 4: Confirm transaction
-        console.log("Confirming transaction...");
-        const confirmation = await connection.confirmTransaction(
-          signature,
-          "confirmed"
-        );
-
-        if (confirmation.value.err) {
-          throw new Error(
-            `Transaction failed: ${JSON.stringify(confirmation.value.err)}`
-          );
-        }
-
-        console.log("Transaction confirmed!");
-        setLoading(false);
-        return {
-          signature,
-          success: true,
-        };
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Swap execution failed";
-        setError(errorMessage);
-        console.error("Swap execution error:", err);
-        setLoading(false);
-        return { success: false, error: errorMessage };
+      if (!swapResponse.ok) {
+        const errorText = await swapResponse.text();
+        logger.debug("Jupiter Swap API error:", errorText);
+        throw new Error(`Jupiter Swap API failed: ${swapResponse.statusText}`);
       }
-    },
-    [publicKey, signTransaction, connection, quoteResponse]
-  );
+
+      const swapData: JupiterSwapResponse = await swapResponse.json();
+      logger.debug("Jupiter Swap transaction response:", swapData);
+
+      const { swapTransaction: serializedTx } = swapData;
+      if (!serializedTx) {
+        throw new Error("No transaction returned from Jupiter Swap API");
+      }
+
+      // Step 2: Deserialize and sign transaction
+      const txBuffer = Buffer.from(serializedTx, "base64");
+      const transaction = VersionedTransaction.deserialize(txBuffer);
+
+      logger.debug("Transaction deserialized, requesting signature...");
+      const signedTx = await signTransaction(transaction);
+
+      // Step 3: Send transaction with retry
+      logger.debug("Sending transaction...");
+      const signature = await connection.sendRawTransaction(
+        signedTx.serialize(),
+        {
+          skipPreflight: true, // Skip simulation - it's overly conservative about rent
+          maxRetries: 3,
+        }
+      );
+
+      logger.debug("Transaction sent:", signature);
+      logger.debug(
+        `View transaction: https://solscan.io/tx/${signature}?cluster=mainnet`
+      );
+
+      // Step 4: Confirm transaction with proper strategy
+      logger.debug("Confirming transaction...");
+      const latestBlockhash = await connection.getLatestBlockhash("confirmed");
+      const confirmation = await connection.confirmTransaction(
+        {
+          signature,
+          blockhash: latestBlockhash.blockhash,
+          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+        },
+        "confirmed"
+      );
+
+      if (confirmation.value.err) {
+        throw new Error(
+          `Transaction failed: ${JSON.stringify(confirmation.value.err)}`
+        );
+      }
+
+      logger.debug("Transaction confirmed!");
+      setLoading(false);
+      return {
+        signature,
+        success: true,
+      };
+    } catch (err) {
+      let errorMessage = "Swap execution failed";
+
+      if (err instanceof Error) {
+        // Handle timeout errors specifically
+        if (
+          err.message.includes("timeout") ||
+          err.message.includes("Timeout")
+        ) {
+          errorMessage =
+            "Transaction signing timed out. Please try again and approve the transaction in your wallet promptly.";
+        } else if (err.message.includes("User rejected")) {
+          errorMessage = "Transaction was rejected in your wallet.";
+        } else {
+          errorMessage = err.message;
+        }
+      }
+
+      setError(errorMessage);
+      logger.debug("Swap execution error:", err);
+      setLoading(false);
+      return { success: false, error: errorMessage };
+    }
+  }, [publicKey, signTransaction, connection, quoteResponse]);
 
   const resetQuote = useCallback(() => {
     setQuote(null);
+    setQuoteResponse(null);
     setError(null);
   }, []);
 
