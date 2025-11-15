@@ -15,9 +15,9 @@ import {
 } from "@solana/wallet-adapter-wallets";
 import { type FC, type ReactNode, useMemo } from "react";
 
-interface SolanaProviderProps {
+type SolanaProviderProps = {
   children: ReactNode;
-}
+};
 
 export const SolanaProvider: FC<SolanaProviderProps> = ({ children }) => {
   const network = WalletAdapterNetwork.Mainnet;

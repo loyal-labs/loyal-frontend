@@ -24,20 +24,32 @@ const AMOUNT_PATTERN = /^(\d+(?:\.\d+)?)\s+(SOL|USDC|USDT|BONK|LOYAL)$/i;
 // Pattern to match swap amount+currency (e.g., "10 SOL", "5.5 USDC")
 const SWAP_AMOUNT_PATTERN = /^(\d+(?:\.\d+)?)\s+(\w+)$/;
 
+// Maximum allowed amount for validation
+const MAX_AMOUNT = Number.MAX_SAFE_INTEGER;
+
 const parseAmountSkill = (text: string): LoyalSkill | undefined => {
   // Only parse as amount skill if it's the complete pattern (e.g., "10 SOL")
   // Don't match if it's just a currency name like "SOL" or "USDC"
   const match = text.match(AMOUNT_PATTERN);
   if (match) {
     const [, amount, currency] = match;
-    // Additional validation: ensure we actually have a number
-    if (amount && Number.parseFloat(amount) > 0) {
-      return {
-        id: `amount-${amount}-${currency}`,
-        label: text,
-        category: "amount",
-        description: `${amount} ${currency}`,
-      };
+    // Additional validation: ensure we have a valid, finite, positive number within bounds
+    if (amount) {
+      const parsedAmount = Number.parseFloat(amount);
+
+      // Validate: must be finite, positive, and within maximum bounds
+      if (
+        Number.isFinite(parsedAmount) &&
+        parsedAmount > 0 &&
+        parsedAmount <= MAX_AMOUNT
+      ) {
+        return {
+          id: `amount-${amount}-${currency}`,
+          label: text,
+          category: "amount",
+          description: `${amount} ${currency}`,
+        };
+      }
     }
   }
   return;
