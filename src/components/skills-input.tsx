@@ -1,0 +1,1159 @@
+"use client";
+
+import { Repeat2, Send, XIcon } from "lucide-react";
+import * as React from "react";
+
+import { SkillDropdown } from "@/components/ai-elements/skill-dropdown";
+import { useWalletBalances } from "@/hooks/use-wallet-balances";
+import { cn } from "@/lib/utils";
+import { AVAILABLE_SKILLS, type LoyalSkill } from "@/types/skills";
+
+type SkillsInputProps = Omit<
+  React.TextareaHTMLAttributes<HTMLTextAreaElement>,
+  "value" | "onChange"
+> & {
+  value: LoyalSkill[];
+  onChange: (skills: LoyalSkill[]) => void;
+  onPendingTextChange?: (text: string) => void;
+  onSwapFlowChange?: (data: {
+    isActive: boolean;
+    isComplete: boolean;
+    swapData: {
+      fromCurrency: string | null;
+      amount: string | null;
+      toCurrency: string | null;
+    };
+  }) => void;
+  onSwapComplete?: (data: {
+    amount: string;
+    fromCurrency: string;
+    fromCurrencyMint: string | null;
+    fromCurrencyDecimals: number | null;
+    toCurrency: string;
+    toCurrencyMint: string | null;
+    toCurrencyDecimals: number | null;
+  }) => void;
+  onSendFlowChange?: (data: {
+    isActive: boolean;
+    isComplete: boolean;
+    sendData: {
+      currency: string | null;
+      currencyMint: string | null;
+      currencyDecimals: number | null;
+      amount: string | null;
+      walletAddress: string | null;
+    };
+  }) => void;
+  onSendComplete?: (data: {
+    currency: string;
+    currencyMint: string | null;
+    currencyDecimals: number | null;
+    amount: string;
+    walletAddress: string;
+  }) => void;
+};
+
+const ACTION_SKILLS = AVAILABLE_SKILLS.filter((s) => s.category === "action");
+const RECIPIENT_SKILLS = AVAILABLE_SKILLS.filter(
+  (s) => s.category === "recipient"
+);
+const SWAP_TARGET_TOKENS: LoyalSkill[] = [
+  {
+    id: "currency-bonk",
+    label: "BONK",
+    category: "currency",
+    mint: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+    decimals: 5,
+  },
+  {
+    id: "currency-loyal",
+    label: "LOYAL",
+    category: "currency",
+    mint: "LYLikzBQtpa9ZgVrJsqYGQpR3cC1WMJrBHaXGrQmeta",
+    decimals: 6,
+  },
+];
+
+// Solana address validation regex (base58, 32-44 characters)
+const SOLANA_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+
+// Strict numeric format regex - allows integers and decimals like 123, 123.45
+const NUMERIC_FORMAT_REGEX = /^\d+(\.\d+)?$/;
+
+// Maximum allowed amount (using a reasonable business limit)
+const MAX_AMOUNT = Number.MAX_SAFE_INTEGER;
+
+/**
+ * Validates numeric input for amount fields
+ * @param input - The raw input string
+ * @returns Object with isValid boolean and error message if invalid, or parsed number if valid
+ */
+const validateAmountInput = (
+  input: string
+): { isValid: true; value: number } | { isValid: false; error: string } => {
+  const trimmedInput = input.trim();
+
+  // Check for empty input
+  if (!trimmedInput) {
+    return { isValid: false, error: "Amount cannot be empty" };
+  }
+
+  // Check strict numeric format
+  if (!NUMERIC_FORMAT_REGEX.test(trimmedInput)) {
+    return {
+      isValid: false,
+      error: "Amount must be a valid number (e.g., 10 or 10.5)",
+    };
+  }
+
+  // Parse the number
+  const parsedAmount = Number.parseFloat(trimmedInput);
+
+  // Check for NaN
+  if (Number.isNaN(parsedAmount)) {
+    return { isValid: false, error: "Amount must be a valid number" };
+  }
+
+  // Check for non-positive values
+  if (parsedAmount <= 0) {
+    return { isValid: false, error: "Amount must be greater than 0" };
+  }
+
+  // Check for excessive values
+  if (parsedAmount > MAX_AMOUNT) {
+    return {
+      isValid: false,
+      error: `Amount cannot exceed ${MAX_AMOUNT.toExponential(2)}`,
+    };
+  }
+
+  return { isValid: true, value: parsedAmount };
+};
+
+const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
+  (
+    {
+      className,
+      value,
+      onChange,
+      onPendingTextChange,
+      onSwapFlowChange,
+      onSwapComplete,
+      onSendFlowChange,
+      onSendComplete,
+      ...props
+    },
+    ref
+  ) => {
+    const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+    const containerRef = React.useRef<HTMLDivElement>(null);
+    const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+    const [selectedSkillIndex, setSelectedSkillIndex] = React.useState(0);
+    const [filteredSkills, setFilteredSkills] =
+      React.useState<LoyalSkill[]>(ACTION_SKILLS);
+    const [pendingInput, setPendingInput] = React.useState("");
+    const [shouldSubmitForm, setShouldSubmitForm] = React.useState(false);
+    const [dropdownPosition, setDropdownPosition] = React.useState({
+      top: 0,
+      left: 0,
+    });
+
+    // Fetch wallet balances to show only available currencies
+    const { balances } = useWalletBalances();
+
+    // Create currency skills from actual wallet balances
+    const CURRENCY_SKILLS = React.useMemo(
+      () =>
+        balances.map((balance) => ({
+          id: `currency-${balance.symbol.toLowerCase()}`,
+          label: balance.symbol,
+          category: "currency" as const,
+          mint: balance.mint,
+          decimals: balance.decimals,
+        })),
+      [balances]
+    );
+
+    // Swap flow state
+    const [swapStep, setSwapStep] = React.useState<
+      null | "from_currency" | "amount" | "to_currency"
+    >(null);
+    const [swapData, setSwapData] = React.useState<{
+      fromCurrency: string | null;
+      fromCurrencyMint: string | null;
+      fromCurrencyDecimals: number | null;
+      amount: string | null;
+      toCurrency: string | null;
+      toCurrencyMint: string | null;
+      toCurrencyDecimals: number | null;
+    }>({
+      fromCurrency: null,
+      fromCurrencyMint: null,
+      fromCurrencyDecimals: null,
+      amount: null,
+      toCurrency: null,
+      toCurrencyMint: null,
+      toCurrencyDecimals: null,
+    });
+
+    // Send flow state
+    const [sendStep, setSendStep] = React.useState<
+      null | "currency" | "amount" | "wallet_address"
+    >(null);
+    const [sendData, setSendData] = React.useState<{
+      currency: string | null;
+      currencyMint: string | null;
+      currencyDecimals: number | null;
+      amount: string | null;
+      walletAddress: string | null;
+    }>({
+      currency: null,
+      currencyMint: null,
+      currencyDecimals: null,
+      amount: null,
+      walletAddress: null,
+    });
+    const [walletAddressError, setWalletAddressError] = React.useState<
+      string | null
+    >(null);
+    const [amountError, setAmountError] = React.useState<string | null>(null);
+
+    const hasSwapSkill = value.some((skill) => skill.id === "swap");
+    const hasSendSkill = value.some((skill) => skill.id === "send");
+
+    // Solana address validator
+    const isValidSolanaAddress = (address: string): boolean =>
+      SOLANA_ADDRESS_REGEX.test(address);
+
+    // Auto-resize textarea on mount and when pendingInput or placeholder changes
+    React.useEffect(() => {
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      }
+    }, [pendingInput, sendStep, swapStep]);
+
+    // Submit surrounding form once send flow completes
+    React.useEffect(() => {
+      if (!shouldSubmitForm) {
+        return;
+      }
+      const form = textareaRef.current?.closest("form");
+      if (form) {
+        form.requestSubmit();
+      }
+      setShouldSubmitForm(false);
+    }, [shouldSubmitForm]);
+
+    // Expose clear method to parent while maintaining textarea element methods
+    React.useImperativeHandle(ref, () => {
+      const textarea = textareaRef.current!;
+      return new Proxy(textarea, {
+        get(target, prop) {
+          if (prop === "clear") {
+            return () => {
+              setPendingInput("");
+              setSwapStep(null);
+              setSwapData({
+                fromCurrency: null,
+                fromCurrencyMint: null,
+                fromCurrencyDecimals: null,
+                amount: null,
+                toCurrency: null,
+                toCurrencyMint: null,
+                toCurrencyDecimals: null,
+              });
+              setSendStep(null);
+              setSendData({
+                currency: null,
+                currencyMint: null,
+                currencyDecimals: null,
+                amount: null,
+                walletAddress: null,
+              });
+              setIsDropdownOpen(false);
+            };
+          }
+          const value = target[prop as keyof HTMLTextAreaElement];
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+        has(target, prop) {
+          if (prop === "clear") {
+            return true;
+          }
+          return prop in target;
+        },
+      });
+    });
+
+    const calculateDropdownPosition = () => {
+      if (containerRef.current && textareaRef.current) {
+        const containerRect = containerRef.current.getBoundingClientRect();
+        // Position is RELATIVE to the input element
+        // We want dropdown below the container, so use container height as top
+        setDropdownPosition({
+          top: containerRect.height,
+          left: 0,
+        });
+      }
+    };
+
+    // Fix dropdown positioning after render
+    React.useLayoutEffect(() => {
+      if (isDropdownOpen) {
+        calculateDropdownPosition();
+      }
+    }, [isDropdownOpen]);
+
+    // Notify parent of pending text changes
+    React.useEffect(() => {
+      onPendingTextChange?.(pendingInput);
+    }, [pendingInput, onPendingTextChange]);
+
+    // Notify parent of swap flow state changes
+    React.useEffect(() => {
+      const isActive = swapStep !== null;
+      const isComplete =
+        hasSwapSkill &&
+        swapData.fromCurrency !== null &&
+        swapData.amount !== null &&
+        swapData.toCurrency !== null;
+
+      onSwapFlowChange?.({
+        isActive,
+        isComplete,
+        swapData,
+      });
+    }, [swapStep, swapData, hasSwapSkill, onSwapFlowChange]);
+
+    // Notify parent of send flow state changes
+    React.useEffect(() => {
+      const isActive = sendStep !== null;
+      const isComplete =
+        hasSendSkill &&
+        sendData.currency !== null &&
+        sendData.amount !== null &&
+        sendData.walletAddress !== null;
+
+      onSendFlowChange?.({
+        isActive,
+        isComplete,
+        sendData,
+      });
+    }, [sendStep, sendData, hasSendSkill, onSendFlowChange]);
+
+    const addSkill = (skill: LoyalSkill) => {
+      // Handle swap flow
+      if (skill.id === "swap") {
+        // Add Swap skill to the skills array
+        const newSkills = [...value, skill];
+        onChange(newSkills);
+        setSwapStep("from_currency");
+        setFilteredSkills(CURRENCY_SKILLS);
+        // Only open dropdown if there are currencies available
+        setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
+        setSelectedSkillIndex(0);
+        calculateDropdownPosition();
+      } else if (
+        swapStep === "from_currency" &&
+        skill.category === "currency"
+      ) {
+        // Store currency in swapData, DON'T add to skills array
+        setSwapData({
+          fromCurrency: skill.label,
+          fromCurrencyMint: skill.mint ?? null,
+          fromCurrencyDecimals: skill.decimals ?? null,
+          amount: null,
+          toCurrency: null,
+          toCurrencyMint: null,
+          toCurrencyDecimals: null,
+        });
+        setSwapStep("amount");
+        setIsDropdownOpen(false);
+        setPendingInput("");
+      } else if (swapStep === "to_currency" && skill.category === "currency") {
+        // Store currency in swapData, DON'T add to skills array
+        const completedSwap = {
+          fromCurrency: swapData.fromCurrency!,
+          fromCurrencyMint: swapData.fromCurrencyMint,
+          fromCurrencyDecimals: swapData.fromCurrencyDecimals,
+          amount: swapData.amount!,
+          toCurrency: skill.label,
+          toCurrencyMint: skill.mint ?? null,
+          toCurrencyDecimals: skill.decimals ?? null,
+        };
+        setSwapData({
+          fromCurrency: swapData.fromCurrency,
+          fromCurrencyMint: swapData.fromCurrencyMint,
+          fromCurrencyDecimals: swapData.fromCurrencyDecimals,
+          amount: swapData.amount,
+          toCurrency: skill.label,
+          toCurrencyMint: skill.mint ?? null,
+          toCurrencyDecimals: skill.decimals ?? null,
+        });
+        setSwapStep(null);
+        setIsDropdownOpen(false);
+        setPendingInput("");
+        onSwapComplete?.(completedSwap);
+      } else if (skill.id === "send") {
+        // Handle send flow - Add Send skill to the skills array
+        const newSkills = [...value, skill];
+        onChange(newSkills);
+        setSendStep("currency");
+        setFilteredSkills(CURRENCY_SKILLS);
+        // Only open dropdown if there are currencies available
+        setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
+        setSelectedSkillIndex(0);
+        calculateDropdownPosition();
+      } else if (sendStep === "currency" && skill.category === "currency") {
+        // Store currency in sendData, DON'T add to skills array
+        setSendData({
+          ...sendData,
+          currency: skill.label,
+          currencyMint: skill.mint ?? null,
+          currencyDecimals: skill.decimals ?? null,
+        });
+        setSendStep("amount");
+        setIsDropdownOpen(false);
+        setPendingInput("");
+      }
+      // DISABLED: Recipient dropdown selection
+      // else if (sendStep === "recipient" && skill.category === "recipient") {
+      //   setSendData({
+      //     currency: sendData.currency,
+      //     amount: sendData.amount,
+      //     walletAddress: skill.label,
+      //   });
+      //   setSendStep(null);
+      //   setIsDropdownOpen(false);
+      //   setPendingInput("");
+      // }
+      else {
+        // Regular skill (not part of swap or send flow) - add to array
+        const newSkills = [...value, skill];
+        onChange(newSkills);
+        setIsDropdownOpen(false);
+        setPendingInput("");
+      }
+    };
+
+    const removeSkill = (skillToRemove: LoyalSkill) => {
+      const newSkills = value.filter((s) => s.id !== skillToRemove.id);
+      onChange(newSkills);
+
+      // Reset swap flow if Swap skill is removed
+      if (skillToRemove.id === "swap") {
+        setSwapStep(null);
+        setSwapData({
+          fromCurrency: null,
+          fromCurrencyMint: null,
+          fromCurrencyDecimals: null,
+          amount: null,
+          toCurrency: null,
+          toCurrencyMint: null,
+          toCurrencyDecimals: null,
+        });
+        setIsDropdownOpen(false);
+      }
+
+      // Reset send flow if Send skill is removed
+      if (skillToRemove.id === "send") {
+        setSendStep(null);
+        setSendData({
+          currency: null,
+          currencyMint: null,
+          currencyDecimals: null,
+          amount: null,
+          walletAddress: null,
+        });
+        setWalletAddressError(null);
+        setIsDropdownOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      // Allow Shift+Enter to create new lines
+      if (e.key === "Enter" && e.shiftKey) {
+        return; // Let default behavior create new line
+      }
+
+      // Handle amount input during swap
+      if (swapStep === "amount") {
+        // Prevent default Enter behavior (new line) for swap amount entry
+        if (e.key === "Enter") {
+          e.preventDefault();
+        }
+        if (e.key === "Enter" && pendingInput.trim()) {
+          const validation = validateAmountInput(pendingInput);
+
+          if (!validation.isValid) {
+            // Show error and prevent submission
+            setAmountError(validation.error);
+            return;
+          }
+
+          // Clear any previous error
+          setAmountError(null);
+
+          // Proceed with valid amount
+          setSwapData({ ...swapData, amount: pendingInput.trim() });
+          setSwapStep("to_currency");
+          setPendingInput("");
+          // Allow swapping TO Bonk or Loyal tokens
+          setFilteredSkills(SWAP_TARGET_TOKENS);
+          setIsDropdownOpen(SWAP_TARGET_TOKENS.length > 0);
+          setSelectedSkillIndex(0);
+          calculateDropdownPosition();
+        } else if (e.key === "Backspace" && pendingInput.length === 0) {
+          // If input is empty and user presses backspace, go back to FROM currency
+          e.preventDefault();
+          setSwapData({
+            fromCurrency: null,
+            fromCurrencyMint: null,
+            fromCurrencyDecimals: null,
+            amount: null,
+            toCurrency: null,
+            toCurrencyMint: null,
+            toCurrencyDecimals: null,
+          });
+          setSwapStep("from_currency");
+          setFilteredSkills(CURRENCY_SKILLS);
+          setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
+          setSelectedSkillIndex(0);
+          calculateDropdownPosition();
+        }
+        return;
+      }
+
+      // Handle amount input during send
+      if (sendStep === "amount") {
+        // Prevent default Enter behavior (new line) for send amount entry
+        if (e.key === "Enter") {
+          e.preventDefault();
+        }
+        if (e.key === "Enter" && pendingInput.trim()) {
+          const validation = validateAmountInput(pendingInput);
+
+          if (!validation.isValid) {
+            // Show error and prevent submission
+            setAmountError(validation.error);
+            return;
+          }
+
+          // Clear any previous error
+          setAmountError(null);
+
+          // Proceed with valid amount
+          setSendData({ ...sendData, amount: pendingInput.trim() });
+          setSendStep("wallet_address");
+          setPendingInput("");
+        } else if (e.key === "Backspace" && pendingInput.length === 0) {
+          // If input is empty and user presses backspace, go back to currency selection
+          e.preventDefault();
+          setSendData({
+            currency: null,
+            currencyMint: null,
+            currencyDecimals: null,
+            amount: null,
+            walletAddress: null,
+          });
+          setSendStep("currency");
+          setWalletAddressError(null);
+          setFilteredSkills(CURRENCY_SKILLS);
+          setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
+          setSelectedSkillIndex(0);
+          calculateDropdownPosition();
+        }
+        return;
+      }
+
+      // Handle wallet address input during send
+      if (sendStep === "wallet_address") {
+        // Prevent default Enter behavior (new line) for wallet address entry
+        if (e.key === "Enter") {
+          e.preventDefault();
+        }
+        if (e.key === "Enter" && pendingInput.trim()) {
+          const walletAddress = pendingInput.trim();
+
+          // Validate Solana address
+          if (!isValidSolanaAddress(walletAddress)) {
+            setWalletAddressError(
+              "Invalid Solana address. Please enter a valid base58-encoded address (32-44 characters)."
+            );
+            return;
+          }
+
+          // Clear any previous error
+          setWalletAddressError(null);
+
+          const completedSend = {
+            currency: sendData.currency!,
+            currencyMint: sendData.currencyMint,
+            currencyDecimals: sendData.currencyDecimals,
+            amount: sendData.amount!,
+            walletAddress,
+          };
+          setSendData({
+            ...sendData,
+            walletAddress,
+          });
+          setSendStep(null);
+          setPendingInput("");
+          // Notify parent that Send is complete
+          onSendComplete?.(completedSend);
+          setShouldSubmitForm(true);
+        } else if (e.key === "Backspace" && pendingInput.length === 0) {
+          // If input is empty and user presses backspace, go back to amount
+          e.preventDefault();
+          setSendData({ ...sendData, amount: null, walletAddress: null });
+          setSendStep("amount");
+          setPendingInput("");
+          setWalletAddressError(null);
+        }
+        return;
+      }
+
+      // Handle dropdown navigation
+      if (isDropdownOpen) {
+        if (e.key === "Tab" || e.key === "Enter") {
+          e.preventDefault();
+          e.stopPropagation();
+          if (filteredSkills.length > 0) {
+            addSkill(filteredSkills[selectedSkillIndex]);
+            // Refocus input after selection
+            setTimeout(() => {
+              textareaRef.current?.focus();
+            }, 0);
+          }
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setIsDropdownOpen(false);
+          setPendingInput("");
+        } else if (e.key === "Backspace" && pendingInput.length === 0) {
+          // Close dropdown and trigger pill removal
+          e.preventDefault();
+          setIsDropdownOpen(false);
+          // Don't return - fall through to pill removal logic below
+        } else if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setSelectedSkillIndex((prev) =>
+            prev < filteredSkills.length - 1 ? prev + 1 : prev
+          );
+          return;
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setSelectedSkillIndex((prev) => (prev > 0 ? prev - 1 : prev));
+          return;
+        } else {
+          return;
+        }
+      }
+
+      // Handle regular Enter press to submit form (let default form submit happen)
+      if (e.key === "Enter") {
+        e.preventDefault();
+        // Let the form handle submission by finding and submitting parent form
+        const form = e.currentTarget.closest("form");
+        if (form) {
+          form.requestSubmit();
+        }
+        return;
+      }
+
+      // Handle slash to open skill dropdown
+      if (e.key === "/" && !pendingInput) {
+        e.preventDefault();
+        setFilteredSkills(ACTION_SKILLS);
+        setIsDropdownOpen(true);
+        setSelectedSkillIndex(0);
+        calculateDropdownPosition();
+      } else if (e.key === "@" && !pendingInput) {
+        e.preventDefault();
+        setFilteredSkills(RECIPIENT_SKILLS);
+        setIsDropdownOpen(true);
+        setSelectedSkillIndex(0);
+        calculateDropdownPosition();
+        setPendingInput("@");
+      } else if (e.key === "Backspace" && pendingInput.length === 0) {
+        e.preventDefault();
+
+        // Handle send data removal in reverse order
+        if (sendData.walletAddress) {
+          // Remove wallet address
+          setSendData({ ...sendData, walletAddress: null });
+          setSendStep("wallet_address");
+          setPendingInput("");
+        } else if (sendData.amount) {
+          // Remove amount
+          setSendData({ ...sendData, amount: null, walletAddress: null });
+          setSendStep("amount");
+          setPendingInput("");
+        } else if (sendData.currency) {
+          // Remove currency
+          setSendData({
+            currency: null,
+            currencyMint: null,
+            currencyDecimals: null,
+            amount: null,
+            walletAddress: null,
+          });
+          setSendStep("currency");
+          setFilteredSkills(CURRENCY_SKILLS);
+          setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
+          setSelectedSkillIndex(0);
+          calculateDropdownPosition();
+        } else if (swapData.toCurrency) {
+          // Handle swap data removal in reverse order
+          // Remove TO currency
+          setSwapData({
+            ...swapData,
+            toCurrency: null,
+            toCurrencyMint: null,
+            toCurrencyDecimals: null,
+          });
+          setSwapStep("to_currency");
+          setFilteredSkills(SWAP_TARGET_TOKENS);
+          setIsDropdownOpen(SWAP_TARGET_TOKENS.length > 0);
+          setSelectedSkillIndex(0);
+          calculateDropdownPosition();
+        } else if (swapData.amount) {
+          // Remove amount
+          setSwapData({
+            ...swapData,
+            amount: null,
+            toCurrency: null,
+            toCurrencyMint: null,
+            toCurrencyDecimals: null,
+          });
+          setSwapStep("amount");
+          setPendingInput("");
+        } else if (swapData.fromCurrency) {
+          // Remove FROM currency
+          setSwapData({
+            fromCurrency: null,
+            fromCurrencyMint: null,
+            fromCurrencyDecimals: null,
+            amount: null,
+            toCurrency: null,
+            toCurrencyMint: null,
+            toCurrencyDecimals: null,
+          });
+          setSwapStep("from_currency");
+          setFilteredSkills(CURRENCY_SKILLS);
+          setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
+          setSelectedSkillIndex(0);
+          calculateDropdownPosition();
+        } else if (value.length > 0) {
+          // Remove last skill from array
+          const lastSkill = value[value.length - 1];
+          removeSkill(lastSkill);
+        }
+      }
+    };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const newValue = e.target.value;
+      setPendingInput(newValue);
+
+      // Auto-resize textarea based on content
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      }
+
+      // Clear wallet address error when user starts typing
+      if (sendStep === "wallet_address" && walletAddressError) {
+        setWalletAddressError(null);
+      }
+
+      // Clear amount error when user starts typing
+      if ((swapStep === "amount" || sendStep === "amount") && amountError) {
+        setAmountError(null);
+      }
+
+      // Don't open dropdown during amount input for swap or send, or during wallet address input
+      if (
+        swapStep === "amount" ||
+        swapStep === "to_currency" ||
+        sendStep === "amount" ||
+        sendStep === "wallet_address"
+      ) {
+        return;
+      }
+
+      // Filter recipient skills if @ is being typed
+      if (newValue.startsWith("@")) {
+        const query = newValue.slice(1).toLowerCase();
+        const filtered = query
+          ? RECIPIENT_SKILLS.filter((skill) =>
+              skill.label.toLowerCase().includes(query)
+            )
+          : RECIPIENT_SKILLS;
+        setFilteredSkills(filtered);
+        setIsDropdownOpen(true);
+        setSelectedSkillIndex(0);
+        calculateDropdownPosition();
+      }
+    };
+
+    const getPlaceholder = (): string => {
+      // Show swap-specific placeholders during swap flow
+      if (swapStep === "from_currency") {
+        return CURRENCY_SKILLS.length === 0
+          ? "No tokens available in wallet. Please add funds."
+          : "Select FROM currency (SOL, Loyal, etc.)...";
+      }
+      if (swapStep === "amount" && !swapData.amount) {
+        return "Type amount (e.g., 10) then press Enter...";
+      }
+      if (swapStep === "to_currency") {
+        return "Select TO currency...";
+      }
+
+      // Show send-specific placeholders during send flow
+      if (sendStep === "currency") {
+        return CURRENCY_SKILLS.length === 0
+          ? "No tokens available in wallet. Please add funds."
+          : "Select currency (SOL, USDC, etc.)...";
+      }
+      if (sendStep === "amount" && !sendData.amount) {
+        return "Type amount (e.g., 10) then press Enter...";
+      }
+      if (sendStep === "wallet_address") {
+        return "Type wallet address then press Enter...";
+      }
+
+      // Hide placeholder if there's any content (skills, swap data, send data, or pending text)
+      const hasContent =
+        value.length > 0 ||
+        swapData.fromCurrency ||
+        swapData.amount ||
+        swapData.toCurrency ||
+        sendData.currency ||
+        sendData.amount ||
+        sendData.walletAddress ||
+        pendingInput.length > 0;
+
+      if (hasContent) {
+        return "";
+      }
+
+      return props.placeholder !== undefined
+        ? props.placeholder
+        : "Ask me anything (type / for skills)...";
+    };
+
+    // Get skill color based on category
+    const getSkillColor = (skill: LoyalSkill): string => {
+      switch (skill.category) {
+        case "action":
+          return "bg-gradient-to-br from-red-400/25 to-red-500/50 border-red-400/40 text-white";
+        case "currency":
+          return "bg-white/10 border-white/25 text-white";
+        case "recipient":
+          return "bg-blue-400/25 border-blue-400/40 text-white";
+        case "amount":
+          return "bg-green-400/25 border-green-400/40 text-white";
+        default:
+          return "bg-white/10 border-white/25 text-white";
+      }
+    };
+
+    // Get skill icon based on id
+    const getSkillIcon = (skill: LoyalSkill): React.ReactNode => {
+      switch (skill.id) {
+        case "send":
+          return <Send size={14} />;
+        case "swap":
+          return <Repeat2 size={14} />;
+        default:
+          return null;
+      }
+    };
+
+    // Check if swap is complete
+    const isSwapComplete =
+      hasSwapSkill &&
+      swapData.fromCurrency &&
+      swapData.amount &&
+      swapData.toCurrency;
+
+    // Check if send is complete
+    const isSendComplete =
+      hasSendSkill &&
+      sendData.currency &&
+      sendData.amount &&
+      sendData.walletAddress;
+
+    return (
+      <div style={{ position: "relative", width: "100%", flex: 1 }}>
+        <div
+          className={cn(
+            "flex min-h-[60px] w-full flex-wrap items-center gap-2 rounded-[20px] py-5 pr-16 pl-7 text-base ring-offset-white transition-all",
+            "bg-white/5 backdrop-blur-[40px]",
+            (hasSwapSkill && !isSwapComplete) ||
+              (hasSendSkill && !isSendComplete)
+              ? "shadow-[0_0_0_2px_rgba(255,255,255,0.6),0_0_20px_rgba(255,255,255,0.4),0_0_40px_rgba(255,255,255,0.2)]"
+              : "",
+            isSwapComplete || isSendComplete
+              ? "shadow-[0_0_0_2px_rgba(34,197,94,0.6),0_0_20px_rgba(34,197,94,0.4),0_0_40px_rgba(34,197,94,0.2)]"
+              : "",
+            className
+          )}
+          ref={containerRef}
+        >
+          {value.map((skill) => (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
+                "shadow-lg backdrop-blur-[18px]",
+                getSkillColor(skill)
+              )}
+              key={skill.id}
+            >
+              {getSkillIcon(skill)}
+              {skill.label}
+              <button
+                className="ml-1 h-3 w-3 cursor-pointer border-0 bg-transparent p-0 transition-transform duration-200 hover:scale-125"
+                onClick={() => removeSkill(skill)}
+                onFocus={(e) => e.currentTarget.blur()} // Prevent button from stealing focus
+                tabIndex={-1} // Remove from tab order
+                type="button" // Prevent form submission
+              >
+                <XIcon className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          ))}
+          {swapData.fromCurrency && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
+                "shadow-lg backdrop-blur-[18px]",
+                "border-white/25 bg-white/10 text-white"
+              )}
+            >
+              {swapData.fromCurrency}
+              <button
+                className="ml-1 h-3 w-3 cursor-pointer border-0 bg-transparent p-0 transition-transform duration-200 hover:scale-125"
+                onClick={() => {
+                  setSwapData({
+                    fromCurrency: null,
+                    fromCurrencyMint: null,
+                    fromCurrencyDecimals: null,
+                    amount: null,
+                    toCurrency: null,
+                    toCurrencyMint: null,
+                    toCurrencyDecimals: null,
+                  });
+                  setSwapStep("from_currency");
+                  setFilteredSkills(CURRENCY_SKILLS);
+                  setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
+                  setSelectedSkillIndex(0);
+                  calculateDropdownPosition();
+                }}
+                onFocus={(e) => e.currentTarget.blur()}
+                tabIndex={-1}
+                type="button"
+              >
+                <XIcon className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          )}
+          {swapData.amount && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
+                "shadow-lg backdrop-blur-[18px]",
+                "border-green-400/40 bg-green-400/25 text-white"
+              )}
+            >
+              {swapData.amount}
+              <button
+                className="ml-1 h-3 w-3 cursor-pointer border-0 bg-transparent p-0 transition-transform duration-200 hover:scale-125"
+                onClick={() => {
+                  setSwapData({
+                    ...swapData,
+                    amount: null,
+                    toCurrency: null,
+                    toCurrencyMint: null,
+                    toCurrencyDecimals: null,
+                  });
+                  setSwapStep("amount");
+                  setPendingInput("");
+                }}
+                onFocus={(e) => e.currentTarget.blur()}
+                tabIndex={-1}
+                type="button"
+              >
+                <XIcon className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          )}
+          {swapData.toCurrency && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
+                "shadow-lg backdrop-blur-[18px]",
+                "border-white/25 bg-white/10 text-white"
+              )}
+            >
+              {swapData.toCurrency}
+              <button
+                className="ml-1 h-3 w-3 cursor-pointer border-0 bg-transparent p-0 transition-transform duration-200 hover:scale-125"
+                onClick={() => {
+                  setSwapData({
+                    ...swapData,
+                    toCurrency: null,
+                    toCurrencyMint: null,
+                    toCurrencyDecimals: null,
+                  });
+                  setSwapStep("to_currency");
+                  // Allow swapping TO Bonk or Loyal tokens
+                  setFilteredSkills(SWAP_TARGET_TOKENS);
+                  setIsDropdownOpen(SWAP_TARGET_TOKENS.length > 0);
+                  setSelectedSkillIndex(0);
+                  calculateDropdownPosition();
+                }}
+                onFocus={(e) => e.currentTarget.blur()}
+                tabIndex={-1}
+                type="button"
+              >
+                <XIcon className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          )}
+          {sendData.currency && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
+                "shadow-lg backdrop-blur-[18px]",
+                "border-white/25 bg-white/10 text-white"
+              )}
+            >
+              {sendData.currency}
+              <button
+                className="ml-1 h-3 w-3 cursor-pointer border-0 bg-transparent p-0 transition-transform duration-200 hover:scale-125"
+                onClick={() => {
+                  setSendData({
+                    currency: null,
+                    currencyMint: null,
+                    currencyDecimals: null,
+                    amount: null,
+                    walletAddress: null,
+                  });
+                  setSendStep("currency");
+                  setFilteredSkills(CURRENCY_SKILLS);
+                  setIsDropdownOpen(CURRENCY_SKILLS.length > 0);
+                  setSelectedSkillIndex(0);
+                  calculateDropdownPosition();
+                }}
+                onFocus={(e) => e.currentTarget.blur()}
+                tabIndex={-1}
+                type="button"
+              >
+                <XIcon className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          )}
+          {sendData.amount && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
+                "shadow-lg backdrop-blur-[18px]",
+                "border-green-400/40 bg-green-400/25 text-white"
+              )}
+            >
+              {sendData.amount}
+              <button
+                className="ml-1 h-3 w-3 cursor-pointer border-0 bg-transparent p-0 transition-transform duration-200 hover:scale-125"
+                onClick={() => {
+                  setSendData({
+                    ...sendData,
+                    amount: null,
+                    walletAddress: null,
+                  });
+                  setSendStep("amount");
+                  setPendingInput("");
+                }}
+                onFocus={(e) => e.currentTarget.blur()}
+                tabIndex={-1}
+                type="button"
+              >
+                <XIcon className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          )}
+          {sendData.walletAddress && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
+                "shadow-lg backdrop-blur-[18px]",
+                "border-blue-400/40 bg-blue-400/25 text-white"
+              )}
+              title={sendData.walletAddress}
+            >
+              {sendData.walletAddress.length > 12
+                ? `${sendData.walletAddress.slice(
+                    0,
+                    6
+                  )}...${sendData.walletAddress.slice(-4)}`
+                : sendData.walletAddress}
+              <button
+                className="ml-1 h-3 w-3 cursor-pointer border-0 bg-transparent p-0 transition-transform duration-200 hover:scale-125"
+                onClick={() => {
+                  setSendData({ ...sendData, walletAddress: null });
+                  setSendStep("wallet_address");
+                  setPendingInput("");
+                  setWalletAddressError(null);
+                }}
+                onFocus={(e) => e.currentTarget.blur()}
+                tabIndex={-1}
+                type="button"
+              >
+                <XIcon className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          )}
+          <textarea
+            {...props}
+            className={cn(
+              "resize-none overflow-hidden bg-transparent text-white outline-none placeholder:text-white/50",
+              isSendComplete || isSwapComplete
+                ? "h-0 w-0 min-w-0"
+                : getPlaceholder()
+                  ? "w-full md:w-auto md:min-w-[100px] md:flex-1"
+                  : "min-w-[100px] flex-1"
+            )}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder={getPlaceholder()}
+            ref={textareaRef}
+            rows={1}
+            value={pendingInput}
+          />
+          {(walletAddressError || amountError) && (
+            <div className="mt-2 w-full rounded-md bg-red-500/20 px-3 py-2 text-sm text-white">
+              {walletAddressError || amountError}
+            </div>
+          )}
+        </div>
+        {isDropdownOpen && (
+          <SkillDropdown
+            onSelect={addSkill}
+            position={dropdownPosition}
+            selectedIndex={selectedSkillIndex}
+            skills={filteredSkills}
+            textareaRef={textareaRef}
+          />
+        )}
+      </div>
+    );
+  }
+);
+
+SkillsInput.displayName = "SkillsInput";
+
+export { SkillsInput };

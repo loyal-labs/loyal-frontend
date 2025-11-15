@@ -5,6 +5,8 @@ export type LoyalSkill = {
   label: string;
   description?: string;
   category: SkillCategory;
+  mint?: string;
+  decimals?: number;
 };
 
 export type SkillInvocation = {
@@ -18,6 +20,12 @@ export const AVAILABLE_SKILLS: LoyalSkill[] = [
     id: "send",
     label: "Send",
     description: "Send assets on blockchain",
+    category: "action",
+  },
+  {
+    id: "swap",
+    label: "Swap",
+    description: "Swap tokens on blockchain",
     category: "action",
   },
   {
@@ -41,8 +49,18 @@ export const AVAILABLE_SKILLS: LoyalSkill[] = [
     category: "currency",
   },
   {
-    id: "currency-usd",
-    label: "USD",
+    id: "currency-usdc",
+    label: "USDC",
+    category: "currency",
+  },
+  {
+    id: "currency-usdt",
+    label: "USDT",
+    category: "currency",
+  },
+  {
+    id: "currency-bonk",
+    label: "BONK",
     category: "currency",
   },
 ];

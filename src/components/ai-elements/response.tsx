@@ -3,7 +3,7 @@
 import "katex/dist/katex.min.css";
 
 import type { HTMLAttributes } from "react";
-import { memo, useMemo } from "react";
+import { memo } from "react";
 import type { Components } from "react-markdown";
 import { Streamdown } from "streamdown";
 
@@ -69,7 +69,7 @@ const customComponents: Partial<Components> = {
   a: ({ children, href, ...props }) => (
     <a
       href={href}
-      rel="noreferrer"
+      rel="noopener noreferrer"
       style={{
         color: "rgba(147, 197, 253, 1)",
         textDecoration: "underline",
@@ -283,30 +283,25 @@ export const Response = memo(
     parseIncompleteMarkdown: shouldParseIncompleteMarkdown = true,
     isAnimating = false,
     ...props
-  }: ResponseProps) => {
-    const components = useMemo(() => customComponents, []);
-
-    return (
-      <div
-        className={cn(
-          "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
-          className
-        )}
-        {...props}
+  }: ResponseProps) => (
+    <div
+      className={cn(
+        "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+        className
+      )}
+      {...props}
+    >
+      <Streamdown
+        components={customComponents}
+        controls={{ code: true, table: true, mermaid: true }}
+        isAnimating={isAnimating}
+        parseIncompleteMarkdown={shouldParseIncompleteMarkdown}
+        shikiTheme={["github-dark", "github-dark"]}
       >
-        <Streamdown
-          components={components}
-          controls={{ code: true, table: true, mermaid: true }}
-          isAnimating={isAnimating}
-          parseIncompleteMarkdown={shouldParseIncompleteMarkdown}
-          shikiTheme={["github-dark", "github-dark"]}
-        >
-          {children}
-        </Streamdown>
-      </div>
-    );
-  },
-  (prevProps, nextProps) => prevProps.children === nextProps.children
+        {children}
+      </Streamdown>
+    </div>
+  )
 );
 
 Response.displayName = "Response";

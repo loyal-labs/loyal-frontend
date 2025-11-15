@@ -22,7 +22,7 @@ export const roadmapEvents: RoadmapEvent[] = [
     events: [
       { title: "Transactions over Telegram", isChecked: true },
       { title: "Telegram chat summaries", isChecked: false },
-      { title: "Rudimentary workflow representation", isChecked: false },
+      { title: "Rudimentary workflow representation", isChecked: true },
       { title: "Branded community agents", isChecked: false },
     ],
   },

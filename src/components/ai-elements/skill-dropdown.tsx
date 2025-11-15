@@ -12,7 +12,7 @@ type SkillDropdownProps = {
   selectedIndex: number;
   onSelect: (skill: LoyalSkill) => void;
   position?: { top: number; left: number };
-  textareaRef?: React.RefObject<HTMLTextAreaElement>;
+  textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
   style?: CSSProperties;
 };
 

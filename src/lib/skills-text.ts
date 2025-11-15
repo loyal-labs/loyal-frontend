@@ -17,19 +17,40 @@ const findSkillByLabel = (label: string): LoyalSkill | undefined =>
     (skill) => skill.label.toLowerCase() === label.toLowerCase()
   );
 
-// Pattern to match amount+currency (e.g., "10 SOL", "5.5 USD")
-const AMOUNT_PATTERN = /^(\d+(?:\.\d+)?)\s+(SOL|USD)$/;
+// Pattern to match amount+currency for Send flow (e.g., "10 SOL", "5.5 USDC")
+// NOTE: For Swap flow, amount and currencies are kept separate
+const AMOUNT_PATTERN = /^(\d+(?:\.\d+)?)\s+(SOL|USDC|USDT|BONK|LOYAL)$/i;
+
+// Pattern to match swap amount+currency (e.g., "10 SOL", "5.5 USDC")
+const SWAP_AMOUNT_PATTERN = /^(\d+(?:\.\d+)?)\s+(\w+)$/;
+
+// Maximum allowed amount for validation
+const MAX_AMOUNT = Number.MAX_SAFE_INTEGER;
 
 const parseAmountSkill = (text: string): LoyalSkill | undefined => {
+  // Only parse as amount skill if it's the complete pattern (e.g., "10 SOL")
+  // Don't match if it's just a currency name like "SOL" or "USDC"
   const match = text.match(AMOUNT_PATTERN);
   if (match) {
     const [, amount, currency] = match;
-    return {
-      id: `amount-${amount}-${currency}`,
-      label: text,
-      category: "amount",
-      description: `${amount} ${currency}`,
-    };
+    // Additional validation: ensure we have a valid, finite, positive number within bounds
+    if (amount) {
+      const parsedAmount = Number.parseFloat(amount);
+
+      // Validate: must be finite, positive, and within maximum bounds
+      if (
+        Number.isFinite(parsedAmount) &&
+        parsedAmount > 0 &&
+        parsedAmount <= MAX_AMOUNT
+      ) {
+        return {
+          id: `amount-${amount}-${currency}`,
+          label: text,
+          category: "amount",
+          description: `${amount} ${currency}`,
+        };
+      }
+    }
   }
   return;
 };
@@ -72,7 +93,12 @@ export const splitSkillSegments = (value: string): SkillTextSegment[] => {
       let skill = findSkillByLabel(skillText);
 
       // If no match, try to parse as an amount skill
-      if (!skill) {
+      // But skip this if it's just a number followed by a known currency
+      // (for Swap flow where amount and currency are separate)
+      if (!skill && skillText.match(AMOUNT_PATTERN)) {
+        // Only create amount skill for Send flow (explicit amount+currency)
+        // Check if this looks like an intentional amount+currency combination
+        // by verifying it's not at the end of a swap sequence
         skill = parseAmountSkill(skillText);
       }
 
@@ -105,3 +131,81 @@ export const stripSkillMarkers = (value: string): string =>
     .replaceAll(SKILL_PREFIX, "")
     .replaceAll(SKILL_SUFFIX, "")
     .replaceAll(SKILL_TRAILING_SPACE, " ");
+
+/**
+ * Detects if text contains a completed Swap skill
+ * New Pattern: Swap [fromCurrency] [amount] [toCurrency]
+ * Example: Swap SOL 10 USDC
+ */
+export type SwapSkillData = {
+  amount: string;
+  fromCurrency: string;
+  toCurrency: string;
+};
+
+export const detectSwapSkill = (value: string): SwapSkillData | null => {
+  const segments = splitSkillSegments(value);
+
+  // Find the Swap action skill
+  const hasSwapSkill = segments.some(
+    (seg) => seg.isSkill && seg.skill?.id === "swap"
+  );
+
+  if (!hasSwapSkill) {
+    return null;
+  }
+
+  // New order: FROM currency → amount → TO currency
+  let fromCurrency: string | null = null;
+  let swapAmount: string | null = null;
+  let toCurrency: string | null = null;
+
+  for (const segment of segments) {
+    // Handle skill segments
+    if (segment.isSkill && segment.skill) {
+      // First currency after Swap is the FROM currency
+      if (segment.skill.category === "currency" && !fromCurrency) {
+        fromCurrency = segment.skill.label;
+        continue;
+      }
+
+      // After FROM currency, look for amount in skill (e.g., "10 SOL")
+      if (!swapAmount && segment.skill.category === "amount") {
+        const match = segment.text.match(SWAP_AMOUNT_PATTERN);
+        if (match) {
+          const [, amount] = match;
+          swapAmount = amount;
+          continue;
+        }
+      }
+
+      // After amount, next currency is the TO currency
+      if (
+        segment.skill.category === "currency" &&
+        fromCurrency &&
+        swapAmount &&
+        !toCurrency
+      ) {
+        toCurrency = segment.skill.label;
+      }
+    } else if (!segment.isSkill && fromCurrency && !swapAmount) {
+      // Handle plain text segments - look for amount after FROM currency
+      const trimmed = segment.text.trim();
+      const numMatch = trimmed.match(/^(\d+(?:\.\d+)?)$/);
+      if (numMatch) {
+        swapAmount = numMatch[1];
+      }
+    }
+  }
+
+  // Return only if we have all three components
+  if (fromCurrency && swapAmount && toCurrency) {
+    return {
+      amount: swapAmount,
+      fromCurrency,
+      toCurrency,
+    };
+  }
+
+  return null;
+};

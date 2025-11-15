@@ -315,7 +315,7 @@ function RoadmapSectionComponent() {
                       style={{
                         position: "absolute",
                         left: "calc(50% - 0.75rem)",
-                        top: "-1rem",
+                        top: "-0.5rem",
                         width: "1.5rem",
                         height: "1.5rem",
                         borderRadius: "50%",

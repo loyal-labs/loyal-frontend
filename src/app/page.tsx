@@ -1,26 +1,34 @@
 "use client";
 
+import { useChat } from "@ai-sdk/react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import { DefaultChatTransport, type UIMessage } from "ai";
+import { ArrowDownIcon, ArrowUpToLine, Loader2 } from "lucide-react";
+import { IBM_Plex_Sans, Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
+import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
 import { BentoGridSection } from "@/components/bento-grid-section";
 import { Footer } from "@/components/footer";
 import { LoyalTokenTicker } from "@/components/loyal-token-ticker";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { RoadmapSection } from "@/components/roadmap-section";
-import { SkillsTextarea } from "@/components/skills-textarea";
+import { SendTransactionWidget } from "@/components/send-transaction-widget";
+import { SkillsInput } from "@/components/skills-input";
+import { SwapTransactionWidget } from "@/components/swap-transaction-widget";
 import AnimatedBadge from "@/components/ui/animated-badge";
 import { ChevronRightIcon } from "@/components/ui/chevron-right";
 import { CopyIcon, type CopyIconHandle } from "@/components/ui/copy";
 import { MenuIcon, type MenuIconHandle } from "@/components/ui/menu";
 import { PlusIcon, type PlusIconHandle } from "@/components/ui/plus";
-import { stripSkillMarkers } from "@/lib/skills-text";
-import { useChat } from "@ai-sdk/react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-import { DefaultChatTransport } from "ai";
-import { ArrowDownIcon, ArrowUpToLine } from "lucide-react";
-import { IBM_Plex_Sans, Plus_Jakarta_Sans } from "next/font/google";
-import localFont from "next/font/local";
-import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useChatMode } from "@/contexts/chat-mode-context";
+import { isSkillsEnabled } from "@/flags";
+import { useSend } from "@/hooks/use-send";
+import { useSwap } from "@/hooks/use-swap";
+import type { LoyalSkill } from "@/types/skills";
+
+// import { detectSwapSkill, stripSkillMarkers } from "@/lib/skills-text";
 
 const instrumentSerif = localFont({
   src: [
@@ -55,14 +63,59 @@ const dirtyline = localFont({
   display: "swap",
 });
 
+type TimestampedMessage = UIMessage & { createdAt?: number };
+
 export default function LandingPage() {
-  const { messages, sendMessage, status, setMessages } = useChat({
-    transport: new DefaultChatTransport({
-      api: "/api/chat",
-    }),
-  });
-  const [input, setInput] = useState("");
-  const [isChatMode, setIsChatMode] = useState(false);
+  const { messages, sendMessage, status, setMessages } =
+    useChat<TimestampedMessage>({
+      transport: new DefaultChatTransport({
+        api: "/api/chat",
+      }),
+    });
+  const [messageTimestamps, setMessageTimestamps] = useState<
+    Record<string, number>
+  >({});
+  const [input, setInput] = useState<LoyalSkill[]>([]);
+  const [pendingText, setPendingText] = useState("");
+  const [swapFlowState, setSwapFlowState] = useState<{
+    isActive: boolean;
+    isComplete: boolean;
+    swapData: {
+      fromCurrency: string | null;
+      amount: string | null;
+      toCurrency: string | null;
+    };
+  } | null>(null);
+  const [sendFlowState, setSendFlowState] = useState<{
+    isActive: boolean;
+    isComplete: boolean;
+    sendData: {
+      currency: string | null;
+      amount: string | null;
+      walletAddress: string | null;
+    };
+  } | null>(null);
+  const [isChatModeLocal, setIsChatModeLocal] = useState(false);
+  const { setIsChatMode } = useChatMode();
+
+  // Check Skills feature flag
+  const skillsEnabled = isSkillsEnabled();
+
+  // Sync local state with context
+  useEffect(() => {
+    setIsChatMode(isChatModeLocal);
+  }, [isChatModeLocal, setIsChatMode]);
+
+  // Auto-resize textarea when skills are disabled
+  useEffect(() => {
+    if (!skillsEnabled && inputRef.current) {
+      inputRef.current.style.height = "auto";
+      inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
+    }
+  }, [skillsEnabled, pendingText]);
+
+  // Use local state for component logic
+  const isChatMode = isChatModeLocal;
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -89,8 +142,101 @@ export default function LandingPage() {
   const prevScrolledToAbout = useRef(false);
   const prevScrolledToRoadmap = useRef(false);
   const prevScrolledToLinks = useRef(false);
-  const sanitizedInput = stripSkillMarkers(input).trim();
-  const hasUsableInput = sanitizedInput.length > 0;
+
+  // Smart input validation: enable send when:
+  // 1. There's regular text OR skills (but not in the middle of a skill flow)
+  // 2. OR swap/send flow is complete
+  const hasUsableInput =
+    (pendingText.trim().length > 0 || input.length > 0) &&
+    (!swapFlowState?.isActive || swapFlowState?.isComplete) &&
+    (!sendFlowState?.isActive || sendFlowState?.isComplete);
+
+  // Track timestamps for messages that arrive without metadata
+  useEffect(() => {
+    setMessageTimestamps((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const message of messages) {
+        if (message.createdAt && next[message.id] !== message.createdAt) {
+          next[message.id] = message.createdAt;
+          changed = true;
+          continue;
+        }
+        if (!message.createdAt && next[message.id] === undefined) {
+          next[message.id] = Date.now();
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [messages]);
+
+  // Swap functionality
+  const {
+    getQuote,
+    executeSwap,
+    quote,
+    loading: swapLoading,
+    error: swapError,
+  } = useSwap();
+  const [showSwapWidget, setShowSwapWidget] = useState(false);
+  const [swapStatus, setSwapStatus] = useState<
+    "pending" | "success" | "error" | null
+  >(null);
+  const [swapResult, setSwapResult] = useState<{
+    signature?: string;
+    error?: string;
+  } | null>(null);
+  const [pendingSwapData, setPendingSwapData] = useState<{
+    amount: string;
+    fromCurrency: string;
+    fromCurrencyMint: string | null;
+    fromCurrencyDecimals: number | null;
+    toCurrency: string;
+    toCurrencyMint: string | null;
+    toCurrencyDecimals: number | null;
+  } | null>(null);
+  const pendingSwapDataRef = useRef<{
+    amount: string;
+    fromCurrency: string;
+    fromCurrencyMint: string | null;
+    fromCurrencyDecimals: number | null;
+    toCurrency: string;
+    toCurrencyMint: string | null;
+    toCurrencyDecimals: number | null;
+  } | null>(null);
+
+  // Send functionality
+  const { executeSend, loading: sendLoading, error: sendError } = useSend();
+  const [showSendWidget, setShowSendWidget] = useState(false);
+  const [sendStatus, setSendStatus] = useState<
+    "pending" | "success" | "error" | null
+  >(null);
+  const [sendResult, setSendResult] = useState<{
+    signature?: string;
+    error?: string;
+  } | null>(null);
+  const [pendingSendData, setPendingSendData] = useState<{
+    currency: string;
+    currencyMint: string | null;
+    currencyDecimals: number | null;
+    amount: string;
+    walletAddress: string;
+  } | null>(null);
+  const pendingSendDataRef = useRef<{
+    currency: string;
+    currencyMint: string | null;
+    currencyDecimals: number | null;
+    amount: string;
+    walletAddress: string;
+  } | null>(null);
+
+  // Check if any transaction or chat operation is in progress
+  const isLoading =
+    swapLoading ||
+    sendLoading ||
+    status === "streaming" ||
+    status === "submitted";
 
   // Network status monitoring and recovery
   useEffect(() => {
@@ -127,9 +273,18 @@ export default function LandingPage() {
 
   // Check if testers modal has been shown before
   useEffect(() => {
-    const modalShown = localStorage.getItem("loyal-testers-modal-shown");
-    if (modalShown === "true") {
-      setHasShownModal(true);
+    if (typeof window === "undefined" || !window.localStorage) {
+      return;
+    }
+    try {
+      const modalShown = window.localStorage.getItem(
+        "loyal-testers-modal-shown"
+      );
+      if (modalShown === "true") {
+        setHasShownModal(true);
+      }
+    } catch (error) {
+      console.warn("Unable to read testers modal flag from storage", error);
     }
   }, []);
 
@@ -146,36 +301,70 @@ export default function LandingPage() {
   useEffect(() => {
     if (connected && pendingMessage && status === "ready") {
       sendMessage({ text: pendingMessage });
-      setInput("");
+      setInput([]);
+      setPendingText("");
       setPendingMessage(null);
+      setIsChatModeLocal(true);
 
-      // Manually clear textarea value
-      if (inputRef.current) {
-        inputRef.current.value = "";
-        inputRef.current.style.height = "auto";
-      }
-
-      setIsChatMode(true);
-
-      // Reset textarea height and ensure focus
+      // Ensure focus
       setTimeout(() => {
         if (inputRef.current) {
-          inputRef.current.style.height = "auto";
           inputRef.current.focus();
         }
       }, 50);
     }
   }, [connected, pendingMessage, status, sendMessage]);
 
-  // Auto-focus on initial load
+  // Auto-focus on initial load (but not if there's a hash in URL)
   useEffect(() => {
-    // Focus the textarea when the component mounts
-    const timer = setTimeout(() => {
-      inputRef.current?.focus();
-    }, 500);
-
-    return () => clearTimeout(timer);
+    // Don't auto-focus if there's a hash - let the hash scroll complete first
+    const hasHash = window.location.hash;
+    if (!hasHash) {
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
   }, []); // Empty dependency array = run once on mount
+
+  // Handle initial page load with hash in URL
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    if (hash) {
+      // Wait for DOM to be ready
+      const timer = setTimeout(() => {
+        const navHeight = 80;
+        let sectionId = "";
+
+        switch (hash) {
+          case "about":
+            sectionId = "about-section";
+            break;
+          case "roadmap":
+            sectionId = "roadmap-section";
+            break;
+          case "links":
+            sectionId = "footer-section";
+            break;
+        }
+
+        if (sectionId) {
+          const section = document.getElementById(sectionId);
+          if (section) {
+            const elementPosition = section.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.scrollY - navHeight;
+
+            window.scrollTo({
+              top: offsetPosition,
+              behavior: "smooth",
+            });
+          }
+        }
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   // Auto-focus input when entering chat mode with multiple fallback strategies
   useEffect(() => {
@@ -236,13 +425,6 @@ export default function LandingPage() {
   }, [messages, isChatMode]);
 
   // Auto-resize textarea when input changes
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.style.height = "auto";
-      inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
-    }
-  }, [input]);
-
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -381,40 +563,207 @@ export default function LandingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isScrolledToAbout, isScrolledToRoadmap, isScrolledToLinks]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSwapComplete = (swapData: {
+    amount: string;
+    fromCurrency: string;
+    fromCurrencyMint: string | null;
+    fromCurrencyDecimals: number | null;
+    toCurrency: string;
+    toCurrencyMint: string | null;
+    toCurrencyDecimals: number | null;
+  }) => {
+    // Store in ref immediately (synchronous) for Enter key handling
+    pendingSwapDataRef.current = swapData;
+    // Also store in state for UI updates
+    setPendingSwapData(swapData);
+  };
+
+  const handleSendComplete = (sendData: {
+    currency: string;
+    currencyMint: string | null;
+    currencyDecimals: number | null;
+    amount: string;
+    walletAddress: string;
+  }) => {
+    // Store in ref immediately (synchronous) for Enter key handling
+    pendingSendDataRef.current = sendData;
+    // Also store in state for UI updates
+    setPendingSendData(sendData);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevent submission if a transaction or chat operation is in progress
+    if (isLoading) {
+      return;
+    }
 
     // Always check if wallet is connected before sending any message
     if (!connected) {
       // Save the message to send after connection
       if (hasUsableInput) {
-        setPendingMessage(sanitizedInput);
+        setPendingMessage(
+          `${pendingText.trim()} ${input.map((s) => s.label).join(" ")}`.trim()
+        );
       }
       // Open wallet connection modal
       setVisible(true);
       return;
     }
 
-    if (hasUsableInput && status === "ready") {
-      sendMessage({ text: sanitizedInput });
-      setInput("");
+    if (!hasUsableInput) {
+      return;
+    }
 
-      // Manually clear textarea value
-      if (inputRef.current) {
-        inputRef.current.value = "";
-        inputRef.current.style.height = "auto";
+    setIsChatModeLocal(true);
+
+    // Check if this is a completed swap
+    // Use ref for immediate access (avoids race condition with Enter key)
+    const hasSwapSkill = input.some((skill) => skill.id === "swap");
+    const swapData = pendingSwapDataRef.current;
+    if (hasSwapSkill && swapData) {
+      const swapMessage = `Swap ${swapData.amount} ${swapData.fromCurrency} to ${swapData.toCurrency}`;
+      const timestamp = Date.now();
+      const userMessageId = `user-swap-${timestamp}`;
+
+      // Add user's swap message to chat
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: userMessageId,
+          role: "user",
+          createdAt: timestamp,
+          parts: [
+            {
+              type: "text",
+              text: swapMessage,
+            },
+          ],
+        },
+      ]);
+
+      // Get quote from Jupiter
+      try {
+        const quoteResult = await getQuote(
+          swapData.fromCurrency,
+          swapData.toCurrency,
+          swapData.amount,
+          swapData.fromCurrencyMint || undefined,
+          swapData.fromCurrencyDecimals || undefined,
+          swapData.toCurrencyDecimals || undefined
+        );
+        if (quoteResult) {
+          setShowSwapWidget(true);
+        } else {
+          // Add error message while preserving user's message
+          const errorTimestamp = Date.now();
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `swap-quote-error-${errorTimestamp}`,
+              role: "assistant",
+              createdAt: errorTimestamp,
+              parts: [
+                {
+                  type: "text",
+                  text: "Failed to get swap quote. Please check the console for details.",
+                },
+              ],
+            },
+          ]);
+        }
+      } catch (err) {
+        console.error("Failed to get swap quote:", err);
+        // Add error message while preserving user's message
+        const errorTimestamp = Date.now();
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `swap-quote-error-${errorTimestamp}`,
+            role: "assistant",
+            createdAt: errorTimestamp,
+            parts: [
+              {
+                type: "text",
+                text: `Failed to get swap quote: ${
+                  err instanceof Error ? err.message : "Unknown error"
+                }`,
+              },
+            ],
+          },
+        ]);
       }
 
-      setIsChatMode(true);
+      // Clear input (but keep swap data for approval)
+      setInput([]);
+      setPendingText("");
+      // Note: Don't clear pendingSwapData here - it's needed for approval
+      // It will be cleared in handleSwapApprove or handleSwapCancel
+    } else {
+      // Check if this is a completed send
+      const hasSendSkill = input.some((skill) => skill.id === "send");
+      const sendData = pendingSendDataRef.current;
+      if (hasSendSkill && sendData) {
+        // Truncate wallet address for display (keep first 6 and last 4 chars)
+        const truncatedAddress =
+          sendData.walletAddress.length > 12
+            ? `${sendData.walletAddress.slice(0, 6)}...${sendData.walletAddress.slice(-4)}`
+            : sendData.walletAddress;
+        const sendMessage = `Send ${sendData.amount} ${sendData.currency} to ${truncatedAddress}`;
+        const timestamp = Date.now();
 
-      // Reset textarea height and ensure focus
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.style.height = "auto";
-          inputRef.current.focus();
+        // Add user's send message to chat
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `user-send-${timestamp}`,
+            role: "user",
+            createdAt: timestamp,
+            parts: [
+              {
+                type: "text",
+                text: sendMessage,
+              },
+            ],
+          },
+        ]);
+
+        // Show send widget for approval
+        setShowSendWidget(true);
+
+        // Clear input (but keep send data for approval)
+        setInput([]);
+        setPendingText("");
+        // Note: Don't clear pendingSendData here - it's needed for approval
+        // It will be cleared in handleSendApprove or handleSendCancel
+      } else {
+        // Regular message - send to LLM
+        const messageText = skillsEnabled
+          ? [...input.map((skill) => skill.label), pendingText.trim()]
+              .filter(Boolean)
+              .join(" ")
+          : pendingText.trim();
+
+        if (messageText) {
+          sendMessage({ text: messageText });
+          setInput([]);
+          setPendingText("");
         }
-      }, 50);
+      }
     }
+
+    // Clear the input component's internal state
+    if (inputRef.current && "clear" in inputRef.current) {
+      (inputRef.current as HTMLTextAreaElement & { clear: () => void }).clear();
+    }
+
+    // Ensure focus
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, 50);
   };
 
   const handleCopyMessage = async (messageId: string, text: string) => {
@@ -455,6 +804,9 @@ export default function LandingPage() {
         top: offsetPosition,
         behavior: "smooth",
       });
+
+      // Update URL hash
+      window.history.pushState(null, "", "#about");
     }
   };
 
@@ -463,6 +815,9 @@ export default function LandingPage() {
       top: 0,
       behavior: "smooth",
     });
+
+    // Remove hash from URL
+    window.history.pushState(null, "", window.location.pathname);
   };
 
   const handleScrollToRoadmap = () => {
@@ -476,6 +831,9 @@ export default function LandingPage() {
         top: offsetPosition,
         behavior: "smooth",
       });
+
+      // Update URL hash
+      window.history.pushState(null, "", "#roadmap");
     }
   };
 
@@ -490,7 +848,84 @@ export default function LandingPage() {
         top: offsetPosition,
         behavior: "smooth",
       });
+
+      // Update URL hash
+      window.history.pushState(null, "", "#links");
     }
+  };
+
+  const handleSwapApprove = async () => {
+    if (!pendingSwapData) return;
+
+    setSwapStatus("pending");
+
+    try {
+      const result = await executeSwap();
+
+      if (result.success) {
+        setSwapStatus("success");
+        setSwapResult({ signature: result.signature });
+      } else {
+        setSwapStatus("error");
+        setSwapResult({
+          error: result.error || "Transaction failed. Please try again.",
+        });
+      }
+    } catch (error) {
+      setSwapStatus("error");
+      setSwapResult({
+        error:
+          error instanceof Error ? error.message : "Unexpected error occurred",
+      });
+    }
+  };
+
+  const handleSwapCancel = () => {
+    setShowSwapWidget(false);
+    setPendingSwapData(null);
+    pendingSwapDataRef.current = null;
+    setSwapStatus(null);
+    setSwapResult(null);
+  };
+
+  const handleSendApprove = async () => {
+    if (!pendingSendData) return;
+
+    setSendStatus("pending");
+
+    try {
+      const result = await executeSend(
+        pendingSendData.currency,
+        pendingSendData.amount,
+        pendingSendData.walletAddress,
+        pendingSendData.currencyMint || undefined,
+        pendingSendData.currencyDecimals || undefined
+      );
+
+      if (result.success) {
+        setSendStatus("success");
+        setSendResult({ signature: result.signature });
+      } else {
+        setSendStatus("error");
+        setSendResult({
+          error: result.error || "Transaction failed. Please try again.",
+        });
+      }
+    } catch (error) {
+      setSendStatus("error");
+      setSendResult({
+        error:
+          error instanceof Error ? error.message : "Unexpected error occurred",
+      });
+    }
+  };
+
+  const handleSendCancel = () => {
+    setShowSendWidget(false);
+    setPendingSendData(null);
+    pendingSendDataRef.current = null;
+    setSendStatus(null);
+    setSendResult(null);
   };
 
   // Mock data for previous chats - replace with real data later
@@ -634,6 +1069,14 @@ export default function LandingPage() {
                 isLinks: true,
               },
               { label: "Docs", href: "https://docs.askloyal.com/" },
+              {
+                label: "Changelog",
+                onClick: () => {
+                  if (typeof window !== "undefined" && window.Productlane) {
+                    window.Productlane.open("CHANGELOG");
+                  }
+                },
+              },
             ].map((item, index) => (
               <button
                 className={ibmPlexSans.className}
@@ -754,7 +1197,7 @@ export default function LandingPage() {
 
           {/* Token Ticker */}
           <div
-            className="loyal-token-ticker-container"
+            className={`loyal-token-ticker-container ${connected ? "" : "no-wallet"}`}
             style={{
               position: "fixed",
               top: "4.5rem",
@@ -787,6 +1230,9 @@ export default function LandingPage() {
                 border-radius: 10px !important;
                 padding: 0.4rem 0.5rem 0.3rem !important;
                 font-size: 0.75rem !important;
+              }
+              .loyal-token-ticker-container.no-wallet {
+                top: 1.5rem !important;
               }
             }
           `}</style>
@@ -852,10 +1298,20 @@ export default function LandingPage() {
           >
             <button
               onClick={() => {
-                setIsChatMode(false);
-                setInput("");
+                setIsChatModeLocal(false);
+                setInput([]);
+                setPendingText(""); // Clear fallback textarea when Skills are disabled
                 // Clear all messages to start a completely new chat
                 setMessages([]);
+                // Reset widget states
+                setShowSwapWidget(false);
+                setShowSendWidget(false);
+                setPendingSwapData(null);
+                setPendingSendData(null);
+                setSwapStatus(null);
+                setSendStatus(null);
+                setSwapResult(null);
+                setSendResult(null);
                 setTimeout(() => {
                   inputRef.current?.focus();
                 }, 100);
@@ -943,8 +1399,8 @@ export default function LandingPage() {
             >
               <button
                 onClick={() => {
-                  setIsChatMode(false);
-                  setInput("");
+                  setIsChatModeLocal(false);
+                  setInput([]);
                   // Clear all messages for a new chat
                   setMessages([]);
                   // Focus on input after resetting chat
@@ -1411,9 +1867,13 @@ export default function LandingPage() {
             {isChatMode && (
               <div
                 className="chat-messages-container"
-                onClick={() => {
-                  // Focus input when clicking on the message area
-                  inputRef.current?.focus();
+                onClick={(e) => {
+                  // Only focus input if no text is selected
+                  const selection = window.getSelection();
+                  if (!selection || selection.toString().length === 0) {
+                    // Focus input when clicking on the message area
+                    inputRef.current?.focus();
+                  }
                 }}
                 ref={messagesContainerRef}
                 style={{
@@ -1445,13 +1905,14 @@ export default function LandingPage() {
                     .map((part) => part.text)
                     .join("");
 
-                  // Generate a timestamp for the message
-                  const messageTime = new Date(
-                    Date.now() - (messages.length - messageIndex - 1) * 60_000
-                  ).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  });
+                  const resolvedTimestamp =
+                    message.createdAt ?? messageTimestamps[message.id];
+                  const messageTime = resolvedTimestamp
+                    ? new Date(resolvedTimestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : null;
 
                   return (
                     <div
@@ -1507,15 +1968,17 @@ export default function LandingPage() {
                         }}
                       >
                         {/* Timestamp */}
-                        <span
-                          style={{
-                            fontSize: "0.75rem",
-                            color: "rgba(255, 255, 255, 0.3)",
-                            letterSpacing: "0.025em",
-                          }}
-                        >
-                          {messageTime}
-                        </span>
+                        {messageTime && (
+                          <span
+                            style={{
+                              fontSize: "0.75rem",
+                              color: "rgba(255, 255, 255, 0.3)",
+                              letterSpacing: "0.025em",
+                            }}
+                          >
+                            {messageTime}
+                          </span>
+                        )}
 
                         {/* Copy button */}
                         <button
@@ -1600,6 +2063,52 @@ export default function LandingPage() {
                     </div>
                   );
                 })}
+
+                {/* Swap Transaction Widget */}
+                {showSwapWidget && quote && (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                      gap: "0.5rem",
+                      animation: "slideInUp 0.3s ease-out",
+                      animationFillMode: "both",
+                    }}
+                  >
+                    <SwapTransactionWidget
+                      loading={swapLoading}
+                      onApprove={handleSwapApprove}
+                      onCancel={handleSwapCancel}
+                      quote={quote}
+                      result={swapResult}
+                      status={swapStatus}
+                    />
+                  </div>
+                )}
+
+                {/* Send Transaction Widget */}
+                {showSendWidget && pendingSendData && (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                      gap: "0.5rem",
+                      animation: "slideInUp 0.3s ease-out",
+                      animationFillMode: "both",
+                    }}
+                  >
+                    <SendTransactionWidget
+                      loading={sendLoading}
+                      onApprove={handleSendApprove}
+                      onCancel={handleSendCancel}
+                      result={sendResult}
+                      sendData={pendingSendData}
+                      status={sendStatus}
+                    />
+                  </div>
+                )}
 
                 {/* Thinking indicator */}
                 {status === "submitted" && (
@@ -1768,68 +2277,128 @@ export default function LandingPage() {
                   transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
               >
-                <SkillsTextarea
-                  autoFocus
-                  disabled={
-                    !isOnline ||
-                    status !== "ready" ||
-                    (isChatMode && !connected)
-                  }
-                  onChange={(e) => {
-                    setInput(e.target.value);
+                {skillsEnabled ? (
+                  <SkillsInput
+                    onChange={(skills) => {
+                      setInput(skills);
 
-                    // Show modal on first typing
-                    if (!hasShownModal && e.target.value.length > 0) {
-                      setIsModalOpen(true);
-                      setHasShownModal(true);
-                      localStorage.setItem("loyal-testers-modal-shown", "true");
+                      // Show modal on first typing
+                      if (!hasShownModal && skills.length > 0) {
+                        setIsModalOpen(true);
+                        setHasShownModal(true);
+                        if (
+                          typeof window !== "undefined" &&
+                          window.localStorage
+                        ) {
+                          try {
+                            window.localStorage.setItem(
+                              "loyal-testers-modal-shown",
+                              "true"
+                            );
+                          } catch (error) {
+                            console.warn(
+                              "Unable to persist testers modal flag to storage",
+                              error
+                            );
+                          }
+                        }
+                      }
+                    }}
+                    onPendingTextChange={setPendingText}
+                    onSendComplete={handleSendComplete}
+                    onSendFlowChange={setSendFlowState}
+                    onSwapComplete={handleSwapComplete}
+                    onSwapFlowChange={setSwapFlowState}
+                    placeholder={
+                      isOnline
+                        ? isChatMode && !connected
+                          ? "Please reconnect wallet to continue..."
+                          : isChatMode
+                            ? ""
+                            : "Ask me anything (type / for skills)..."
+                        : "No internet connection..."
                     }
+                    ref={inputRef}
+                    value={input}
+                  />
+                ) : (
+                  <textarea
+                    onChange={(e) => {
+                      setPendingText(e.target.value);
 
-                    // Auto-resize textarea
-                    if (inputRef.current) {
-                      inputRef.current.style.height = "auto";
-                      inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
+                      // Auto-resize textarea based on content
+                      if (inputRef.current) {
+                        inputRef.current.style.height = "auto";
+                        inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
+                      }
+
+                      // Show modal on first typing
+                      if (!hasShownModal && e.target.value.length > 0) {
+                        setIsModalOpen(true);
+                        setHasShownModal(true);
+                        if (
+                          typeof window !== "undefined" &&
+                          window.localStorage
+                        ) {
+                          try {
+                            window.localStorage.setItem(
+                              "loyal-testers-modal-shown",
+                              "true"
+                            );
+                          } catch (error) {
+                            console.warn(
+                              "Unable to persist testers modal flag to storage",
+                              error
+                            );
+                          }
+                        }
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      // Allow Shift+Enter to create new lines
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        if (hasUsableInput && !isLoading) {
+                          handleSubmit(e as unknown as React.FormEvent);
+                        }
+                      }
+                    }}
+                    placeholder={
+                      isOnline
+                        ? isChatMode && !connected
+                          ? "Please reconnect wallet to continue..."
+                          : isChatMode
+                            ? ""
+                            : "Ask me anything..."
+                        : "No internet connection..."
                     }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmit(e);
-                    }
-                  }}
-                  placeholder={
-                    isOnline
-                      ? isChatMode && !connected
-                        ? "Please reconnect wallet to continue..."
-                        : "Ask me anything..."
-                      : "No internet connection..."
-                  }
-                  ref={inputRef}
-                  rows={1}
-                  style={{
-                    flex: 1,
-                    padding: "1.25rem 1.75rem",
-                    paddingRight: "3.5rem", // Make room for the send button
-                    fontSize: "1rem",
-                    color: "#fff",
-                    background: "transparent",
-                    border: "none",
-                    outline: "none",
-                    resize: "none",
-                    fontFamily: "inherit",
-                    lineHeight: "1.5",
-                    overflowX: "hidden",
-                    overflowY: "auto",
-                    minHeight: "auto",
-                    maxHeight: "200px",
-                  }}
-                  tabIndex={0}
-                  value={input}
-                />
+                    ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+                    rows={1}
+                    style={{
+                      width: "100%",
+                      padding: "20px 64px 20px 28px",
+                      background: "transparent",
+                      border: "none",
+                      color: "white",
+                      fontSize: "15px",
+                      fontFamily: "inherit",
+                      resize: "none",
+                      outline: "none",
+                      overflow: "hidden",
+                    }}
+                    value={pendingText}
+                  />
+                )}
                 <button
-                  disabled={!hasUsableInput}
+                  disabled={!hasUsableInput || isLoading}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (hasUsableInput && !isLoading) {
+                      handleSubmit(e as unknown as React.FormEvent);
+                    }
+                  }}
                   onMouseEnter={(e) => {
-                    if (hasUsableInput) {
+                    if (hasUsableInput && !isLoading) {
                       e.currentTarget.style.opacity = "1";
                       e.currentTarget.style.background =
                         "rgba(255, 255, 255, 0.15)";
@@ -1838,7 +2407,7 @@ export default function LandingPage() {
                     }
                   }}
                   onMouseLeave={(e) => {
-                    if (hasUsableInput) {
+                    if (hasUsableInput && !isLoading) {
                       e.currentTarget.style.opacity = "0.8";
                       e.currentTarget.style.background = "transparent";
                       e.currentTarget.style.transform =
@@ -1858,23 +2427,25 @@ export default function LandingPage() {
                     background: "transparent",
                     border: "none",
                     borderRadius: "12px",
-                    cursor: hasUsableInput ? "pointer" : "not-allowed",
+                    cursor:
+                      hasUsableInput && !isLoading ? "pointer" : "not-allowed",
                     outline: "none",
                     transition: "all 0.3s ease",
-                    opacity: hasUsableInput ? 0.8 : 0.3,
+                    opacity: hasUsableInput && !isLoading ? 0.8 : 0.3,
                     zIndex: 2,
                   }}
-                  type="submit"
+                  type="button"
                 >
-                  <ChevronRightIcon
-                    size={24}
-                    style={{
-                      animation:
-                        status === "streaming" || status === "submitted"
-                          ? "pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite"
-                          : "none",
-                    }}
-                  />
+                  {isLoading ? (
+                    <Loader2
+                      size={24}
+                      style={{
+                        animation: "spin 1s linear infinite",
+                      }}
+                    />
+                  ) : (
+                    <ChevronRightIcon size={24} />
+                  )}
                 </button>
               </div>
             </form>

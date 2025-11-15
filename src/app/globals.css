@@ -250,6 +250,15 @@
       transform: translateY(-0.5rem);
     }
   }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
 }
 
 @layer base {
@@ -273,8 +282,12 @@
     box-shadow:
       0 8px 32px 0 rgba(0, 0, 0, 0.37),
       inset 0 1px 1px rgba(255, 255, 255, 0.1) !important;
-    transition: all 0.3s ease !important;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
     cursor: pointer !important;
+  }
+
+  .wallet-adapter-button-start-icon {
+    transition: margin 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
   }
 
   .wallet-adapter-button:not([disabled]):hover {
@@ -291,6 +304,61 @@
     cursor: not-allowed !important;
   }
 
+  /* Chat mode active: Collapse to icon-only on desktop */
+  .chat-mode-active .wallet-adapter-button {
+    padding: 0.75rem !important;
+    min-width: auto !important;
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    transition:
+      width 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.1s,
+      height 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.1s,
+      padding 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.1s,
+      background 0.3s ease,
+      border 0.3s ease,
+      transform 0.3s ease,
+      box-shadow 0.3s ease !important;
+    /* font-size and line-height have NO transition - instant change */
+  }
+
+  .chat-mode-active .wallet-adapter-button-start-icon {
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .chat-mode-active .wallet-adapter-button-start-icon svg {
+    width: 24px !important;
+    height: 24px !important;
+    display: block !important;
+  }
+
+  /* Mobile: Always show only wallet icon, hide address text */
+  @media (max-width: 768px) {
+    .wallet-adapter-button {
+      padding: 0.75rem !important;
+      min-width: auto !important;
+      width: 48px !important;
+      height: 48px !important;
+      overflow: hidden !important;
+      font-size: 0 !important;
+    }
+
+    /* Ensure icon stays visible */
+    .wallet-adapter-button-start-icon {
+      margin: 0 !important;
+      font-size: 1.25rem !important;
+    }
+
+    .wallet-adapter-button-start-icon svg {
+      width: 24px !important;
+      height: 24px !important;
+    }
+  }
+
   .wallet-adapter-button-trigger {
     background: rgba(255, 255, 255, 0.08) !important;
     backdrop-filter: blur(20px) !important;
@@ -300,19 +368,20 @@
   }
 
   /* Enhanced Liquid Glass Modal Styling */
+  /* Wrapper must NOT have backdrop-filter to avoid breaking position:fixed in Safari */
   .wallet-adapter-modal-wrapper {
     background: transparent !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
     box-shadow: none !important;
   }
 
-  /* ONLY style the actual modal dialog, not wrapper or container */
+  /* Modal dialog - apply backdrop-filter here only */
   .wallet-adapter-modal {
-    background: rgba(0, 0, 0, 0.7) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    background: rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(40px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
     border-radius: 32px !important;
     box-shadow:
       0 8px 32px 0 rgba(0, 0, 0, 0.5),
@@ -493,19 +562,17 @@
     color: currentColor !important;
   }
 
-  /* Animation for modal entrance */
+  /* Animation for modal entrance - Safari-compatible (no transform) */
   .wallet-adapter-modal {
-    animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    animation: modalFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   }
 
-  @keyframes modalSlideIn {
+  @keyframes modalFadeIn {
     from {
       opacity: 0;
-      transform: scale(0.95) translateY(10px);
     }
     to {
       opacity: 1;
-      transform: scale(1) translateY(0);
     }
   }
 
