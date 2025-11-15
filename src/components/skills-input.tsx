@@ -222,9 +222,8 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
     const hasSendSkill = value.some((skill) => skill.id === "send");
 
     // Solana address validator
-    const isValidSolanaAddress = (address: string): boolean => {
-      return SOLANA_ADDRESS_REGEX.test(address);
-    };
+    const isValidSolanaAddress = (address: string): boolean =>
+      SOLANA_ADDRESS_REGEX.test(address);
 
     // Auto-resize textarea on mount and when pendingInput or placeholder changes
     React.useEffect(() => {
@@ -771,10 +770,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       }
 
       // Clear amount error when user starts typing
-      if (
-        (swapStep === "amount" || sendStep === "amount") &&
-        amountError
-      ) {
+      if ((swapStep === "amount" || sendStep === "amount") && amountError) {
         setAmountError(null);
       }
 

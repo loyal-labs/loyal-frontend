@@ -6,7 +6,10 @@
  */
 export function isSkillsEnabled(): boolean {
   // Check environment variable (must use NEXT_PUBLIC_ prefix for client-side access)
-  if (typeof process !== "undefined" && process.env.NEXT_PUBLIC_SKILLS_ENABLED !== undefined) {
+  if (
+    typeof process !== "undefined" &&
+    process.env.NEXT_PUBLIC_SKILLS_ENABLED !== undefined
+  ) {
     return process.env.NEXT_PUBLIC_SKILLS_ENABLED === "true";
   }
 
