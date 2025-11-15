@@ -1050,6 +1050,14 @@ export default function LandingPage() {
                 isLinks: true,
               },
               { label: "Docs", href: "https://docs.askloyal.com/" },
+              {
+                label: "Changelog",
+                onClick: () => {
+                  if (typeof window !== "undefined" && window.Productlane) {
+                    window.Productlane.open("CHANGELOG");
+                  }
+                },
+              },
             ].map((item, index) => (
               <button
                 className={ibmPlexSans.className}
