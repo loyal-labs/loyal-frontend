@@ -26,6 +26,7 @@ import { useChatMode } from "@/contexts/chat-mode-context";
 import { useSend } from "@/hooks/use-send";
 import { useSwap } from "@/hooks/use-swap";
 import type { LoyalSkill } from "@/types/skills";
+import { isSkillsEnabled } from "@/flags";
 
 // import { detectSwapSkill, stripSkillMarkers } from "@/lib/skills-text";
 
@@ -95,6 +96,9 @@ export default function LandingPage() {
   } | null>(null);
   const [isChatModeLocal, setIsChatModeLocal] = useState(false);
   const { setIsChatMode } = useChatMode();
+
+  // Check Skills feature flag
+  const skillsEnabled = isSkillsEnabled();
 
   // Sync local state with context
   useEffect(() => {
@@ -2257,46 +2261,96 @@ export default function LandingPage() {
                   transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
               >
-                <SkillsInput
-                  onChange={(skills) => {
-                    setInput(skills);
+                {skillsEnabled ? (
+                  <SkillsInput
+                    onChange={(skills) => {
+                      setInput(skills);
 
-                    // Show modal on first typing
-                    if (!hasShownModal && skills.length > 0) {
-                      setIsModalOpen(true);
-                      setHasShownModal(true);
-                      if (typeof window !== "undefined" && window.localStorage) {
-                        try {
-                          window.localStorage.setItem(
-                            "loyal-testers-modal-shown",
-                            "true"
-                          );
-                        } catch (error) {
-                          console.warn(
-                            "Unable to persist testers modal flag to storage",
-                            error
-                          );
+                      // Show modal on first typing
+                      if (!hasShownModal && skills.length > 0) {
+                        setIsModalOpen(true);
+                        setHasShownModal(true);
+                        if (typeof window !== "undefined" && window.localStorage) {
+                          try {
+                            window.localStorage.setItem(
+                              "loyal-testers-modal-shown",
+                              "true"
+                            );
+                          } catch (error) {
+                            console.warn(
+                              "Unable to persist testers modal flag to storage",
+                              error
+                            );
+                          }
                         }
                       }
+                    }}
+                    onPendingTextChange={setPendingText}
+                    onSendComplete={handleSendComplete}
+                    onSendFlowChange={setSendFlowState}
+                    onSwapComplete={handleSwapComplete}
+                    onSwapFlowChange={setSwapFlowState}
+                    placeholder={
+                      isOnline
+                        ? isChatMode && !connected
+                          ? "Please reconnect wallet to continue..."
+                          : isChatMode
+                            ? ""
+                            : "Ask me anything (type / for skills)..."
+                        : "No internet connection..."
                     }
-                  }}
-                  onPendingTextChange={setPendingText}
-                  onSendComplete={handleSendComplete}
-                  onSendFlowChange={setSendFlowState}
-                  onSwapComplete={handleSwapComplete}
-                  onSwapFlowChange={setSwapFlowState}
-                  placeholder={
-                    isOnline
-                      ? isChatMode && !connected
-                        ? "Please reconnect wallet to continue..."
-                        : isChatMode
-                          ? ""
-                          : "Ask me anything (type / for skills)..."
-                      : "No internet connection..."
-                  }
-                  ref={inputRef}
-                  value={input}
-                />
+                    ref={inputRef}
+                    value={input}
+                  />
+                ) : (
+                  <textarea
+                    onChange={(e) => {
+                      setPendingText(e.target.value);
+
+                      // Show modal on first typing
+                      if (!hasShownModal && e.target.value.length > 0) {
+                        setIsModalOpen(true);
+                        setHasShownModal(true);
+                        if (typeof window !== "undefined" && window.localStorage) {
+                          try {
+                            window.localStorage.setItem(
+                              "loyal-testers-modal-shown",
+                              "true"
+                            );
+                          } catch (error) {
+                            console.warn(
+                              "Unable to persist testers modal flag to storage",
+                              error
+                            );
+                          }
+                        }
+                      }
+                    }}
+                    placeholder={
+                      isOnline
+                        ? isChatMode && !connected
+                          ? "Please reconnect wallet to continue..."
+                          : isChatMode
+                            ? ""
+                            : "Ask me anything..."
+                        : "No internet connection..."
+                    }
+                    ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+                    rows={1}
+                    style={{
+                      width: "100%",
+                      padding: "16px 20px",
+                      background: "transparent",
+                      border: "none",
+                      color: "white",
+                      fontSize: "15px",
+                      fontFamily: "inherit",
+                      resize: "none",
+                      outline: "none",
+                    }}
+                    value={pendingText}
+                  />
+                )}
                 <button
                   disabled={!hasUsableInput || isLoading}
                   onMouseEnter={(e) => {
