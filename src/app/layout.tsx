@@ -84,6 +84,14 @@ export default function RootLayout({
           </UserChatsProvider>
         </SolanaProvider>
 
+        {/* Umami Analytics */}
+        <Script
+          data-website-id="461c47cb-7363-4a5b-9d83-8175ef31299f"
+          defer
+          src="https://cloud.umami.is/script.js"
+          strategy="afterInteractive"
+        />
+
         {/* Productlane Widget */}
         <Script id="productlane-init" strategy="afterInteractive">
           {`
