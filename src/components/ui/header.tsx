@@ -19,12 +19,19 @@ export function Header() {
     setMounted(true);
   }, []);
 
-  // Allow users to change wallet during connection
-  const handleWalletClick = () => {
-    if (connecting) {
-      // Disconnect current attempt and show modal again
+  // Allow users to change wallet selection at any time when not connected
+  const handleWalletClick = (e: React.MouseEvent) => {
+    if (!connected) {
+      // Prevent default wallet button behavior
+      e.preventDefault();
+      e.stopPropagation();
+
+      // Disconnect any pending connection and show modal
       disconnect();
-      setVisible(true);
+      // Small delay to ensure disconnect completes
+      setTimeout(() => {
+        setVisible(true);
+      }, 100);
     }
   };
 
@@ -46,7 +53,7 @@ export function Header() {
     >
       <div
         className={connected ? "wallet-connected" : "wallet-disconnected"}
-        onClick={handleWalletClick}
+        onClickCapture={handleWalletClick}
       >
         <WalletMultiButton />
       </div>
