@@ -44,7 +44,9 @@ export const SolanaProvider: FC<SolanaProviderProps> = ({ children }) => {
   const wallets = useMemo(
     () => [
       new PhantomWalletAdapter(),
-      new SolflareWalletAdapter({ network }),
+      // Remove Solflare to prevent X-Frame-Options iframe crash
+      // Users can still use Solflare mobile app or browser extension
+      // new SolflareWalletAdapter({ network }),
       new CoinbaseWalletAdapter({ network }),
     ],
     [network]

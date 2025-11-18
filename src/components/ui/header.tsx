@@ -12,7 +12,7 @@ import { useChatMode } from "@/contexts/chat-mode-context";
 export function Header() {
   const [mounted, setMounted] = useState(false);
   const { isChatMode } = useChatMode();
-  const { connected, connecting, disconnect } = useWallet();
+  const { connected, disconnect } = useWallet();
   const { setVisible } = useWalletModal();
 
   useEffect(() => {
