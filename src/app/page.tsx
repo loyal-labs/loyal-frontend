@@ -6,7 +6,7 @@ import { LoyalTokenTicker } from "@/components/loyal-token-ticker";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { RoadmapSection } from "@/components/roadmap-section";
 import { SendTransactionWidget } from "@/components/send-transaction-widget";
-import { SkillsInput } from "@/components/skills-input";
+import { SkillsInput, type SkillsInputRef } from "@/components/skills-input";
 import { SkillsSelector } from "@/components/skills-selector";
 import { SwapTransactionWidget } from "@/components/swap-transaction-widget";
 import AnimatedBadge from "@/components/ui/animated-badge";
@@ -125,7 +125,7 @@ export default function LandingPage() {
   const [hoveredNavIndex, setHoveredNavIndex] = useState<number | null>(null);
   const menuIconRef = useRef<MenuIconHandle>(null);
   const plusIconRef = useRef<PlusIconHandle>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const inputRef = useRef<SkillsInputRef>(null);
   const copyIconRefs = useRef<Map<string, CopyIconHandle>>(new Map());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -235,21 +235,29 @@ export default function LandingPage() {
   // NLP State
   const [nlpState, setNlpState] = useState<{
     isActive: boolean;
+    intent: "send" | "swap" | null;
     parsedData: {
       amount: string | null;
       currency: string | null;
       currencyMint: string | null;
       currencyDecimals: number | null;
       walletAddress: string | null;
+      toCurrency: string | null;
+      toCurrencyMint: string | null;
+      toCurrencyDecimals: number | null;
     };
   }>({
     isActive: false,
+    intent: null,
     parsedData: {
       amount: null,
       currency: null,
       currencyMint: null,
       currencyDecimals: null,
       walletAddress: null,
+      toCurrency: null,
+      toCurrencyMint: null,
+      toCurrencyDecimals: null,
     },
   });
 
@@ -600,6 +608,8 @@ export default function LandingPage() {
     setPendingSwapData(swapData);
   };
 
+
+
   const handleSendComplete = (sendData: {
     currency: string;
     currencyMint: string | null;
@@ -644,12 +654,30 @@ export default function LandingPage() {
     // Use ref for immediate access (avoids race condition with Enter key)
     const hasSwapSkill = input.some((skill) => skill.id === "swap");
     const swapData = pendingSwapDataRef.current;
-    if (hasSwapSkill && swapData) {
-      const swapMessage = `Swap ${swapData.amount} ${swapData.fromCurrency} to ${swapData.toCurrency}`;
+
+    // Check for NLP swap command
+    const isNlpSwap = nlpState?.isActive && nlpState?.intent === "swap";
+    const hasNlpSwapData = isNlpSwap &&
+      nlpState?.parsedData.amount &&
+      nlpState?.parsedData.currency &&
+      nlpState?.parsedData.toCurrency;
+
+    if ((hasSwapSkill || isNlpSwap) && (swapData || hasNlpSwapData)) {
+      // If NLP swap, construct the swap data
+      const dataToUse = hasNlpSwapData ? {
+        fromCurrency: nlpState.parsedData.currency!,
+        fromCurrencyMint: nlpState.parsedData.currencyMint,
+        fromCurrencyDecimals: nlpState.parsedData.currencyDecimals,
+        amount: nlpState.parsedData.amount!,
+        toCurrency: nlpState.parsedData.toCurrency!,
+        toCurrencyMint: nlpState.parsedData.toCurrencyMint,
+        toCurrencyDecimals: nlpState.parsedData.toCurrencyDecimals,
+      } : swapData!;
+
+      const swapMessage = `Swap ${dataToUse.amount} ${dataToUse.fromCurrency} to ${dataToUse.toCurrency}`;
       const timestamp = Date.now();
       const userMessageId = `user-swap-${timestamp}`;
 
-      // Add user's swap message to chat
       setMessages((prev) => [
         ...prev,
         {
@@ -663,74 +691,118 @@ export default function LandingPage() {
             },
           ],
         },
+        {
+          id: `assistant-swap-${timestamp}`,
+          role: "assistant",
+          createdAt: timestamp,
+          parts: [
+            {
+              type: "text",
+              text: "I'll help you swap those tokens. Please review the details below.",
+            },
+          ],
+          toolCalls: [
+            {
+              id: `call-swap-${timestamp}`,
+              name: "swap_tokens",
+              args: {
+                amount: dataToUse.amount,
+                fromToken: dataToUse.fromCurrency,
+                toToken: dataToUse.toCurrency,
+              },
+            },
+          ],
+        },
       ]);
 
       // Get quote from Jupiter
       try {
         const quoteResult = await getQuote(
-          swapData.fromCurrency,
-          swapData.toCurrency,
-          swapData.amount,
-          swapData.fromCurrencyMint || undefined,
-          swapData.fromCurrencyDecimals || undefined,
-          swapData.toCurrencyDecimals || undefined
+          dataToUse.fromCurrency,
+          dataToUse.toCurrency,
+          dataToUse.amount,
+          dataToUse.fromCurrencyMint || undefined,
+          dataToUse.fromCurrencyDecimals || undefined,
+          dataToUse.toCurrencyDecimals || undefined
         );
         if (quoteResult) {
           setShowSwapWidget(true);
+          // Ensure pendingSwapData is set for the widget to use
+          setPendingSwapData(dataToUse);
+          pendingSwapDataRef.current = dataToUse;
         } else {
           // Add error message while preserving user's message
           const errorTimestamp = Date.now();
           setMessages((prev) => [
             ...prev,
             {
-              id: `swap-quote-error-${errorTimestamp}`,
+              id: `error-${errorTimestamp}`,
               role: "assistant",
               createdAt: errorTimestamp,
               parts: [
                 {
                   type: "text",
-                  text: "Failed to get swap quote. Please check the console for details.",
+                  text: "I couldn't find a valid quote for this swap. Please try a different amount or pair.",
                 },
               ],
             },
           ]);
         }
-      } catch (err) {
-        console.error("Failed to get swap quote:", err);
-        // Add error message while preserving user's message
+      } catch (error) {
+        console.error("Error getting quote:", error);
         const errorTimestamp = Date.now();
         setMessages((prev) => [
           ...prev,
           {
-            id: `swap-quote-error-${errorTimestamp}`,
+            id: `error-${errorTimestamp}`,
             role: "assistant",
             createdAt: errorTimestamp,
             parts: [
               {
                 type: "text",
-                text: `Failed to get swap quote: ${err instanceof Error ? err.message : "Unknown error"
-                  }`,
+                text: "Sorry, there was an error fetching the quote. Please try again later.",
               },
             ],
           },
         ]);
       }
 
+
       // Clear input (but keep swap data for approval)
-      setInput([]);
-      setPendingText("");
+      // For NLP swap, we need to clear the NLP state too
+      if (isNlpSwap) {
+        inputRef.current?.clear();
+      } else {
+        setInput([]);
+        setPendingText("");
+      }
+
       // Note: Don't clear pendingSwapData here - it's needed for approval
       // It will be cleared in handleSwapApprove or handleSwapCancel
     } else {
+
       // Check if this is a completed send
       const hasSendSkill = input.some((skill) => skill.id === "send");
-      const sendData = pendingSendDataRef.current;
+      let sendData = pendingSendDataRef.current;
 
       // Check for NLP send command
       // We allow send if:
       // 1. The "Send" skill is explicitly active (hasSendSkill) AND we have data
-      // 2. OR the text starts with "send " (NLP mode) AND we have data (from onSendComplete)
-      const isNlpSend = pendingText.trim().toLowerCase().startsWith("send ") && !!sendData;
+      // 2. OR we are in NLP mode with "send" intent AND we have valid data
+      const isNlpSend = nlpState?.isActive && nlpState?.intent === "send";
+
+      if (isNlpSend && nlpState?.parsedData.amount && nlpState?.parsedData.currency && nlpState?.parsedData.walletAddress) {
+        // Construct sendData from nlpState
+        sendData = {
+          amount: nlpState.parsedData.amount,
+          currency: nlpState.parsedData.currency,
+          currencyMint: nlpState.parsedData.currencyMint,
+          currencyDecimals: nlpState.parsedData.currencyDecimals,
+          walletAddress: nlpState.parsedData.walletAddress
+        };
+        // Update ref just in case
+        pendingSendDataRef.current = sendData;
+      }
 
       if ((hasSendSkill || isNlpSend) && sendData) {
         // Truncate wallet address for display (keep first 6 and last 4 chars)
@@ -758,16 +830,42 @@ export default function LandingPage() {
               },
             ],
           },
+          {
+            id: `assistant-send-${timestamp}`,
+            role: "assistant",
+            createdAt: timestamp,
+            parts: [
+              {
+                type: "text",
+                text: "I'll help you send those tokens. Please confirm the transaction in your wallet.",
+              },
+            ],
+            toolCalls: [
+              {
+                id: `call-send-${timestamp}`,
+                name: "send_tokens",
+                args: {
+                  amount: sendData.amount,
+                  currency: sendData.currency,
+                  walletAddress: sendData.walletAddress,
+                },
+              },
+            ],
+          },
         ]);
 
         // Show send widget for approval
         setShowSendWidget(true);
 
         // Clear input (but keep send data for approval)
-        setInput([]);
-        setPendingText("");
-        // Note: Don't clear pendingSendData here - it's needed for approval
-        // It will be cleared in handleSendApprove or handleSendCancel
+        if (isNlpSend) {
+          inputRef.current?.clear();
+        } else {
+          setInput([]);
+          setPendingText("");
+          // Note: Don't clear pendingSendDataRef here - it's needed for approval
+          // It will be cleared in handleSendApprove or handleSendCancel
+        }
       } else {
         // Regular message - send to LLM
         const messageText = skillsEnabled
@@ -2471,13 +2569,13 @@ export default function LandingPage() {
                           setInput([]);
                         }
                       } else {
-                        if (skill.id === "send") {
-                          // For "send" skill, activate NLP mode instead of adding the skill object
+                        if (skill.id === "send" || skill.id === "swap") {
+                          // For "send" and "swap" skills, activate NLP mode instead of adding the skill object
                           if (inputRef.current && "activateNlpMode" in inputRef.current) {
-                            (inputRef.current as any).activateNlpMode("send ");
+                            (inputRef.current as any).activateNlpMode(`${skill.id} `);
                           }
                         } else {
-                          // For other skills (like swap), use the old flow
+                          // For other skills, use the old flow
                           // Reset all state and add the selected skill
                           if (inputRef.current && "resetAndAddSkill" in inputRef.current) {
                             (inputRef.current as HTMLTextAreaElement & { resetAndAddSkill: (skill: LoyalSkill) => void }).resetAndAddSkill(skill);

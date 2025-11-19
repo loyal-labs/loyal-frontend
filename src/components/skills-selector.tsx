@@ -13,12 +13,16 @@ type SkillsSelectorProps = {
   className?: string;
   nlpState?: {
     isActive: boolean;
+    intent: "send" | "swap" | null;
     parsedData: {
       amount: string | null;
       currency: string | null;
       currencyMint: string | null;
       currencyDecimals: number | null;
       walletAddress: string | null;
+      toCurrency: string | null;
+      toCurrencyMint: string | null;
+      toCurrencyDecimals: number | null;
     };
   };
 };
@@ -54,18 +58,25 @@ export function SkillsSelector({
   };
 
   if (nlpState?.isActive) {
+    const isSwap = nlpState.intent === "swap";
+    const isReady = isSwap
+      ? nlpState.parsedData.amount && nlpState.parsedData.currency && nlpState.parsedData.toCurrency
+      : nlpState.parsedData.amount && nlpState.parsedData.currency && nlpState.parsedData.walletAddress;
+
     return (
       <div className={cn("flex gap-2", className)}>
-        {/* Send Pill (Always visible in NLP mode) */}
+        {/* Intent Pill (Send or Swap) */}
         <span
           className={cn(
             "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
             "shadow-lg backdrop-blur-[18px]",
-            "bg-gradient-to-br from-red-400/25 to-red-500/50 border-red-400/40 text-white"
+            isSwap
+              ? "bg-gradient-to-br from-red-400/25 to-red-500/50 border-red-400/40 text-white"
+              : "bg-gradient-to-br from-red-400/25 to-red-500/50 border-red-400/40 text-white"
           )}
         >
-          <Send size={14} />
-          Send
+          {isSwap ? <Repeat2 size={14} /> : <Send size={14} />}
+          {isSwap ? "Swap" : "Send"}
         </span>
 
         {/* Amount Pill */}
@@ -81,7 +92,7 @@ export function SkillsSelector({
           {nlpState.parsedData.amount || "Amount"}
         </span>
 
-        {/* Currency Pill */}
+        {/* Currency Pill (From) */}
         <span
           className={cn(
             "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
@@ -94,26 +105,40 @@ export function SkillsSelector({
           {nlpState.parsedData.currency || "Currency"}
         </span>
 
-        {/* To Address Pill */}
-        <span
-          className={cn(
-            "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
-            "shadow-lg backdrop-blur-[18px]",
-            nlpState.parsedData.walletAddress
-              ? "border-blue-400/40 bg-blue-400/25 text-white"
-              : "border-white/10 bg-white/5 text-white/50 border-dashed"
-          )}
-          title={nlpState.parsedData.walletAddress || undefined}
-        >
-          {nlpState.parsedData.walletAddress
-            ? (nlpState.parsedData.walletAddress.length > 12
-              ? `${nlpState.parsedData.walletAddress.slice(0, 6)}...${nlpState.parsedData.walletAddress.slice(-4)}`
-              : nlpState.parsedData.walletAddress)
-            : "To Address"}
-        </span>
+        {/* To Address OR To Currency Pill */}
+        {isSwap ? (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
+              "shadow-lg backdrop-blur-[18px]",
+              nlpState.parsedData.toCurrency
+                ? "border-blue-400/40 bg-blue-400/25 text-white"
+                : "border-white/10 bg-white/5 text-white/50 border-dashed"
+            )}
+          >
+            {nlpState.parsedData.toCurrency || "To Token"}
+          </span>
+        ) : (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
+              "shadow-lg backdrop-blur-[18px]",
+              nlpState.parsedData.walletAddress
+                ? "border-blue-400/40 bg-blue-400/25 text-white"
+                : "border-white/10 bg-white/5 text-white/50 border-dashed"
+            )}
+            title={nlpState.parsedData.walletAddress || undefined}
+          >
+            {nlpState.parsedData.walletAddress
+              ? (nlpState.parsedData.walletAddress.length > 12
+                ? `${nlpState.parsedData.walletAddress.slice(0, 6)}...${nlpState.parsedData.walletAddress.slice(-4)}`
+                : nlpState.parsedData.walletAddress)
+              : "To Address"}
+          </span>
+        )}
 
         {/* Ready Hint */}
-        {nlpState.parsedData.amount && nlpState.parsedData.currency && nlpState.parsedData.walletAddress && (
+        {isReady && (
           <span className="ml-auto flex items-center text-xs font-medium text-white animate-pulse">
             Ready to execute
           </span>
@@ -132,7 +157,7 @@ export function SkillsSelector({
         if (skill.id === "send") {
           activeStyle = "bg-gradient-to-br from-red-400/25 to-red-500/50 border-red-400/40";
         } else if (skill.id === "swap") {
-          activeStyle = "bg-white/10 border-white/20"; // Keep swap neutral for now or define a color
+          activeStyle = "bg-gradient-to-br from-purple-400/25 to-purple-500/50 border-purple-400/40";
         }
 
         return (
