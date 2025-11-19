@@ -60,19 +60,25 @@ export function SkillsSelector({
   if (nlpState?.isActive) {
     const isSwap = nlpState.intent === "swap";
     const isReady = isSwap
-      ? nlpState.parsedData.amount && nlpState.parsedData.currency && nlpState.parsedData.toCurrency
-      : nlpState.parsedData.amount && nlpState.parsedData.currency && nlpState.parsedData.walletAddress;
+      ? nlpState.parsedData.amount &&
+        nlpState.parsedData.currency &&
+        nlpState.parsedData.toCurrency
+      : nlpState.parsedData.amount &&
+        nlpState.parsedData.currency &&
+        nlpState.parsedData.walletAddress;
 
     return (
-      <div className={cn("flex gap-2", className)}>
+      <div
+        className={cn("flex flex-col gap-1.5 md:flex-row md:gap-2", className)}
+      >
         {/* Intent Pill (Send or Swap) */}
         <span
           className={cn(
-            "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
+            "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-medium text-xs md:px-3 md:py-1.5 md:text-sm",
             "shadow-lg backdrop-blur-[18px]",
             isSwap
-              ? "bg-gradient-to-br from-red-400/25 to-red-500/50 border-red-400/40 text-white"
-              : "bg-gradient-to-br from-red-400/25 to-red-500/50 border-red-400/40 text-white"
+              ? "border-red-400/40 bg-gradient-to-br from-red-400/25 to-red-500/50 text-white"
+              : "border-red-400/40 bg-gradient-to-br from-red-400/25 to-red-500/50 text-white"
           )}
         >
           {isSwap ? <Repeat2 size={14} /> : <Send size={14} />}
@@ -82,11 +88,11 @@ export function SkillsSelector({
         {/* Amount Pill */}
         <span
           className={cn(
-            "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
+            "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-medium text-xs md:px-3 md:py-1.5 md:text-sm",
             "shadow-lg backdrop-blur-[18px]",
             nlpState.parsedData.amount
               ? "border-green-400/40 bg-green-400/25 text-white"
-              : "border-white/10 bg-white/5 text-white/50 border-dashed"
+              : "border-white/10 border-dashed bg-white/5 text-white/50"
           )}
         >
           {nlpState.parsedData.amount || "Amount"}
@@ -95,11 +101,11 @@ export function SkillsSelector({
         {/* Currency Pill (From) */}
         <span
           className={cn(
-            "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
+            "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-medium text-xs md:px-3 md:py-1.5 md:text-sm",
             "shadow-lg backdrop-blur-[18px]",
             nlpState.parsedData.currency
               ? "border-white/25 bg-white/10 text-white"
-              : "border-white/10 bg-white/5 text-white/50 border-dashed"
+              : "border-white/10 border-dashed bg-white/5 text-white/50"
           )}
         >
           {nlpState.parsedData.currency || "Currency"}
@@ -109,11 +115,11 @@ export function SkillsSelector({
         {isSwap ? (
           <span
             className={cn(
-              "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
+              "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-medium text-xs md:px-3 md:py-1.5 md:text-sm",
               "shadow-lg backdrop-blur-[18px]",
               nlpState.parsedData.toCurrency
                 ? "border-blue-400/40 bg-blue-400/25 text-white"
-                : "border-white/10 bg-white/5 text-white/50 border-dashed"
+                : "border-white/10 border-dashed bg-white/5 text-white/50"
             )}
           >
             {nlpState.parsedData.toCurrency || "To Token"}
@@ -121,25 +127,25 @@ export function SkillsSelector({
         ) : (
           <span
             className={cn(
-              "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
+              "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 font-medium text-xs md:px-3 md:py-1.5 md:text-sm",
               "shadow-lg backdrop-blur-[18px]",
               nlpState.parsedData.walletAddress
                 ? "border-blue-400/40 bg-blue-400/25 text-white"
-                : "border-white/10 bg-white/5 text-white/50 border-dashed"
+                : "border-white/10 border-dashed bg-white/5 text-white/50"
             )}
             title={nlpState.parsedData.walletAddress || undefined}
           >
             {nlpState.parsedData.walletAddress
-              ? (nlpState.parsedData.walletAddress.length > 12
+              ? nlpState.parsedData.walletAddress.length > 12
                 ? `${nlpState.parsedData.walletAddress.slice(0, 6)}...${nlpState.parsedData.walletAddress.slice(-4)}`
-                : nlpState.parsedData.walletAddress)
+                : nlpState.parsedData.walletAddress
               : "To Address"}
           </span>
         )}
 
         {/* Ready Hint */}
         {isReady && (
-          <span className="ml-auto flex items-center text-xs font-medium text-white animate-pulse">
+          <span className="flex animate-pulse items-center font-medium text-white text-xs md:ml-auto">
             Ready to execute
           </span>
         )}
@@ -155,27 +161,29 @@ export function SkillsSelector({
         // Determine styles based on skill type
         let activeStyle = "bg-white/10 border-white/20";
         if (skill.id === "send") {
-          activeStyle = "bg-gradient-to-br from-red-400/25 to-red-500/50 border-red-400/40";
+          activeStyle =
+            "bg-gradient-to-br from-red-400/25 to-red-500/50 border-red-400/40";
         } else if (skill.id === "swap") {
-          activeStyle = "bg-gradient-to-br from-purple-400/25 to-purple-500/50 border-purple-400/40";
+          activeStyle =
+            "bg-gradient-to-br from-purple-400/25 to-purple-500/50 border-purple-400/40";
         }
 
         return (
           <button
-            key={skill.id}
-            type="button"
-            onClick={() => {
-              handleButtonClick(skill);
-            }}
             className={cn(
-              "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm transition-all cursor-pointer",
+              "inline-flex cursor-pointer items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm transition-all",
               "shadow-lg backdrop-blur-[18px]",
               "text-white",
               isActive
                 ? activeStyle
-                : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20",
+                : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10",
               "focus:outline-none"
             )}
+            key={skill.id}
+            onClick={() => {
+              handleButtonClick(skill);
+            }}
+            type="button"
           >
             {getSkillIcon(skill.id)}
             {skill.label}
