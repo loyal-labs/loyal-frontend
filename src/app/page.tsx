@@ -1,21 +1,12 @@
 "use client";
 
-import { useChat } from "@ai-sdk/react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-import { DefaultChatTransport, type UIMessage } from "ai";
-import { ArrowDownIcon, ArrowUpToLine, Loader2 } from "lucide-react";
-import { IBM_Plex_Sans, Plus_Jakarta_Sans } from "next/font/google";
-import localFont from "next/font/local";
-import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
 import { BentoGridSection } from "@/components/bento-grid-section";
 import { Footer } from "@/components/footer";
 import { LoyalTokenTicker } from "@/components/loyal-token-ticker";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { RoadmapSection } from "@/components/roadmap-section";
 import { SendTransactionWidget } from "@/components/send-transaction-widget";
-import { SkillsInput } from "@/components/skills-input";
+import { SkillsInput, type SkillsInputRef } from "@/components/skills-input";
 import { SkillsSelector } from "@/components/skills-selector";
 import { SwapTransactionWidget } from "@/components/swap-transaction-widget";
 import AnimatedBadge from "@/components/ui/animated-badge";
@@ -28,6 +19,15 @@ import { isSkillsEnabled } from "@/flags";
 import { useSend } from "@/hooks/use-send";
 import { useSwap } from "@/hooks/use-swap";
 import type { LoyalSkill } from "@/types/skills";
+import { useChat } from "@ai-sdk/react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import { DefaultChatTransport, type UIMessage } from "ai";
+import { ArrowDownIcon, ArrowUpToLine, Loader2 } from "lucide-react";
+import { IBM_Plex_Sans, Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
+import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
 
 // import { detectSwapSkill, stripSkillMarkers } from "@/lib/skills-text";
 
@@ -125,7 +125,7 @@ export default function LandingPage() {
   const [hoveredNavIndex, setHoveredNavIndex] = useState<number | null>(null);
   const menuIconRef = useRef<MenuIconHandle>(null);
   const plusIconRef = useRef<PlusIconHandle>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const inputRef = useRef<SkillsInputRef>(null);
   const copyIconRefs = useRef<Map<string, CopyIconHandle>>(new Map());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -231,6 +231,35 @@ export default function LandingPage() {
     amount: string;
     walletAddress: string;
   } | null>(null);
+
+  // NLP State
+  const [nlpState, setNlpState] = useState<{
+    isActive: boolean;
+    intent: "send" | "swap" | null;
+    parsedData: {
+      amount: string | null;
+      currency: string | null;
+      currencyMint: string | null;
+      currencyDecimals: number | null;
+      walletAddress: string | null;
+      toCurrency: string | null;
+      toCurrencyMint: string | null;
+      toCurrencyDecimals: number | null;
+    };
+  }>({
+    isActive: false,
+    intent: null,
+    parsedData: {
+      amount: null,
+      currency: null,
+      currencyMint: null,
+      currencyDecimals: null,
+      walletAddress: null,
+      toCurrency: null,
+      toCurrencyMint: null,
+      toCurrencyDecimals: null,
+    },
+  });
 
   // Check if any transaction or chat operation is in progress
   const isLoading =
@@ -579,6 +608,8 @@ export default function LandingPage() {
     setPendingSwapData(swapData);
   };
 
+
+
   const handleSendComplete = (sendData: {
     currency: string;
     currencyMint: string | null;
@@ -623,12 +654,30 @@ export default function LandingPage() {
     // Use ref for immediate access (avoids race condition with Enter key)
     const hasSwapSkill = input.some((skill) => skill.id === "swap");
     const swapData = pendingSwapDataRef.current;
-    if (hasSwapSkill && swapData) {
-      const swapMessage = `Swap ${swapData.amount} ${swapData.fromCurrency} to ${swapData.toCurrency}`;
+
+    // Check for NLP swap command
+    const isNlpSwap = nlpState?.isActive && nlpState?.intent === "swap";
+    const hasNlpSwapData = isNlpSwap &&
+      nlpState?.parsedData.amount &&
+      nlpState?.parsedData.currency &&
+      nlpState?.parsedData.toCurrency;
+
+    if ((hasSwapSkill || isNlpSwap) && (swapData || hasNlpSwapData)) {
+      // If NLP swap, construct the swap data
+      const dataToUse = hasNlpSwapData ? {
+        fromCurrency: nlpState.parsedData.currency!,
+        fromCurrencyMint: nlpState.parsedData.currencyMint,
+        fromCurrencyDecimals: nlpState.parsedData.currencyDecimals,
+        amount: nlpState.parsedData.amount!,
+        toCurrency: nlpState.parsedData.toCurrency!,
+        toCurrencyMint: nlpState.parsedData.toCurrencyMint,
+        toCurrencyDecimals: nlpState.parsedData.toCurrencyDecimals,
+      } : swapData!;
+
+      const swapMessage = `Swap ${dataToUse.amount} ${dataToUse.fromCurrency} to ${dataToUse.toCurrency}`;
       const timestamp = Date.now();
       const userMessageId = `user-swap-${timestamp}`;
 
-      // Add user's swap message to chat
       setMessages((prev) => [
         ...prev,
         {
@@ -642,77 +691,127 @@ export default function LandingPage() {
             },
           ],
         },
+        {
+          id: `assistant-swap-${timestamp}`,
+          role: "assistant",
+          createdAt: timestamp,
+          parts: [
+            {
+              type: "text",
+              text: "I'll help you swap those tokens. Please review the details below.",
+            },
+          ],
+          toolCalls: [
+            {
+              id: `call-swap-${timestamp}`,
+              name: "swap_tokens",
+              args: {
+                amount: dataToUse.amount,
+                fromToken: dataToUse.fromCurrency,
+                toToken: dataToUse.toCurrency,
+              },
+            },
+          ],
+        },
       ]);
 
       // Get quote from Jupiter
       try {
         const quoteResult = await getQuote(
-          swapData.fromCurrency,
-          swapData.toCurrency,
-          swapData.amount,
-          swapData.fromCurrencyMint || undefined,
-          swapData.fromCurrencyDecimals || undefined,
-          swapData.toCurrencyDecimals || undefined
+          dataToUse.fromCurrency,
+          dataToUse.toCurrency,
+          dataToUse.amount,
+          dataToUse.fromCurrencyMint || undefined,
+          dataToUse.fromCurrencyDecimals || undefined,
+          dataToUse.toCurrencyDecimals || undefined
         );
         if (quoteResult) {
           setShowSwapWidget(true);
+          // Ensure pendingSwapData is set for the widget to use
+          setPendingSwapData(dataToUse);
+          pendingSwapDataRef.current = dataToUse;
         } else {
           // Add error message while preserving user's message
           const errorTimestamp = Date.now();
           setMessages((prev) => [
             ...prev,
             {
-              id: `swap-quote-error-${errorTimestamp}`,
+              id: `error-${errorTimestamp}`,
               role: "assistant",
               createdAt: errorTimestamp,
               parts: [
                 {
                   type: "text",
-                  text: "Failed to get swap quote. Please check the console for details.",
+                  text: "I couldn't find a valid quote for this swap. Please try a different amount or pair.",
                 },
               ],
             },
           ]);
         }
-      } catch (err) {
-        console.error("Failed to get swap quote:", err);
-        // Add error message while preserving user's message
+      } catch (error) {
+        console.error("Error getting quote:", error);
         const errorTimestamp = Date.now();
         setMessages((prev) => [
           ...prev,
           {
-            id: `swap-quote-error-${errorTimestamp}`,
+            id: `error-${errorTimestamp}`,
             role: "assistant",
             createdAt: errorTimestamp,
             parts: [
               {
                 type: "text",
-                text: `Failed to get swap quote: ${
-                  err instanceof Error ? err.message : "Unknown error"
-                }`,
+                text: "Sorry, there was an error fetching the quote. Please try again later.",
               },
             ],
           },
         ]);
       }
 
+
       // Clear input (but keep swap data for approval)
-      setInput([]);
-      setPendingText("");
+      // For NLP swap, we need to clear the NLP state too
+      if (isNlpSwap) {
+        inputRef.current?.clear();
+      } else {
+        setInput([]);
+        setPendingText("");
+      }
+
       // Note: Don't clear pendingSwapData here - it's needed for approval
       // It will be cleared in handleSwapApprove or handleSwapCancel
     } else {
+
       // Check if this is a completed send
       const hasSendSkill = input.some((skill) => skill.id === "send");
-      const sendData = pendingSendDataRef.current;
-      if (hasSendSkill && sendData) {
+      let sendData = pendingSendDataRef.current;
+
+      // Check for NLP send command
+      // We allow send if:
+      // 1. The "Send" skill is explicitly active (hasSendSkill) AND we have data
+      // 2. OR we are in NLP mode with "send" intent AND we have valid data
+      const isNlpSend = nlpState?.isActive && nlpState?.intent === "send";
+
+      if (isNlpSend && nlpState?.parsedData.amount && nlpState?.parsedData.currency && nlpState?.parsedData.walletAddress) {
+        // Construct sendData from nlpState
+        sendData = {
+          amount: nlpState.parsedData.amount,
+          currency: nlpState.parsedData.currency,
+          currencyMint: nlpState.parsedData.currencyMint,
+          currencyDecimals: nlpState.parsedData.currencyDecimals,
+          walletAddress: nlpState.parsedData.walletAddress
+        };
+        // Update ref just in case
+        pendingSendDataRef.current = sendData;
+      }
+
+      if ((hasSendSkill || isNlpSend) && sendData) {
         // Truncate wallet address for display (keep first 6 and last 4 chars)
         const truncatedAddress =
           sendData.walletAddress.length > 12
             ? `${sendData.walletAddress.slice(
-                0,
-                6
-              )}...${sendData.walletAddress.slice(-4)}`
+              0,
+              6
+            )}...${sendData.walletAddress.slice(-4)}`
             : sendData.walletAddress;
         const sendMessage = `Send ${sendData.amount} ${sendData.currency} to ${truncatedAddress}`;
         const timestamp = Date.now();
@@ -731,22 +830,48 @@ export default function LandingPage() {
               },
             ],
           },
+          {
+            id: `assistant-send-${timestamp}`,
+            role: "assistant",
+            createdAt: timestamp,
+            parts: [
+              {
+                type: "text",
+                text: "I'll help you send those tokens. Please confirm the transaction in your wallet.",
+              },
+            ],
+            toolCalls: [
+              {
+                id: `call-send-${timestamp}`,
+                name: "send_tokens",
+                args: {
+                  amount: sendData.amount,
+                  currency: sendData.currency,
+                  walletAddress: sendData.walletAddress,
+                },
+              },
+            ],
+          },
         ]);
 
         // Show send widget for approval
         setShowSendWidget(true);
 
         // Clear input (but keep send data for approval)
-        setInput([]);
-        setPendingText("");
-        // Note: Don't clear pendingSendData here - it's needed for approval
-        // It will be cleared in handleSendApprove or handleSendCancel
+        if (isNlpSend) {
+          inputRef.current?.clear();
+        } else {
+          setInput([]);
+          setPendingText("");
+          // Note: Don't clear pendingSendDataRef here - it's needed for approval
+          // It will be cleared in handleSendApprove or handleSendCancel
+        }
       } else {
         // Regular message - send to LLM
         const messageText = skillsEnabled
           ? [...input.map((skill) => skill.label), pendingText.trim()]
-              .filter(Boolean)
-              .join(" ")
+            .filter(Boolean)
+            .join(" ")
           : pendingText.trim();
 
         if (messageText) {
@@ -952,9 +1077,8 @@ export default function LandingPage() {
     >
       {/* Desktop margin wrapper - only pushes content on desktop */}
       <div
-        className={`transition-all duration-400 ${
-          isSidebarOpen ? "md:ml-[300px]" : ""
-        }`}
+        className={`transition-all duration-400 ${isSidebarOpen ? "md:ml-[300px]" : ""
+          }`}
         style={{
           position: "relative",
           width: "100%",
@@ -1088,7 +1212,7 @@ export default function LandingPage() {
                 onClick={
                   item.href
                     ? () =>
-                        window.open(item.href, "_blank", "noopener,noreferrer")
+                      window.open(item.href, "_blank", "noopener,noreferrer")
                     : item.onClick
                 }
                 onMouseEnter={() => setHoveredNavIndex(index)}
@@ -1119,8 +1243,8 @@ export default function LandingPage() {
                   gap: "0.375rem",
                   filter:
                     (item.isAbout && isScrolledToAbout) ||
-                    (item.isRoadmap && isScrolledToRoadmap) ||
-                    (item.isLinks && isScrolledToLinks)
+                      (item.isRoadmap && isScrolledToRoadmap) ||
+                      (item.isLinks && isScrolledToLinks)
                       ? "drop-shadow(0 0 8px rgba(255, 255, 255, 0.6))"
                       : "none",
                   overflow: "hidden",
@@ -1133,27 +1257,27 @@ export default function LandingPage() {
                     justifyContent: "center",
                     opacity:
                       (item.isAbout && isScrolledToAbout) ||
-                      (item.isRoadmap && isScrolledToRoadmap) ||
-                      (item.isLinks && isScrolledToLinks)
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
                         ? 1
                         : 0,
                     transform:
                       (item.isAbout && isScrolledToAbout) ||
-                      (item.isRoadmap && isScrolledToRoadmap) ||
-                      (item.isLinks && isScrolledToLinks)
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
                         ? "scale(1) translateY(0)"
                         : "scale(0.8) translateY(4px)",
                     transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                     position:
                       (item.isAbout && isScrolledToAbout) ||
-                      (item.isRoadmap && isScrolledToRoadmap) ||
-                      (item.isLinks && isScrolledToLinks)
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
                         ? "relative"
                         : "absolute",
                     pointerEvents:
                       (item.isAbout && isScrolledToAbout) ||
-                      (item.isRoadmap && isScrolledToRoadmap) ||
-                      (item.isLinks && isScrolledToLinks)
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
                         ? "auto"
                         : "none",
                   }}
@@ -1169,26 +1293,26 @@ export default function LandingPage() {
                     justifyContent: "center",
                     opacity:
                       (item.isAbout && isScrolledToAbout) ||
-                      (item.isRoadmap && isScrolledToRoadmap) ||
-                      (item.isLinks && isScrolledToLinks)
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
                         ? 0
                         : 1,
                     transform:
                       (item.isAbout && isScrolledToAbout) ||
-                      (item.isRoadmap && isScrolledToRoadmap) ||
-                      (item.isLinks && isScrolledToLinks)
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
                         ? "scale(0.8) translateY(-4px)"
                         : "scale(1) translateY(0)",
                     transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                     position:
                       (item.isAbout && isScrolledToAbout) ||
-                      (item.isRoadmap && isScrolledToRoadmap) ||
-                      (item.isLinks && isScrolledToLinks)
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
                         ? "absolute"
                         : "relative",
                     pointerEvents:
                       (item.isAbout && isScrolledToAbout) ||
-                      (item.isLinks && isScrolledToLinks)
+                        (item.isLinks && isScrolledToLinks)
                         ? "none"
                         : "auto",
                   }}
@@ -1201,9 +1325,8 @@ export default function LandingPage() {
 
           {/* Token Ticker */}
           <div
-            className={`loyal-token-ticker-container ${
-              connected ? "" : "no-wallet"
-            }`}
+            className={`loyal-token-ticker-container ${connected ? "" : "no-wallet"
+              }`}
             style={{
               position: "fixed",
               top: "4.5rem",
@@ -1268,8 +1391,8 @@ export default function LandingPage() {
             }}
           >
             <MenuIcon
-              onMouseEnter={() => {}}
-              onMouseLeave={() => {}}
+              onMouseEnter={() => { }}
+              onMouseLeave={() => { }}
               ref={menuIconRef}
               size={24}
             />
@@ -1341,8 +1464,8 @@ export default function LandingPage() {
               title="New chat"
             >
               <PlusIcon
-                onMouseEnter={() => {}}
-                onMouseLeave={() => {}}
+                onMouseEnter={() => { }}
+                onMouseLeave={() => { }}
                 ref={plusIconRef}
                 size={24}
               />
@@ -1516,15 +1639,15 @@ export default function LandingPage() {
                     alignItems: "center",
                     justifyContent:
                       (item.isAbout && isScrolledToAbout) ||
-                      (item.isRoadmap && isScrolledToRoadmap) ||
-                      (item.isLinks && isScrolledToLinks)
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
                         ? "center"
                         : "flex-start",
                     gap: "0.5rem",
                     filter:
                       (item.isAbout && isScrolledToAbout) ||
-                      (item.isRoadmap && isScrolledToRoadmap) ||
-                      (item.isLinks && isScrolledToLinks)
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
                         ? "drop-shadow(0 0 6px rgba(255, 255, 255, 0.5))"
                         : "none",
                     overflow: "hidden",
@@ -1538,27 +1661,27 @@ export default function LandingPage() {
                       justifyContent: "center",
                       opacity:
                         (item.isAbout && isScrolledToAbout) ||
-                        (item.isRoadmap && isScrolledToRoadmap) ||
-                        (item.isLinks && isScrolledToLinks)
+                          (item.isRoadmap && isScrolledToRoadmap) ||
+                          (item.isLinks && isScrolledToLinks)
                           ? 1
                           : 0,
                       transform:
                         (item.isAbout && isScrolledToAbout) ||
-                        (item.isRoadmap && isScrolledToRoadmap) ||
-                        (item.isLinks && isScrolledToLinks)
+                          (item.isRoadmap && isScrolledToRoadmap) ||
+                          (item.isLinks && isScrolledToLinks)
                           ? "scale(1) translateY(0)"
                           : "scale(0.8) translateY(4px)",
                       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                       position:
                         (item.isAbout && isScrolledToAbout) ||
-                        (item.isRoadmap && isScrolledToRoadmap) ||
-                        (item.isLinks && isScrolledToLinks)
+                          (item.isRoadmap && isScrolledToRoadmap) ||
+                          (item.isLinks && isScrolledToLinks)
                           ? "relative"
                           : "absolute",
                       pointerEvents:
                         (item.isAbout && isScrolledToAbout) ||
-                        (item.isRoadmap && isScrolledToRoadmap) ||
-                        (item.isLinks && isScrolledToLinks)
+                          (item.isRoadmap && isScrolledToRoadmap) ||
+                          (item.isLinks && isScrolledToLinks)
                           ? "auto"
                           : "none",
                     }}
@@ -1574,26 +1697,26 @@ export default function LandingPage() {
                       justifyContent: "center",
                       opacity:
                         (item.isAbout && isScrolledToAbout) ||
-                        (item.isRoadmap && isScrolledToRoadmap) ||
-                        (item.isLinks && isScrolledToLinks)
+                          (item.isRoadmap && isScrolledToRoadmap) ||
+                          (item.isLinks && isScrolledToLinks)
                           ? 0
                           : 1,
                       transform:
                         (item.isAbout && isScrolledToAbout) ||
-                        (item.isRoadmap && isScrolledToRoadmap) ||
-                        (item.isLinks && isScrolledToLinks)
+                          (item.isRoadmap && isScrolledToRoadmap) ||
+                          (item.isLinks && isScrolledToLinks)
                           ? "scale(0.8) translateY(-4px)"
                           : "scale(1) translateY(0)",
                       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                       position:
                         (item.isAbout && isScrolledToAbout) ||
-                        (item.isRoadmap && isScrolledToRoadmap) ||
-                        (item.isLinks && isScrolledToLinks)
+                          (item.isRoadmap && isScrolledToRoadmap) ||
+                          (item.isLinks && isScrolledToLinks)
                           ? "absolute"
                           : "relative",
                       pointerEvents:
                         (item.isAbout && isScrolledToAbout) ||
-                        (item.isLinks && isScrolledToLinks)
+                          (item.isLinks && isScrolledToLinks)
                           ? "none"
                           : "auto",
                     }}
@@ -1822,16 +1945,16 @@ export default function LandingPage() {
               >
                 {messages[0]?.role === "user"
                   ? messages[0].parts
-                      .filter((part) => part.type === "text")
-                      .map((part) => part.text)
-                      .join("")
-                      .slice(0, 80) +
-                    (messages[0].parts
-                      .filter((part) => part.type === "text")
-                      .map((part) => part.text)
-                      .join("").length > 80
-                      ? "..."
-                      : "")
+                    .filter((part) => part.type === "text")
+                    .map((part) => part.text)
+                    .join("")
+                    .slice(0, 80) +
+                  (messages[0].parts
+                    .filter((part) => part.type === "text")
+                    .map((part) => part.text)
+                    .join("").length > 80
+                    ? "..."
+                    : "")
                   : "Chat"}
               </h2>
             </div>
@@ -1905,9 +2028,9 @@ export default function LandingPage() {
                     message.createdAt ?? messageTimestamps[message.id];
                   const messageTime = resolvedTimestamp
                     ? new Date(resolvedTimestamp).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
                     : null;
 
                   return (
@@ -2249,24 +2372,34 @@ export default function LandingPage() {
             >
               <div
                 onBlur={(e) => {
-                  e.currentTarget.style.background =
-                    "rgba(255, 255, 255, 0.08)";
-                  e.currentTarget.style.border =
-                    "1px solid rgba(255, 255, 255, 0.15)";
+                  if (nlpState.isActive && nlpState.parsedData.amount && nlpState.parsedData.currency && nlpState.parsedData.walletAddress) {
+                    e.currentTarget.style.border = "1px solid rgba(74, 222, 128, 0.5)"; // Green border
+                    e.currentTarget.style.background = "rgba(74, 222, 128, 0.05)";
+                  } else {
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                    e.currentTarget.style.border = "1px solid rgba(255, 255, 255, 0.15)";
+                  }
                 }}
                 onFocus={(e) => {
-                  e.currentTarget.style.background =
-                    "rgba(255, 255, 255, 0.12)";
-                  e.currentTarget.style.border =
-                    "1px solid rgba(255, 255, 255, 0.25)";
+                  if (nlpState.isActive && nlpState.parsedData.amount && nlpState.parsedData.currency && nlpState.parsedData.walletAddress) {
+                    e.currentTarget.style.border = "1px solid rgba(74, 222, 128, 0.8)"; // Stronger green on focus
+                    e.currentTarget.style.background = "rgba(74, 222, 128, 0.1)";
+                  } else {
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
+                    e.currentTarget.style.border = "1px solid rgba(255, 255, 255, 0.25)";
+                  }
                 }}
                 style={{
                   position: "relative",
                   display: "flex",
                   flexDirection: "column",
-                  background: "rgba(255, 255, 255, 0.08)",
+                  background: nlpState.isActive && nlpState.parsedData.amount && nlpState.parsedData.currency && nlpState.parsedData.walletAddress
+                    ? "rgba(74, 222, 128, 0.05)"
+                    : "rgba(255, 255, 255, 0.08)",
                   backdropFilter: "blur(20px)",
-                  border: "1px solid rgba(255, 255, 255, 0.15)",
+                  border: nlpState.isActive && nlpState.parsedData.amount && nlpState.parsedData.currency && nlpState.parsedData.walletAddress
+                    ? "1px solid rgba(74, 222, 128, 0.5)"
+                    : "1px solid rgba(255, 255, 255, 0.15)",
                   borderRadius: "20px",
                   boxShadow:
                     "0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
@@ -2280,176 +2413,146 @@ export default function LandingPage() {
                     alignItems: "flex-end",
                   }}
                 >
-                {skillsEnabled ? (
-                  <SkillsInput
-                    onChange={(skills) => {
-                      setInput(skills);
-
-                      // Show modal on first typing
-                      if (!hasShownModal && skills.length > 0) {
-                        setIsModalOpen(true);
-                        setHasShownModal(true);
-                        if (
-                          typeof window !== "undefined" &&
-                          window.localStorage
-                        ) {
-                          try {
-                            window.localStorage.setItem(
-                              "loyal-testers-modal-shown",
-                              "true"
-                            );
-                          } catch (error) {
-                            console.warn(
-                              "Unable to persist testers modal flag to storage",
-                              error
-                            );
-                          }
-                        }
-                      }
-                    }}
-                    onPendingTextChange={setPendingText}
-                    onSendComplete={handleSendComplete}
-                    onSendFlowChange={setSendFlowState}
-                    onSwapComplete={handleSwapComplete}
-                    onSwapFlowChange={setSwapFlowState}
-                    placeholder={
-                      isOnline
-                        ? isChatMode && !connected
-                          ? "Please reconnect wallet to continue..."
-                          : isChatMode
-                            ? ""
-                            : "Ask me anything (type / for skills)..."
-                        : "No internet connection..."
-                    }
-                    ref={inputRef}
-                    value={input}
-                  />
-                ) : (
-                  <textarea
-                    onChange={(e) => {
-                      setPendingText(e.target.value);
-
-                      // Auto-resize textarea based on content
-                      if (inputRef.current) {
-                        inputRef.current.style.height = "auto";
-                        inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
-                      }
-
-                      // Show modal on first typing
-                      if (!hasShownModal && e.target.value.length > 0) {
-                        setIsModalOpen(true);
-                        setHasShownModal(true);
-                        if (
-                          typeof window !== "undefined" &&
-                          window.localStorage
-                        ) {
-                          try {
-                            window.localStorage.setItem(
-                              "loyal-testers-modal-shown",
-                              "true"
-                            );
-                          } catch (error) {
-                            console.warn(
-                              "Unable to persist testers modal flag to storage",
-                              error
-                            );
-                          }
-                        }
-                      }
-                    }}
-                    onKeyDown={(e) => {
-                      // Allow Shift+Enter to create new lines
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        if (hasUsableInput && !isLoading) {
-                          handleSubmit(e as unknown as React.FormEvent);
-                        }
-                      }
-                    }}
-                    placeholder={
-                      isOnline
-                        ? isChatMode && !connected
-                          ? "Please reconnect wallet to continue..."
-                          : isChatMode
-                            ? ""
-                            : "Ask me anything..."
-                        : "No internet connection..."
-                    }
-                    ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-                    rows={1}
-                    style={{
-                      width: "100%",
-                      padding: "20px 64px 20px 28px",
-                      background: "transparent",
-                      border: "none",
-                      color: "white",
-                      fontSize: "15px",
-                      fontFamily: "inherit",
-                      resize: "none",
-                      outline: "none",
-                      overflow: "hidden",
-                    }}
-                    value={pendingText}
-                  />
-                )}
-                <button
-                  disabled={!hasUsableInput || isLoading}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (hasUsableInput && !isLoading) {
-                      handleSubmit(e as unknown as React.FormEvent);
-                    }
-                  }}
-                  onMouseEnter={(e) => {
-                    if (hasUsableInput && !isLoading) {
-                      e.currentTarget.style.opacity = "1";
-                      e.currentTarget.style.background =
-                        "rgba(255, 255, 255, 0.15)";
-                      e.currentTarget.style.transform =
-                        "translateY(-50%) scale(1.1)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (hasUsableInput && !isLoading) {
-                      e.currentTarget.style.opacity = "0.8";
-                      e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.transform =
-                        "translateY(-50%) scale(1)";
-                    }
-                  }}
-                  style={{
-                    position: "absolute",
-                    right: "0.75rem",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    padding: "0.5rem",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "#fff",
-                    background: "transparent",
-                    border: "none",
-                    borderRadius: "12px",
-                    cursor:
-                      hasUsableInput && !isLoading ? "pointer" : "not-allowed",
-                    outline: "none",
-                    transition: "all 0.3s ease",
-                    opacity: hasUsableInput && !isLoading ? 0.8 : 0.3,
-                    zIndex: 2,
-                  }}
-                  type="button"
-                >
-                  {isLoading ? (
-                    <Loader2
-                      size={24}
-                      style={{
-                        animation: "spin 1s linear infinite",
-                      }}
+                  {skillsEnabled ? (
+                    <SkillsInput
+                      className="min-h-[60px] w-full text-lg"
+                      onChange={setInput}
+                      onPendingTextChange={setPendingText}
+                      onSendComplete={handleSendComplete}
+                      onSendFlowChange={setSendFlowState}
+                      onSwapComplete={handleSwapComplete}
+                      onSwapFlowChange={setSwapFlowState}
+                      onNlpStateChange={setNlpState}
+                      placeholder="Ask me anything..."
+                      ref={inputRef}
+                      value={input}
                     />
                   ) : (
-                    <ChevronRightIcon size={24} />
+                    <textarea
+                      onChange={(e) => {
+                        setPendingText(e.target.value);
+
+                        // Auto-resize textarea based on content
+                        if (inputRef.current) {
+                          inputRef.current.style.height = "auto";
+                          inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
+                        }
+
+                        // Show modal on first typing
+                        if (!hasShownModal && e.target.value.length > 0) {
+                          setIsModalOpen(true);
+                          setHasShownModal(true);
+                          if (
+                            typeof window !== "undefined" &&
+                            window.localStorage
+                          ) {
+                            try {
+                              window.localStorage.setItem(
+                                "loyal-testers-modal-shown",
+                                "true"
+                              );
+                            } catch (error) {
+                              console.warn(
+                                "Unable to persist testers modal flag to storage",
+                                error
+                              );
+                            }
+                          }
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        // Allow Shift+Enter to create new lines
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          if (hasUsableInput && !isLoading) {
+                            handleSubmit(e as unknown as React.FormEvent);
+                          }
+                        }
+                      }}
+                      placeholder={
+                        isOnline
+                          ? isChatMode && !connected
+                            ? "Please reconnect wallet to continue..."
+                            : isChatMode
+                              ? ""
+                              : "Ask me anything..."
+                          : "No internet connection..."
+                      }
+                      ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+                      rows={1}
+                      style={{
+                        width: "100%",
+                        padding: "20px 64px 20px 28px",
+                        background: "transparent",
+                        border: "none",
+                        color: "white",
+                        fontSize: "15px",
+                        fontFamily: "inherit",
+                        resize: "none",
+                        outline: "none",
+                        overflow: "hidden",
+                      }}
+                      value={pendingText}
+                    />
                   )}
-                </button>
+                  <button
+                    disabled={!hasUsableInput || isLoading}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (hasUsableInput && !isLoading) {
+                        handleSubmit(e as unknown as React.FormEvent);
+                      }
+                    }}
+                    onMouseEnter={(e) => {
+                      if (hasUsableInput && !isLoading) {
+                        e.currentTarget.style.opacity = "1";
+                        e.currentTarget.style.background =
+                          "rgba(255, 255, 255, 0.15)";
+                        e.currentTarget.style.transform =
+                          "translateY(-50%) scale(1.1)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (hasUsableInput && !isLoading) {
+                        e.currentTarget.style.opacity = "0.8";
+                        e.currentTarget.style.background = "transparent";
+                        e.currentTarget.style.transform =
+                          "translateY(-50%) scale(1)";
+                      }
+                    }}
+                    style={{
+                      position: "absolute",
+                      right: "0.75rem",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      padding: "0.5rem",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#fff",
+                      background: "transparent",
+                      border: "none",
+                      borderRadius: "12px",
+                      cursor:
+                        hasUsableInput && !isLoading ? "pointer" : "not-allowed",
+                      outline: "none",
+                      transition: "all 0.3s ease",
+                      opacity: hasUsableInput && !isLoading ? 0.8 : 0.3,
+                      zIndex: 2,
+                    }}
+                    type="button"
+                  >
+                    {isLoading ? (
+                      <Loader2
+                        size={24}
+                        style={{
+                          animation: "spin 1s linear infinite",
+                        }}
+                      />
+                    ) : (
+                      <ChevronRightIcon size={24} />
+                    )}
+                  </button>
                 </div>
                 {skillsEnabled && (
                   <SkillsSelector
@@ -2466,13 +2569,22 @@ export default function LandingPage() {
                           setInput([]);
                         }
                       } else {
-                        // Reset all state and add the selected skill
-                        if (inputRef.current && "resetAndAddSkill" in inputRef.current) {
-                          (inputRef.current as HTMLTextAreaElement & { resetAndAddSkill: (skill: LoyalSkill) => void }).resetAndAddSkill(skill);
+                        if (skill.id === "send" || skill.id === "swap") {
+                          // For "send" and "swap" skills, activate NLP mode instead of adding the skill object
+                          if (inputRef.current && "activateNlpMode" in inputRef.current) {
+                            (inputRef.current as any).activateNlpMode(`${skill.id} `);
+                          }
+                        } else {
+                          // For other skills, use the old flow
+                          // Reset all state and add the selected skill
+                          if (inputRef.current && "resetAndAddSkill" in inputRef.current) {
+                            (inputRef.current as HTMLTextAreaElement & { resetAndAddSkill: (skill: LoyalSkill) => void }).resetAndAddSkill(skill);
+                          }
                         }
                       }
                     }}
                     className="px-5 py-2"
+                    nlpState={nlpState}
                   />
                 )}
               </div>

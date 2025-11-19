@@ -51,6 +51,27 @@ type SkillsInputProps = Omit<
     amount: string;
     walletAddress: string;
   }) => void;
+  onNlpStateChange?: (state: {
+    isActive: boolean;
+    intent: "send" | "swap" | null;
+    parsedData: {
+      amount: string | null;
+      currency: string | null;
+      currencyMint: string | null;
+      currencyDecimals: number | null;
+      walletAddress: string | null;
+      toCurrency: string | null;
+      toCurrencyMint: string | null;
+      toCurrencyDecimals: number | null;
+    };
+  }) => void;
+};
+
+export type SkillsInputRef = HTMLTextAreaElement & {
+  addSkill: (skill: LoyalSkill) => void;
+  resetAndAddSkill: (skill: LoyalSkill) => void;
+  clear: () => void;
+  activateNlpMode: (initialText?: string) => void;
 };
 
 const ACTION_SKILLS = AVAILABLE_SKILLS.filter((s) => s.category === "action");
@@ -141,6 +162,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       onSwapComplete,
       onSendFlowChange,
       onSendComplete,
+      onNlpStateChange,
       ...props
     },
     ref
@@ -218,6 +240,29 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
     >(null);
     const [amountError, setAmountError] = React.useState<string | null>(null);
 
+    // NLP Mode State
+    const [isNlpMode, setIsNlpMode] = React.useState(false);
+    const [nlpParsedData, setNlpParsedData] = React.useState<{
+      amount: string | null;
+      currency: string | null;
+      currencyMint: string | null;
+      currencyDecimals: number | null;
+      walletAddress: string | null;
+      toCurrency: string | null;
+      toCurrencyMint: string | null;
+      toCurrencyDecimals: number | null;
+    }>({
+      amount: null,
+      currency: null,
+      currencyMint: null,
+      currencyDecimals: null,
+      walletAddress: null,
+      toCurrency: null,
+      toCurrencyMint: null,
+      toCurrencyDecimals: null,
+    });
+    const [nlpIntent, setNlpIntent] = React.useState<"send" | "swap" | null>(null);
+
     const hasSwapSkill = value.some((skill) => skill.id === "swap");
     const hasSendSkill = value.some((skill) => skill.id === "send");
 
@@ -272,6 +317,33 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                 walletAddress: null,
               });
               setIsDropdownOpen(false);
+
+              // Reset NLP state
+              setIsNlpMode(false);
+              setNlpParsedData({
+                amount: null,
+                currency: null,
+                currencyMint: null,
+                currencyDecimals: null,
+                walletAddress: null,
+                toCurrency: null,
+                toCurrencyMint: null,
+                toCurrencyDecimals: null,
+              });
+              onNlpStateChange?.({
+                isActive: false,
+                intent: null,
+                parsedData: {
+                  amount: null,
+                  currency: null,
+                  currencyMint: null,
+                  currencyDecimals: null,
+                  walletAddress: null,
+                  toCurrency: null,
+                  toCurrencyMint: null,
+                  toCurrencyDecimals: null,
+                }
+              });
             };
           }
           if (prop === "addSkill") {
@@ -305,6 +377,33 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
               setAmountError(null);
               setWalletAddressError(null);
 
+              // Reset NLP state
+              setIsNlpMode(false);
+              setNlpParsedData({
+                amount: null,
+                currency: null,
+                currencyMint: null,
+                currencyDecimals: null,
+                walletAddress: null,
+                toCurrency: null,
+                toCurrencyMint: null,
+                toCurrencyDecimals: null,
+              });
+              onNlpStateChange?.({
+                isActive: false,
+                intent: null,
+                parsedData: {
+                  amount: null,
+                  currency: null,
+                  currencyMint: null,
+                  currencyDecimals: null,
+                  walletAddress: null,
+                  toCurrency: null,
+                  toCurrencyMint: null,
+                  toCurrencyDecimals: null,
+                }
+              });
+
               // Add the new skill and set flow state
               if (skill.id === "swap") {
                 onChange([skill]);
@@ -325,11 +424,40 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
               }
             };
           }
+          if (prop === "activateNlpMode") {
+            return (initialText: string = "send ") => {
+              setPendingInput(initialText);
+              setIsNlpMode(true);
+
+              // Immediately notify parent
+              onNlpStateChange?.({
+                isActive: true,
+                intent: initialText.trim().toLowerCase().startsWith("swap") ? "swap" : "send",
+                parsedData: {
+                  amount: null,
+                  currency: null,
+                  currencyMint: null,
+                  currencyDecimals: null,
+                  walletAddress: null,
+                  toCurrency: null,
+                  toCurrencyMint: null,
+                  toCurrencyDecimals: null,
+                }
+              });
+
+              // Focus the textarea
+              setTimeout(() => {
+                textarea.focus();
+                // Move cursor to end
+                textarea.setSelectionRange(initialText.length, initialText.length);
+              }, 0);
+            };
+          }
           const value = target[prop as keyof HTMLTextAreaElement];
           return typeof value === "function" ? value.bind(target) : value;
         },
         has(target, prop) {
-          if (prop === "clear" || prop === "addSkill" || prop === "resetAndAddSkill") {
+          if (prop === "clear" || prop === "addSkill" || prop === "resetAndAddSkill" || prop === "activateNlpMode") {
             return true;
           }
           return prop in target;
@@ -392,6 +520,122 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         sendData,
       });
     }, [sendStep, sendData, hasSendSkill, onSendFlowChange]);
+
+    // NLP Parsing Effect
+    React.useEffect(() => {
+      if (!isNlpMode) return;
+
+      const lowerInput = pendingInput.toLowerCase();
+      const isSwap = lowerInput.startsWith("swap");
+
+      // Remove prefix from BOTH lower and original input
+      // We need original input for wallet addresses (case sensitive)
+      const textLower = lowerInput.replace(/^(send|swap)\s*/i, "");
+      const textOriginal = pendingInput.replace(/^(send|swap)\s*/i, "");
+
+      let amount: string | null = null;
+      let currency: string | null = null;
+      let currencyMint: string | null = null;
+      let currencyDecimals: number | null = null;
+      let walletAddress: string | null = null;
+      let toCurrency: string | null = null;
+      let toCurrencyMint: string | null = null;
+      let toCurrencyDecimals: number | null = null;
+
+      // 1. Find Amount (look for standalone numbers)
+      const amountMatch = textLower.match(/\b\d+(\.\d+)?\b/);
+      if (amountMatch) {
+        const val = validateAmountInput(amountMatch[0]);
+        if (val.isValid) {
+          amount = amountMatch[0];
+        }
+      }
+
+      // 2. Find Currency (From Token)
+      // We look for known currency symbols in the text
+      // For swap, we need to be careful not to match the "to" token as the "from" token
+      // A simple heuristic: the first token found is likely the "from" token
+      const foundTokens: { skill: LoyalSkill; index: number }[] = [];
+
+      for (const skill of CURRENCY_SKILLS) {
+        const match = new RegExp(`\\b${skill.label}\\b`, 'i').exec(textLower);
+        if (match) {
+          foundTokens.push({ skill, index: match.index });
+        }
+      }
+
+      // Sort by position in text
+      foundTokens.sort((a, b) => a.index - b.index);
+
+      if (foundTokens.length > 0) {
+        const fromToken = foundTokens[0].skill;
+        currency = fromToken.label;
+        currencyMint = fromToken.mint || null;
+        currencyDecimals = fromToken.decimals || null;
+
+        // If swap, look for second token or "to [token]" pattern
+        if (isSwap) {
+          // Check for "to [token]" pattern first
+          const toMatch = textLower.match(/\bto\s+([a-z0-9]+)\b/i);
+          if (toMatch) {
+            const potentialToToken = toMatch[1];
+            // Ensure it's not the same as fromToken
+            if (potentialToToken.toLowerCase() !== fromToken.label.toLowerCase()) {
+              const matchedSkill = CURRENCY_SKILLS.find(s => s.label.toLowerCase() === potentialToToken.toLowerCase());
+              if (matchedSkill) {
+                toCurrency = matchedSkill.label;
+                toCurrencyMint = matchedSkill.mint || null;
+                toCurrencyDecimals = matchedSkill.decimals || null;
+              }
+            }
+          }
+
+          // If not found via "to", check if we have a second token in our found list
+          if (!toCurrency && foundTokens.length > 1) {
+            // Find the first token that is NOT the fromToken
+            const toTokenEntry = foundTokens.find(t => t.skill.label.toLowerCase() !== fromToken.label.toLowerCase());
+            if (toTokenEntry) {
+              const toToken = toTokenEntry.skill;
+              toCurrency = toToken.label;
+              toCurrencyMint = toToken.mint || null;
+              toCurrencyDecimals = toToken.decimals || null;
+            }
+          }
+        }
+      }
+
+      // 3. Find Wallet Address (only for send)
+      if (!isSwap) {
+        const words = textOriginal.split(/\s+/);
+        for (const word of words) {
+          if (isValidSolanaAddress(word)) {
+            walletAddress = word;
+            break;
+          }
+        }
+      }
+
+      const newData = {
+        amount,
+        currency,
+        currencyMint,
+        currencyDecimals,
+        walletAddress,
+        toCurrency,
+        toCurrencyMint,
+        toCurrencyDecimals,
+      };
+
+      // Only update if data changed to avoid infinite loops
+      if (JSON.stringify(newData) !== JSON.stringify(nlpParsedData)) {
+        setNlpParsedData(newData);
+        onNlpStateChange?.({
+          isActive: true,
+          intent: isSwap ? "swap" : "send",
+          parsedData: newData,
+        });
+      }
+    }, [pendingInput, isNlpMode, CURRENCY_SKILLS, onNlpStateChange, nlpParsedData]);
 
     const addSkill = (skill: LoyalSkill) => {
       // Handle swap flow
@@ -526,6 +770,52 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       // Allow Shift+Enter to create new lines
       if (e.key === "Enter" && e.shiftKey) {
         return; // Let default behavior create new line
+      }
+
+      // Handle NLP Mode Enter
+      if (isNlpMode && e.key === "Enter") {
+        e.preventDefault();
+
+        // Handle Send
+        if (nlpParsedData.amount && nlpParsedData.currency && nlpParsedData.walletAddress) {
+          const completedSend = {
+            currency: nlpParsedData.currency,
+            currencyMint: nlpParsedData.currencyMint,
+            currencyDecimals: nlpParsedData.currencyDecimals,
+            amount: nlpParsedData.amount,
+            walletAddress: nlpParsedData.walletAddress,
+          };
+          onSendComplete?.(completedSend);
+          setShouldSubmitForm(true);
+          // State reset will happen via parent calling clear() after submission
+          return;
+        }
+
+        // Handle Swap
+        if (nlpParsedData.amount && nlpParsedData.currency && nlpParsedData.toCurrency) {
+          const completedSwap = {
+            fromCurrency: nlpParsedData.currency,
+            fromCurrencyMint: nlpParsedData.currencyMint,
+            fromCurrencyDecimals: nlpParsedData.currencyDecimals,
+            amount: nlpParsedData.amount,
+            toCurrency: nlpParsedData.toCurrency,
+            toCurrencyMint: nlpParsedData.toCurrencyMint,
+            toCurrencyDecimals: nlpParsedData.toCurrencyDecimals,
+          };
+          // We need an onSwapComplete prop or similar, but for now we can just rely on pendingSwapDataRef
+          // which is updated via onSwapChange if we had one, but here we don't have a direct callback for completion
+          // equivalent to onSendComplete.
+          // However, page.tsx reads from nlpState directly in handleSubmit, so we just need to trigger submit.
+
+          // We should ensure the parent knows about the swap data. 
+          // The parent reads nlpState, which is already up to date.
+
+          setShouldSubmitForm(true);
+          // State reset will happen via parent calling clear() after submission
+          return;
+        }
+
+        return;
       }
 
       // Handle amount input during swap
@@ -809,6 +1099,84 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       const newValue = e.target.value;
       setPendingInput(newValue);
 
+      // Check for NLP mode activation
+      const lowerValue = newValue.toLowerCase();
+      const isSendStart = lowerValue.startsWith("send ");
+      const isSwapStart = lowerValue.startsWith("swap ");
+
+      if (isSendStart || isSwapStart) {
+        if (!isNlpMode) {
+          setIsNlpMode(true);
+          // Clear other flows if active
+          setSendStep(null);
+          setSwapStep(null);
+          setIsDropdownOpen(false);
+
+          // Immediately notify parent of activation with empty data but correct intent
+          onNlpStateChange?.({
+            isActive: true,
+            intent: isSendStart ? "send" : "swap",
+            parsedData: {
+              amount: null,
+              currency: null,
+              currencyMint: null,
+              currencyDecimals: null,
+              walletAddress: null,
+              toCurrency: null,
+              toCurrencyMint: null,
+              toCurrencyDecimals: null,
+            }
+          });
+        } else {
+          // Update intent if already in NLP mode but intent changed
+          onNlpStateChange?.({
+            isActive: true,
+            intent: isSendStart ? "send" : "swap",
+            parsedData: nlpParsedData
+          });
+        }
+      } else if (isNlpMode && !lowerValue.startsWith("send") && !lowerValue.startsWith("swap")) {
+        // Exit NLP mode if user deletes prefix
+        setIsNlpMode(false);
+        setNlpParsedData({
+          amount: null,
+          currency: null,
+          currencyMint: null,
+          currencyDecimals: null,
+          walletAddress: null,
+          toCurrency: null,
+          toCurrencyMint: null,
+          toCurrencyDecimals: null,
+        });
+        onNlpStateChange?.({
+          isActive: false,
+          intent: null,
+          parsedData: {
+            amount: null,
+            currency: null,
+            currencyMint: null,
+            currencyDecimals: null,
+            walletAddress: null,
+            toCurrency: null,
+            toCurrencyMint: null,
+            toCurrencyDecimals: null,
+          }
+        });
+      } else if (isDropdownOpen) {
+        // Filter skills based on input
+        const filtered = (
+          sendStep === "currency" || swapStep === "from_currency"
+            ? CURRENCY_SKILLS
+            : swapStep === "to_currency"
+              ? SWAP_TARGET_TOKENS
+              : ACTION_SKILLS
+        ).filter((skill) =>
+          skill.label.toLowerCase().includes(newValue.toLowerCase())
+        );
+        setFilteredSkills(filtered);
+        setSelectedSkillIndex(0);
+      }
+
       // Auto-resize textarea based on content
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
@@ -840,8 +1208,8 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         const query = newValue.slice(1).toLowerCase();
         const filtered = query
           ? RECIPIENT_SKILLS.filter((skill) =>
-              skill.label.toLowerCase().includes(query)
-            )
+            skill.label.toLowerCase().includes(query)
+          )
           : RECIPIENT_SKILLS;
         setFilteredSkills(filtered);
         setIsDropdownOpen(true);
@@ -851,6 +1219,9 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
     };
 
     const getPlaceholder = (): string => {
+      if (isNlpMode) {
+        return ""; // Placeholder handled by status bar or not needed as user is typing command
+      }
       // Show swap-specific placeholders during swap flow
       if (swapStep === "from_currency") {
         return CURRENCY_SKILLS.length === 0
@@ -1148,9 +1519,9 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             >
               {sendData.walletAddress.length > 12
                 ? `${sendData.walletAddress.slice(
-                    0,
-                    6
-                  )}...${sendData.walletAddress.slice(-4)}`
+                  0,
+                  6
+                )}...${sendData.walletAddress.slice(-4)}`
                 : sendData.walletAddress}
               <button
                 className="ml-1 h-3 w-3 cursor-pointer border-0 bg-transparent p-0 transition-transform duration-200 hover:scale-125"
