@@ -270,7 +270,7 @@ function RoadmapSectionComponent() {
               position: "relative",
               overflow: "hidden",
               height: "30rem",
-              touchAction: "pan-x",
+              touchAction: "pan-y",
             }}
           >
             <div
