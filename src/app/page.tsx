@@ -1,5 +1,14 @@
 "use client";
 
+import { useChat } from "@ai-sdk/react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import { DefaultChatTransport, type UIMessage } from "ai";
+import { ArrowDownIcon, ArrowUpToLine, Loader2 } from "lucide-react";
+import { IBM_Plex_Sans, Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
+import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
 import { BentoGridSection } from "@/components/bento-grid-section";
 import { Footer } from "@/components/footer";
 import { LoyalTokenTicker } from "@/components/loyal-token-ticker";
@@ -19,15 +28,6 @@ import { isSkillsEnabled } from "@/flags";
 import { useSend } from "@/hooks/use-send";
 import { useSwap } from "@/hooks/use-swap";
 import type { LoyalSkill } from "@/types/skills";
-import { useChat } from "@ai-sdk/react";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-import { DefaultChatTransport, type UIMessage } from "ai";
-import { ArrowDownIcon, ArrowUpToLine, Loader2 } from "lucide-react";
-import { IBM_Plex_Sans, Plus_Jakarta_Sans } from "next/font/google";
-import localFont from "next/font/local";
-import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
 
 // import { detectSwapSkill, stripSkillMarkers } from "@/lib/skills-text";
 
@@ -608,8 +608,6 @@ export default function LandingPage() {
     setPendingSwapData(swapData);
   };
 
-
-
   const handleSendComplete = (sendData: {
     currency: string;
     currencyMint: string | null;
@@ -657,22 +655,25 @@ export default function LandingPage() {
 
     // Check for NLP swap command
     const isNlpSwap = nlpState?.isActive && nlpState?.intent === "swap";
-    const hasNlpSwapData = isNlpSwap &&
+    const hasNlpSwapData =
+      isNlpSwap &&
       nlpState?.parsedData.amount &&
       nlpState?.parsedData.currency &&
       nlpState?.parsedData.toCurrency;
 
     if ((hasSwapSkill || isNlpSwap) && (swapData || hasNlpSwapData)) {
       // If NLP swap, construct the swap data
-      const dataToUse = hasNlpSwapData ? {
-        fromCurrency: nlpState.parsedData.currency!,
-        fromCurrencyMint: nlpState.parsedData.currencyMint,
-        fromCurrencyDecimals: nlpState.parsedData.currencyDecimals,
-        amount: nlpState.parsedData.amount!,
-        toCurrency: nlpState.parsedData.toCurrency!,
-        toCurrencyMint: nlpState.parsedData.toCurrencyMint,
-        toCurrencyDecimals: nlpState.parsedData.toCurrencyDecimals,
-      } : swapData!;
+      const dataToUse = hasNlpSwapData
+        ? {
+            fromCurrency: nlpState.parsedData.currency!,
+            fromCurrencyMint: nlpState.parsedData.currencyMint,
+            fromCurrencyDecimals: nlpState.parsedData.currencyDecimals,
+            amount: nlpState.parsedData.amount!,
+            toCurrency: nlpState.parsedData.toCurrency!,
+            toCurrencyMint: nlpState.parsedData.toCurrencyMint,
+            toCurrencyDecimals: nlpState.parsedData.toCurrencyDecimals,
+          }
+        : swapData!;
 
       const swapMessage = `Swap ${dataToUse.amount} ${dataToUse.fromCurrency} to ${dataToUse.toCurrency}`;
       const timestamp = Date.now();
@@ -767,7 +768,6 @@ export default function LandingPage() {
         ]);
       }
 
-
       // Clear input (but keep swap data for approval)
       // For NLP swap, we need to clear the NLP state too
       if (isNlpSwap) {
@@ -780,7 +780,6 @@ export default function LandingPage() {
       // Note: Don't clear pendingSwapData here - it's needed for approval
       // It will be cleared in handleSwapApprove or handleSwapCancel
     } else {
-
       // Check if this is a completed send
       const hasSendSkill = input.some((skill) => skill.id === "send");
       let sendData = pendingSendDataRef.current;
@@ -791,14 +790,19 @@ export default function LandingPage() {
       // 2. OR we are in NLP mode with "send" intent AND we have valid data
       const isNlpSend = nlpState?.isActive && nlpState?.intent === "send";
 
-      if (isNlpSend && nlpState?.parsedData.amount && nlpState?.parsedData.currency && nlpState?.parsedData.walletAddress) {
+      if (
+        isNlpSend &&
+        nlpState?.parsedData.amount &&
+        nlpState?.parsedData.currency &&
+        nlpState?.parsedData.walletAddress
+      ) {
         // Construct sendData from nlpState
         sendData = {
           amount: nlpState.parsedData.amount,
           currency: nlpState.parsedData.currency,
           currencyMint: nlpState.parsedData.currencyMint,
           currencyDecimals: nlpState.parsedData.currencyDecimals,
-          walletAddress: nlpState.parsedData.walletAddress
+          walletAddress: nlpState.parsedData.walletAddress,
         };
         // Update ref just in case
         pendingSendDataRef.current = sendData;
@@ -809,9 +813,9 @@ export default function LandingPage() {
         const truncatedAddress =
           sendData.walletAddress.length > 12
             ? `${sendData.walletAddress.slice(
-              0,
-              6
-            )}...${sendData.walletAddress.slice(-4)}`
+                0,
+                6
+              )}...${sendData.walletAddress.slice(-4)}`
             : sendData.walletAddress;
         const sendMessage = `Send ${sendData.amount} ${sendData.currency} to ${truncatedAddress}`;
         const timestamp = Date.now();
@@ -870,8 +874,8 @@ export default function LandingPage() {
         // Regular message - send to LLM
         const messageText = skillsEnabled
           ? [...input.map((skill) => skill.label), pendingText.trim()]
-            .filter(Boolean)
-            .join(" ")
+              .filter(Boolean)
+              .join(" ")
           : pendingText.trim();
 
         if (messageText) {
@@ -1077,8 +1081,9 @@ export default function LandingPage() {
     >
       {/* Desktop margin wrapper - only pushes content on desktop */}
       <div
-        className={`transition-all duration-400 ${isSidebarOpen ? "md:ml-[300px]" : ""
-          }`}
+        className={`transition-all duration-400 ${
+          isSidebarOpen ? "md:ml-[300px]" : ""
+        }`}
         style={{
           position: "relative",
           width: "100%",
@@ -1212,7 +1217,7 @@ export default function LandingPage() {
                 onClick={
                   item.href
                     ? () =>
-                      window.open(item.href, "_blank", "noopener,noreferrer")
+                        window.open(item.href, "_blank", "noopener,noreferrer")
                     : item.onClick
                 }
                 onMouseEnter={() => setHoveredNavIndex(index)}
@@ -1243,8 +1248,8 @@ export default function LandingPage() {
                   gap: "0.375rem",
                   filter:
                     (item.isAbout && isScrolledToAbout) ||
-                      (item.isRoadmap && isScrolledToRoadmap) ||
-                      (item.isLinks && isScrolledToLinks)
+                    (item.isRoadmap && isScrolledToRoadmap) ||
+                    (item.isLinks && isScrolledToLinks)
                       ? "drop-shadow(0 0 8px rgba(255, 255, 255, 0.6))"
                       : "none",
                   overflow: "hidden",
@@ -1257,27 +1262,27 @@ export default function LandingPage() {
                     justifyContent: "center",
                     opacity:
                       (item.isAbout && isScrolledToAbout) ||
-                        (item.isRoadmap && isScrolledToRoadmap) ||
-                        (item.isLinks && isScrolledToLinks)
+                      (item.isRoadmap && isScrolledToRoadmap) ||
+                      (item.isLinks && isScrolledToLinks)
                         ? 1
                         : 0,
                     transform:
                       (item.isAbout && isScrolledToAbout) ||
-                        (item.isRoadmap && isScrolledToRoadmap) ||
-                        (item.isLinks && isScrolledToLinks)
+                      (item.isRoadmap && isScrolledToRoadmap) ||
+                      (item.isLinks && isScrolledToLinks)
                         ? "scale(1) translateY(0)"
                         : "scale(0.8) translateY(4px)",
                     transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                     position:
                       (item.isAbout && isScrolledToAbout) ||
-                        (item.isRoadmap && isScrolledToRoadmap) ||
-                        (item.isLinks && isScrolledToLinks)
+                      (item.isRoadmap && isScrolledToRoadmap) ||
+                      (item.isLinks && isScrolledToLinks)
                         ? "relative"
                         : "absolute",
                     pointerEvents:
                       (item.isAbout && isScrolledToAbout) ||
-                        (item.isRoadmap && isScrolledToRoadmap) ||
-                        (item.isLinks && isScrolledToLinks)
+                      (item.isRoadmap && isScrolledToRoadmap) ||
+                      (item.isLinks && isScrolledToLinks)
                         ? "auto"
                         : "none",
                   }}
@@ -1293,26 +1298,26 @@ export default function LandingPage() {
                     justifyContent: "center",
                     opacity:
                       (item.isAbout && isScrolledToAbout) ||
-                        (item.isRoadmap && isScrolledToRoadmap) ||
-                        (item.isLinks && isScrolledToLinks)
+                      (item.isRoadmap && isScrolledToRoadmap) ||
+                      (item.isLinks && isScrolledToLinks)
                         ? 0
                         : 1,
                     transform:
                       (item.isAbout && isScrolledToAbout) ||
-                        (item.isRoadmap && isScrolledToRoadmap) ||
-                        (item.isLinks && isScrolledToLinks)
+                      (item.isRoadmap && isScrolledToRoadmap) ||
+                      (item.isLinks && isScrolledToLinks)
                         ? "scale(0.8) translateY(-4px)"
                         : "scale(1) translateY(0)",
                     transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                     position:
                       (item.isAbout && isScrolledToAbout) ||
-                        (item.isRoadmap && isScrolledToRoadmap) ||
-                        (item.isLinks && isScrolledToLinks)
+                      (item.isRoadmap && isScrolledToRoadmap) ||
+                      (item.isLinks && isScrolledToLinks)
                         ? "absolute"
                         : "relative",
                     pointerEvents:
                       (item.isAbout && isScrolledToAbout) ||
-                        (item.isLinks && isScrolledToLinks)
+                      (item.isLinks && isScrolledToLinks)
                         ? "none"
                         : "auto",
                   }}
@@ -1325,8 +1330,9 @@ export default function LandingPage() {
 
           {/* Token Ticker */}
           <div
-            className={`loyal-token-ticker-container ${connected ? "" : "no-wallet"
-              }`}
+            className={`loyal-token-ticker-container ${
+              connected ? "" : "no-wallet"
+            }`}
             style={{
               position: "fixed",
               top: "4.5rem",
@@ -1391,8 +1397,8 @@ export default function LandingPage() {
             }}
           >
             <MenuIcon
-              onMouseEnter={() => { }}
-              onMouseLeave={() => { }}
+              onMouseEnter={() => {}}
+              onMouseLeave={() => {}}
               ref={menuIconRef}
               size={24}
             />
@@ -1464,8 +1470,8 @@ export default function LandingPage() {
               title="New chat"
             >
               <PlusIcon
-                onMouseEnter={() => { }}
-                onMouseLeave={() => { }}
+                onMouseEnter={() => {}}
+                onMouseLeave={() => {}}
                 ref={plusIconRef}
                 size={24}
               />
@@ -1556,6 +1562,101 @@ export default function LandingPage() {
               </button>
             </div>
 
+            {/* QR Code Section */}
+            <div
+              style={{
+                padding: "1.5rem",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "0.75rem",
+              }}
+            >
+              <div
+                style={{
+                  background: "#fff",
+                  padding: "0.5rem",
+                  borderRadius: "12px",
+                }}
+              >
+                <svg
+                  aria-labelledby="qr-code-title"
+                  fill="none"
+                  height="128"
+                  role="img"
+                  viewBox="0 0 100 100"
+                  width="128"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <title id="qr-code-title">
+                    QR code to connect the Loyal miniapp
+                  </title>
+                  {/* Corner squares */}
+                  <rect fill="#000" height="25" width="25" x="5" y="5" />
+                  <rect fill="#fff" height="15" width="15" x="10" y="10" />
+                  <rect fill="#000" height="9" width="9" x="13" y="13" />
+                  <rect fill="#000" height="25" width="25" x="70" y="5" />
+                  <rect fill="#fff" height="15" width="15" x="75" y="10" />
+                  <rect fill="#000" height="9" width="9" x="78" y="13" />
+                  <rect fill="#000" height="25" width="25" x="5" y="70" />
+                  <rect fill="#fff" height="15" width="15" x="10" y="75" />
+                  <rect fill="#000" height="9" width="9" x="13" y="78" />
+                  {/* Random pattern */}
+                  <rect fill="#000" height="5" width="5" x="35" y="5" />
+                  <rect fill="#000" height="5" width="5" x="45" y="5" />
+                  <rect fill="#000" height="5" width="5" x="55" y="5" />
+                  <rect fill="#000" height="5" width="5" x="35" y="15" />
+                  <rect fill="#000" height="5" width="5" x="50" y="15" />
+                  <rect fill="#000" height="5" width="5" x="60" y="15" />
+                  <rect fill="#000" height="5" width="5" x="40" y="25" />
+                  <rect fill="#000" height="5" width="5" x="55" y="25" />
+                  <rect fill="#000" height="5" width="5" x="5" y="35" />
+                  <rect fill="#000" height="5" width="5" x="15" y="35" />
+                  <rect fill="#000" height="5" width="5" x="25" y="40" />
+                  <rect fill="#000" height="5" width="5" x="5" y="45" />
+                  <rect fill="#000" height="5" width="5" x="20" y="50" />
+                  <rect fill="#000" height="5" width="5" x="5" y="55" />
+                  <rect fill="#000" height="5" width="5" x="15" y="60" />
+                  <rect fill="#000" height="5" width="5" x="25" y="55" />
+                  {/* Center pattern */}
+                  <rect fill="#000" height="30" width="30" x="35" y="35" />
+                  <rect fill="#fff" height="20" width="20" x="40" y="40" />
+                  <rect fill="#000" height="10" width="10" x="45" y="45" />
+                  {/* Right side pattern */}
+                  <rect fill="#000" height="5" width="5" x="70" y="35" />
+                  <rect fill="#000" height="5" width="5" x="80" y="40" />
+                  <rect fill="#000" height="5" width="5" x="90" y="35" />
+                  <rect fill="#000" height="5" width="5" x="75" y="50" />
+                  <rect fill="#000" height="5" width="5" x="85" y="55" />
+                  <rect fill="#000" height="5" width="5" x="70" y="60" />
+                  <rect fill="#000" height="5" width="5" x="90" y="60" />
+                  {/* Bottom pattern */}
+                  <rect fill="#000" height="5" width="5" x="35" y="70" />
+                  <rect fill="#000" height="5" width="5" x="45" y="75" />
+                  <rect fill="#000" height="5" width="5" x="55" y="70" />
+                  <rect fill="#000" height="5" width="5" x="40" y="85" />
+                  <rect fill="#000" height="5" width="5" x="50" y="90" />
+                  <rect fill="#000" height="5" width="5" x="60" y="85" />
+                  <rect fill="#000" height="5" width="5" x="70" y="75" />
+                  <rect fill="#000" height="5" width="5" x="80" y="80" />
+                  <rect fill="#000" height="5" width="5" x="90" y="75" />
+                  <rect fill="#000" height="5" width="5" x="75" y="90" />
+                  <rect fill="#000" height="5" width="5" x="85" y="85" />
+                </svg>
+              </div>
+              <p
+                style={{
+                  color: "rgba(255, 255, 255, 0.7)",
+                  fontSize: "0.875rem",
+                  textAlign: "center",
+                  margin: 0,
+                }}
+              >
+                Connect the Loyal miniapp
+              </p>
+            </div>
+
             {/* Navigation Menu - Mobile only */}
             <div
               className="flex md:hidden"
@@ -1639,15 +1740,15 @@ export default function LandingPage() {
                     alignItems: "center",
                     justifyContent:
                       (item.isAbout && isScrolledToAbout) ||
-                        (item.isRoadmap && isScrolledToRoadmap) ||
-                        (item.isLinks && isScrolledToLinks)
+                      (item.isRoadmap && isScrolledToRoadmap) ||
+                      (item.isLinks && isScrolledToLinks)
                         ? "center"
                         : "flex-start",
                     gap: "0.5rem",
                     filter:
                       (item.isAbout && isScrolledToAbout) ||
-                        (item.isRoadmap && isScrolledToRoadmap) ||
-                        (item.isLinks && isScrolledToLinks)
+                      (item.isRoadmap && isScrolledToRoadmap) ||
+                      (item.isLinks && isScrolledToLinks)
                         ? "drop-shadow(0 0 6px rgba(255, 255, 255, 0.5))"
                         : "none",
                     overflow: "hidden",
@@ -1661,27 +1762,27 @@ export default function LandingPage() {
                       justifyContent: "center",
                       opacity:
                         (item.isAbout && isScrolledToAbout) ||
-                          (item.isRoadmap && isScrolledToRoadmap) ||
-                          (item.isLinks && isScrolledToLinks)
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
                           ? 1
                           : 0,
                       transform:
                         (item.isAbout && isScrolledToAbout) ||
-                          (item.isRoadmap && isScrolledToRoadmap) ||
-                          (item.isLinks && isScrolledToLinks)
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
                           ? "scale(1) translateY(0)"
                           : "scale(0.8) translateY(4px)",
                       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                       position:
                         (item.isAbout && isScrolledToAbout) ||
-                          (item.isRoadmap && isScrolledToRoadmap) ||
-                          (item.isLinks && isScrolledToLinks)
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
                           ? "relative"
                           : "absolute",
                       pointerEvents:
                         (item.isAbout && isScrolledToAbout) ||
-                          (item.isRoadmap && isScrolledToRoadmap) ||
-                          (item.isLinks && isScrolledToLinks)
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
                           ? "auto"
                           : "none",
                     }}
@@ -1697,26 +1798,26 @@ export default function LandingPage() {
                       justifyContent: "center",
                       opacity:
                         (item.isAbout && isScrolledToAbout) ||
-                          (item.isRoadmap && isScrolledToRoadmap) ||
-                          (item.isLinks && isScrolledToLinks)
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
                           ? 0
                           : 1,
                       transform:
                         (item.isAbout && isScrolledToAbout) ||
-                          (item.isRoadmap && isScrolledToRoadmap) ||
-                          (item.isLinks && isScrolledToLinks)
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
                           ? "scale(0.8) translateY(-4px)"
                           : "scale(1) translateY(0)",
                       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                       position:
                         (item.isAbout && isScrolledToAbout) ||
-                          (item.isRoadmap && isScrolledToRoadmap) ||
-                          (item.isLinks && isScrolledToLinks)
+                        (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isLinks && isScrolledToLinks)
                           ? "absolute"
                           : "relative",
                       pointerEvents:
                         (item.isAbout && isScrolledToAbout) ||
-                          (item.isLinks && isScrolledToLinks)
+                        (item.isLinks && isScrolledToLinks)
                           ? "none"
                           : "auto",
                     }}
@@ -1945,16 +2046,16 @@ export default function LandingPage() {
               >
                 {messages[0]?.role === "user"
                   ? messages[0].parts
-                    .filter((part) => part.type === "text")
-                    .map((part) => part.text)
-                    .join("")
-                    .slice(0, 80) +
-                  (messages[0].parts
-                    .filter((part) => part.type === "text")
-                    .map((part) => part.text)
-                    .join("").length > 80
-                    ? "..."
-                    : "")
+                      .filter((part) => part.type === "text")
+                      .map((part) => part.text)
+                      .join("")
+                      .slice(0, 80) +
+                    (messages[0].parts
+                      .filter((part) => part.type === "text")
+                      .map((part) => part.text)
+                      .join("").length > 80
+                      ? "..."
+                      : "")
                   : "Chat"}
               </h2>
             </div>
@@ -2028,9 +2129,9 @@ export default function LandingPage() {
                     message.createdAt ?? messageTimestamps[message.id];
                   const messageTime = resolvedTimestamp
                     ? new Date(resolvedTimestamp).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
                     : null;
 
                   return (
@@ -2372,34 +2473,60 @@ export default function LandingPage() {
             >
               <div
                 onBlur={(e) => {
-                  if (nlpState.isActive && nlpState.parsedData.amount && nlpState.parsedData.currency && nlpState.parsedData.walletAddress) {
-                    e.currentTarget.style.border = "1px solid rgba(74, 222, 128, 0.5)"; // Green border
-                    e.currentTarget.style.background = "rgba(74, 222, 128, 0.05)";
+                  if (
+                    nlpState.isActive &&
+                    nlpState.parsedData.amount &&
+                    nlpState.parsedData.currency &&
+                    nlpState.parsedData.walletAddress
+                  ) {
+                    e.currentTarget.style.border =
+                      "1px solid rgba(74, 222, 128, 0.5)"; // Green border
+                    e.currentTarget.style.background =
+                      "rgba(74, 222, 128, 0.05)";
                   } else {
-                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
-                    e.currentTarget.style.border = "1px solid rgba(255, 255, 255, 0.15)";
+                    e.currentTarget.style.background =
+                      "rgba(255, 255, 255, 0.08)";
+                    e.currentTarget.style.border =
+                      "1px solid rgba(255, 255, 255, 0.15)";
                   }
                 }}
                 onFocus={(e) => {
-                  if (nlpState.isActive && nlpState.parsedData.amount && nlpState.parsedData.currency && nlpState.parsedData.walletAddress) {
-                    e.currentTarget.style.border = "1px solid rgba(74, 222, 128, 0.8)"; // Stronger green on focus
-                    e.currentTarget.style.background = "rgba(74, 222, 128, 0.1)";
+                  if (
+                    nlpState.isActive &&
+                    nlpState.parsedData.amount &&
+                    nlpState.parsedData.currency &&
+                    nlpState.parsedData.walletAddress
+                  ) {
+                    e.currentTarget.style.border =
+                      "1px solid rgba(74, 222, 128, 0.8)"; // Stronger green on focus
+                    e.currentTarget.style.background =
+                      "rgba(74, 222, 128, 0.1)";
                   } else {
-                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
-                    e.currentTarget.style.border = "1px solid rgba(255, 255, 255, 0.25)";
+                    e.currentTarget.style.background =
+                      "rgba(255, 255, 255, 0.12)";
+                    e.currentTarget.style.border =
+                      "1px solid rgba(255, 255, 255, 0.25)";
                   }
                 }}
                 style={{
                   position: "relative",
                   display: "flex",
                   flexDirection: "column",
-                  background: nlpState.isActive && nlpState.parsedData.amount && nlpState.parsedData.currency && nlpState.parsedData.walletAddress
-                    ? "rgba(74, 222, 128, 0.05)"
-                    : "rgba(255, 255, 255, 0.08)",
+                  background:
+                    nlpState.isActive &&
+                    nlpState.parsedData.amount &&
+                    nlpState.parsedData.currency &&
+                    nlpState.parsedData.walletAddress
+                      ? "rgba(74, 222, 128, 0.05)"
+                      : "rgba(255, 255, 255, 0.08)",
                   backdropFilter: "blur(20px)",
-                  border: nlpState.isActive && nlpState.parsedData.amount && nlpState.parsedData.currency && nlpState.parsedData.walletAddress
-                    ? "1px solid rgba(74, 222, 128, 0.5)"
-                    : "1px solid rgba(255, 255, 255, 0.15)",
+                  border:
+                    nlpState.isActive &&
+                    nlpState.parsedData.amount &&
+                    nlpState.parsedData.currency &&
+                    nlpState.parsedData.walletAddress
+                      ? "1px solid rgba(74, 222, 128, 0.5)"
+                      : "1px solid rgba(255, 255, 255, 0.15)",
                   borderRadius: "20px",
                   boxShadow:
                     "0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
@@ -2417,12 +2544,12 @@ export default function LandingPage() {
                     <SkillsInput
                       className="min-h-[60px] w-full text-lg"
                       onChange={setInput}
+                      onNlpStateChange={setNlpState}
                       onPendingTextChange={setPendingText}
                       onSendComplete={handleSendComplete}
                       onSendFlowChange={setSendFlowState}
                       onSwapComplete={handleSwapComplete}
                       onSwapFlowChange={setSwapFlowState}
-                      onNlpStateChange={setNlpState}
                       placeholder="Ask me anything..."
                       ref={inputRef}
                       value={input}
@@ -2474,8 +2601,8 @@ export default function LandingPage() {
                           ? isChatMode && !connected
                             ? "Please reconnect wallet to continue..."
                             : isChatMode
-                              ? ""
-                              : "Ask me anything..."
+                            ? ""
+                            : "Ask me anything..."
                           : "No internet connection..."
                       }
                       ref={inputRef as React.RefObject<HTMLTextAreaElement>}
@@ -2534,7 +2661,9 @@ export default function LandingPage() {
                       border: "none",
                       borderRadius: "12px",
                       cursor:
-                        hasUsableInput && !isLoading ? "pointer" : "not-allowed",
+                        hasUsableInput && !isLoading
+                          ? "pointer"
+                          : "not-allowed",
                       outline: "none",
                       transition: "all 0.3s ease",
                       opacity: hasUsableInput && !isLoading ? 0.8 : 0.3,
@@ -2556,35 +2685,55 @@ export default function LandingPage() {
                 </div>
                 {skillsEnabled && (
                   <SkillsSelector
-                    selectedSkillId={
-                      input.find((skill) => skill.category === "action")?.id
-                    }
+                    className="px-5 py-2"
+                    nlpState={nlpState}
                     onSkillSelect={(skill) => {
-                      const currentActiveSkill = input.find((s) => s.category === "action");
+                      const currentActiveSkill = input.find(
+                        (s) => s.category === "action"
+                      );
 
                       // If null or deselecting the same skill - clear everything
-                      if (!skill || (currentActiveSkill && currentActiveSkill.id === skill.id)) {
+                      if (
+                        !skill ||
+                        (currentActiveSkill &&
+                          currentActiveSkill.id === skill.id)
+                      ) {
                         if (inputRef.current && "clear" in inputRef.current) {
-                          (inputRef.current as HTMLTextAreaElement & { clear: () => void }).clear();
+                          (
+                            inputRef.current as HTMLTextAreaElement & {
+                              clear: () => void;
+                            }
+                          ).clear();
                           setInput([]);
                         }
+                      } else if (skill.id === "send" || skill.id === "swap") {
+                        // For "send" and "swap" skills, activate NLP mode instead of adding the skill object
+                        if (
+                          inputRef.current &&
+                          "activateNlpMode" in inputRef.current
+                        ) {
+                          (inputRef.current as any).activateNlpMode(
+                            `${skill.id} `
+                          );
+                        }
                       } else {
-                        if (skill.id === "send" || skill.id === "swap") {
-                          // For "send" and "swap" skills, activate NLP mode instead of adding the skill object
-                          if (inputRef.current && "activateNlpMode" in inputRef.current) {
-                            (inputRef.current as any).activateNlpMode(`${skill.id} `);
-                          }
-                        } else {
-                          // For other skills, use the old flow
-                          // Reset all state and add the selected skill
-                          if (inputRef.current && "resetAndAddSkill" in inputRef.current) {
-                            (inputRef.current as HTMLTextAreaElement & { resetAndAddSkill: (skill: LoyalSkill) => void }).resetAndAddSkill(skill);
-                          }
+                        // For other skills, use the old flow
+                        // Reset all state and add the selected skill
+                        if (
+                          inputRef.current &&
+                          "resetAndAddSkill" in inputRef.current
+                        ) {
+                          (
+                            inputRef.current as HTMLTextAreaElement & {
+                              resetAndAddSkill: (skill: LoyalSkill) => void;
+                            }
+                          ).resetAndAddSkill(skill);
                         }
                       }
                     }}
-                    className="px-5 py-2"
-                    nlpState={nlpState}
+                    selectedSkillId={
+                      input.find((skill) => skill.category === "action")?.id
+                    }
                   />
                 )}
               </div>
