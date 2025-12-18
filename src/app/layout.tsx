@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import { PhantomWalletProvider } from "@/components/solana/phantom-provider";
 import { Header } from "@/components/ui/header";
+import { WalletSelectorProvider } from "@/components/wallet/wallet-selector-context";
 import { ChatModeProvider } from "@/contexts/chat-mode-context";
 import { UserChatsProvider } from "@/providers/user-chats";
 
@@ -76,12 +77,14 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <PhantomWalletProvider>
-          <UserChatsProvider>
-            <ChatModeProvider>
-              <Header />
-              {children}
-            </ChatModeProvider>
-          </UserChatsProvider>
+          <WalletSelectorProvider>
+            <UserChatsProvider>
+              <ChatModeProvider>
+                <Header />
+                {children}
+              </ChatModeProvider>
+            </UserChatsProvider>
+          </WalletSelectorProvider>
         </PhantomWalletProvider>
 
         {/* Umami Analytics */}

@@ -1,7 +1,9 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useModal, usePhantom } from "@phantom/react-sdk";
+import { usePhantom } from "@phantom/react-sdk";
+
+import { useWalletSelector } from "@/components/wallet/wallet-selector-context";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { ArrowDownIcon, ArrowUpToLine, Loader2 } from "lucide-react";
 import { IBM_Plex_Sans, Plus_Jakarta_Sans } from "next/font/google";
@@ -132,7 +134,7 @@ export default function LandingPage() {
 
   // Wallet hooks
   const { isConnected } = usePhantom();
-  const { open } = useModal();
+  const { open } = useWalletSelector();
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
