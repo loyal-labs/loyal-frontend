@@ -29,6 +29,14 @@ export function Header() {
     <header
       className={`fixed top-6 right-6 z-[100] ${isChatMode ? "chat-mode-active" : ""}`}
     >
+      <style>{`
+        header button {
+          min-height: 46px !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+      `}</style>
       <ConnectButton />
     </header>
   );
