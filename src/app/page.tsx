@@ -3,7 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import { useModal, usePhantom } from "@phantom/react-sdk";
 import { DefaultChatTransport, type UIMessage } from "ai";
-import { ArrowDownIcon, ArrowUpToLine, Loader2 } from "lucide-react";
+import { ArrowDownIcon, ArrowUpToLine } from "lucide-react";
 import { IBM_Plex_Sans, Plus_Jakarta_Sans } from "next/font/google";
 import localFont from "next/font/local";
 import Image from "next/image";
@@ -18,7 +18,6 @@ import { SkillsInput, type SkillsInputRef } from "@/components/skills-input";
 import { SkillsSelector } from "@/components/skills-selector";
 import { SwapTransactionWidget } from "@/components/swap-transaction-widget";
 import AnimatedBadge from "@/components/ui/animated-badge";
-import { ChevronRightIcon } from "@/components/ui/chevron-right";
 import { CopyIcon, type CopyIconHandle } from "@/components/ui/copy";
 import { MenuIcon, type MenuIconHandle } from "@/components/ui/menu";
 import { PlusIcon, type PlusIconHandle } from "@/components/ui/plus";
@@ -1095,14 +1094,14 @@ export default function LandingPage() {
               left: "50%",
               transform: "translateX(-50%)",
               alignItems: "center",
-              gap: "0.5rem",
-              background: "rgba(255, 255, 255, 0.08)",
-              backdropFilter: "blur(20px)",
-              border: "1px solid rgba(255, 255, 255, 0.15)",
-              borderRadius: "20px",
-              padding: "0.5rem 0.75rem",
+              gap: "1.5rem",
+              background: "rgba(38, 38, 38, 0.7)",
+              backdropFilter: "blur(48px)",
+              borderRadius: "60px",
+              padding: "4px",
               boxShadow:
-                "0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
+                "0px 0px 8px 0px rgba(0, 0, 0, 0.1), 0px 16px 16px 0px rgba(0, 0, 0, 0.2)",
+              mixBlendMode: "luminosity",
               zIndex: 60,
               opacity: isChatMode ? 0 : 1,
               pointerEvents: isChatMode ? "none" : "auto",
@@ -1111,22 +1110,30 @@ export default function LandingPage() {
           >
             {/* Logo */}
             <div
-              className={plusJakartaSans.className}
               style={{
-                fontSize: "1.125rem",
-                fontWeight: 500,
-                color: "rgba(255, 255, 255, 0.95)",
-                letterSpacing: "0.03em",
-                paddingRight: "0.5rem",
-                marginRight: "0.25rem",
-                borderRight: "1px solid rgba(255, 255, 255, 0.15)",
                 display: "flex",
                 alignItems: "center",
+                gap: "0.5rem",
               }}
             >
-              Loyal
+              <Image
+                alt="Loyal"
+                height={36}
+                src="/logo.svg"
+                width={36}
+              />
+              <span
+                style={{
+                  fontSize: "1.25rem",
+                  fontWeight: 500,
+                  color: "#fff",
+                  letterSpacing: "-0.2px",
+                }}
+              >
+                Loyal
+              </span>
             </div>
-            {/* Sliding liquid glass indicator */}
+            {/* Sliding hover indicator */}
             {hoveredNavIndex !== null &&
               navItemRefs.current[hoveredNavIndex] && (
                 <div
@@ -1139,11 +1146,12 @@ export default function LandingPage() {
                     height:
                       navItemRefs.current[hoveredNavIndex]?.offsetHeight || 0,
                     transform: "translateY(-50%)",
-                    background: "rgba(255, 255, 255, 0.12)",
-                    border: "1px solid rgba(255, 255, 255, 0.25)",
-                    borderRadius: "14px",
-                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-                    transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+                    background: "rgba(255, 255, 255, 0.08)",
+                    backdropFilter: "blur(48px)",
+                    borderRadius: "9999px",
+                    boxShadow:
+                      "0px 4px 8px 0px rgba(0, 0, 0, 0.04), 0px 2px 4px 0px rgba(0, 0, 0, 0.02)",
+                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                     pointerEvents: "none",
                     zIndex: 0,
                   }}
@@ -1182,7 +1190,6 @@ export default function LandingPage() {
               },
             ].map((item, index) => (
               <button
-                className={ibmPlexSans.className}
                 key={item.label}
                 onClick={
                   item.href
@@ -1196,26 +1203,21 @@ export default function LandingPage() {
                 }}
                 style={{
                   position: "relative",
-                  color:
-                    hoveredNavIndex === index
-                      ? "rgba(255, 255, 255, 1)"
-                      : "rgba(255, 255, 255, 0.85)",
+                  color: "#fff",
                   fontSize: "1rem",
-                  fontWeight: 500,
-                  letterSpacing: "-0.02em",
-                  padding: "0.375rem 0.75rem",
+                  fontWeight: 400,
+                  padding: "0.5rem 1rem",
                   background: "transparent",
-                  border: "1px solid transparent",
-                  borderRadius: "14px",
+                  border: "none",
+                  borderRadius: "9999px",
                   cursor: "pointer",
                   transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                   outline: "none",
-                  animation: `fadeIn 0.5s ease-out ${index * 0.1}s both`,
-                  zIndex: 1,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   gap: "0.375rem",
+                  zIndex: 1,
                   filter:
                     (item.isAbout && isScrolledToAbout) ||
                     (item.isRoadmap && isScrolledToRoadmap) ||
@@ -1295,39 +1297,6 @@ export default function LandingPage() {
             ))}
           </nav>
 
-          {/* Token Ticker */}
-          <div
-            className={`loyal-token-ticker-container ${
-              isConnected ? "" : "no-wallet"
-            }`}
-            style={{
-              position: "fixed",
-              top: "4.5rem",
-              left: "50%",
-              transform: "translateX(-50%)",
-              zIndex: 50,
-              opacity: isChatMode ? 0 : 1,
-              pointerEvents: isChatMode ? "none" : "auto",
-              transition: "opacity 0.3s ease",
-              background: "rgba(255, 255, 255, 0.05)",
-              backdropFilter: "blur(20px)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              borderTop: "none",
-              borderRadius: "0 0 10px 10px",
-              padding: "0.6rem 0.625rem 0.4rem",
-              boxShadow:
-                "0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
-            }}
-          >
-            <LoyalTokenTicker />
-          </div>
-          <style>{`
-            @media (max-width: 768px) {
-              .loyal-token-ticker-container {
-                display: none !important;
-              }
-            }
-          `}</style>
 
           {/* Menu Button - Always Visible */}
           <button
@@ -1937,7 +1906,7 @@ export default function LandingPage() {
               transform: isChatMode ? "translateY(-100vh)" : "translateY(0)",
             }}
           >
-            {/* For testers pill badge */}
+            {/* For testers pill badge - commented out for now
             <div
               onClick={() => setIsModalOpen(true)}
               style={{
@@ -1948,6 +1917,7 @@ export default function LandingPage() {
             >
               <AnimatedBadge color="#ef4444" text="Message for testers" />
             </div>
+            */}
 
             <h1
               style={{
@@ -2441,194 +2411,180 @@ export default function LandingPage() {
               }}
             >
               <div
-                onBlur={(e) => {
-                  if (
-                    nlpState.isActive &&
-                    nlpState.parsedData.amount &&
-                    nlpState.parsedData.currency &&
-                    nlpState.parsedData.walletAddress
-                  ) {
-                    e.currentTarget.style.border =
-                      "1px solid rgba(74, 222, 128, 0.5)"; // Green border
-                    e.currentTarget.style.background =
-                      "rgba(74, 222, 128, 0.05)";
-                  } else {
-                    e.currentTarget.style.background =
-                      "rgba(255, 255, 255, 0.08)";
-                    e.currentTarget.style.border =
-                      "1px solid rgba(255, 255, 255, 0.15)";
-                  }
-                }}
-                onFocus={(e) => {
-                  if (
-                    nlpState.isActive &&
-                    nlpState.parsedData.amount &&
-                    nlpState.parsedData.currency &&
-                    nlpState.parsedData.walletAddress
-                  ) {
-                    e.currentTarget.style.border =
-                      "1px solid rgba(74, 222, 128, 0.8)"; // Stronger green on focus
-                    e.currentTarget.style.background =
-                      "rgba(74, 222, 128, 0.1)";
-                  } else {
-                    e.currentTarget.style.background =
-                      "rgba(255, 255, 255, 0.12)";
-                    e.currentTarget.style.border =
-                      "1px solid rgba(255, 255, 255, 0.25)";
-                  }
-                }}
                 style={{
                   position: "relative",
                   display: "flex",
                   flexDirection: "column",
-                  background:
-                    nlpState.isActive &&
-                    nlpState.parsedData.amount &&
-                    nlpState.parsedData.currency &&
-                    nlpState.parsedData.walletAddress
-                      ? "rgba(74, 222, 128, 0.05)"
-                      : "rgba(255, 255, 255, 0.08)",
-                  backdropFilter: "blur(20px)",
-                  border:
-                    nlpState.isActive &&
-                    nlpState.parsedData.amount &&
-                    nlpState.parsedData.currency &&
-                    nlpState.parsedData.walletAddress
-                      ? "1px solid rgba(74, 222, 128, 0.5)"
-                      : "1px solid rgba(255, 255, 255, 0.15)",
-                  borderRadius: "20px",
+                  background: "rgba(38, 38, 38, 0.7)",
+                  backdropFilter: "blur(48px)",
+                  borderRadius: "32px",
                   boxShadow:
-                    "0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 1px 1px rgba(255, 255, 255, 0.1)",
-                  transition: "all 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+                    "0px 4px 8px 0px rgba(0, 0, 0, 0.04), 0px 2px 4px 0px rgba(0, 0, 0, 0.02)",
+                  mixBlendMode: "luminosity",
+                  overflow: "hidden",
                 }}
               >
                 <div
                   style={{
-                    position: "relative",
                     display: "flex",
-                    alignItems: "flex-end",
+                    alignItems: "flex-start",
+                    width: "100%",
                   }}
                 >
-                  {skillsEnabled ? (
-                    <SkillsInput
-                      className="min-h-[60px] w-full text-lg"
-                      onChange={setInput}
-                      onNlpStateChange={setNlpState}
-                      onPendingTextChange={setPendingText}
-                      onSendComplete={handleSendComplete}
-                      onSendFlowChange={setSendFlowState}
-                      onSwapComplete={handleSwapComplete}
-                      onSwapFlowChange={setSwapFlowState}
-                      placeholder="Ask me anything..."
-                      ref={inputRef}
-                      value={input}
-                    />
-                  ) : (
-                    <textarea
-                      onChange={(e) => {
-                        setPendingText(e.target.value);
-
-                        // Auto-resize textarea based on content
-                        if (inputRef.current) {
-                          inputRef.current.style.height = "auto";
-                          inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        // Allow Shift+Enter to create new lines
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          if (hasUsableInput && !isLoading) {
-                            handleSubmit(e as unknown as React.FormEvent);
-                          }
-                        }
-                      }}
-                      placeholder={
-                        isOnline
-                          ? isChatMode && !isConnected
-                            ? "Please reconnect wallet to continue..."
-                            : isChatMode
-                            ? ""
-                            : "Ask me anything..."
-                          : "No internet connection..."
-                      }
-                      ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-                      rows={1}
-                      style={{
-                        width: "100%",
-                        padding: "20px 64px 20px 28px",
-                        background: "transparent",
-                        border: "none",
-                        color: "white",
-                        fontSize: "15px",
-                        fontFamily: "inherit",
-                        resize: "none",
-                        outline: "none",
-                        overflow: "hidden",
-                      }}
-                      value={pendingText}
-                    />
-                  )}
-                  <button
-                    disabled={!hasUsableInput || isLoading}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (hasUsableInput && !isLoading) {
-                        handleSubmit(e as unknown as React.FormEvent);
-                      }
-                    }}
-                    onMouseEnter={(e) => {
-                      if (hasUsableInput && !isLoading) {
-                        e.currentTarget.style.opacity = "1";
-                        e.currentTarget.style.background =
-                          "rgba(255, 255, 255, 0.15)";
-                        e.currentTarget.style.transform =
-                          "translateY(-50%) scale(1.1)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (hasUsableInput && !isLoading) {
-                        e.currentTarget.style.opacity = "0.8";
-                        e.currentTarget.style.background = "transparent";
-                        e.currentTarget.style.transform =
-                          "translateY(-50%) scale(1)";
-                      }
-                    }}
+                  {/* Input field area */}
+                  <div
                     style={{
-                      position: "absolute",
-                      right: "0.75rem",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      padding: "0.5rem",
+                      flex: 1,
                       display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "#fff",
-                      background: "transparent",
-                      border: "none",
-                      borderRadius: "12px",
-                      cursor:
-                        hasUsableInput && !isLoading
-                          ? "pointer"
-                          : "not-allowed",
-                      outline: "none",
-                      transition: "all 0.3s ease",
-                      opacity: hasUsableInput && !isLoading ? 0.8 : 0.3,
-                      zIndex: 2,
+                      alignItems: "flex-end",
+                      maxHeight: "368px",
+                      overflow: "hidden",
+                      paddingLeft: "24px",
+                      paddingRight: "16px",
+                      paddingTop: "16px",
+                      paddingBottom: "16px",
                     }}
-                    type="button"
                   >
-                    {isLoading ? (
-                      <Loader2
-                        size={24}
-                        style={{
-                          animation: "spin 1s linear infinite",
-                        }}
+                    {skillsEnabled ? (
+                      <SkillsInput
+                        className="min-h-[24px] w-full text-base"
+                        onChange={setInput}
+                        onNlpStateChange={setNlpState}
+                        onPendingTextChange={setPendingText}
+                        onSendComplete={handleSendComplete}
+                        onSendFlowChange={setSendFlowState}
+                        onSwapComplete={handleSwapComplete}
+                        onSwapFlowChange={setSwapFlowState}
+                        placeholder="Ask anything"
+                        ref={inputRef}
+                        value={input}
                       />
                     ) : (
-                      <ChevronRightIcon size={24} />
+                      <textarea
+                        onChange={(e) => {
+                          setPendingText(e.target.value);
+
+                          // Auto-resize textarea based on content
+                          if (inputRef.current) {
+                            inputRef.current.style.height = "auto";
+                            const scrollHeight = inputRef.current.scrollHeight;
+                            const maxHeight = 336; // 368 - 32 (padding)
+                            if (scrollHeight > maxHeight) {
+                              inputRef.current.style.height = `${maxHeight}px`;
+                              inputRef.current.style.overflowY = "auto";
+                            } else {
+                              inputRef.current.style.height = `${scrollHeight}px`;
+                              inputRef.current.style.overflowY = "hidden";
+                            }
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          // Allow Shift+Enter to create new lines
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            if (hasUsableInput && !isLoading) {
+                              handleSubmit(e as unknown as React.FormEvent);
+                            }
+                          }
+                        }}
+                        placeholder={
+                          isOnline
+                            ? isChatMode && !isConnected
+                              ? "Please reconnect wallet to continue..."
+                              : "Ask anything"
+                            : "No internet connection..."
+                        }
+                        ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+                        rows={1}
+                        style={{
+                          width: "100%",
+                          padding: "2px 0",
+                          background: "transparent",
+                          border: "none",
+                          color: "white",
+                          fontSize: "16px",
+                          fontFamily: "var(--font-geist-sans), sans-serif",
+                          lineHeight: "24px",
+                          resize: "none",
+                          outline: "none",
+                          overflowY: "hidden",
+                        }}
+                        value={pendingText}
+                      />
                     )}
-                  </button>
+                  </div>
+
+                  {/* Submit button wrapper */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-end",
+                      justifyContent: "center",
+                      padding: "8px",
+                      alignSelf: "stretch",
+                    }}
+                  >
+                    <button
+                      disabled={!hasUsableInput && !isLoading}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        if (isLoading) {
+                          // TODO: Implement stop functionality
+                        } else if (hasUsableInput) {
+                          handleSubmit(e as unknown as React.FormEvent);
+                        }
+                      }}
+                      style={{
+                        width: "44px",
+                        height: "44px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background:
+                          hasUsableInput || isLoading
+                            ? "rgba(255, 255, 255, 0.06)"
+                            : "rgba(0, 0, 0, 0.3)",
+                        border: "none",
+                        borderRadius: "9999px",
+                        cursor:
+                          hasUsableInput || isLoading
+                            ? "pointer"
+                            : "not-allowed",
+                        outline: "none",
+                        transition: "all 0.2s ease",
+                        boxShadow:
+                          hasUsableInput || isLoading
+                            ? "0px 4px 8px 0px rgba(0, 0, 0, 0.04), 0px 2px 4px 0px rgba(0, 0, 0, 0.02)"
+                            : "none",
+                        mixBlendMode:
+                          hasUsableInput || isLoading ? "lighten" : "normal",
+                      }}
+                      type="button"
+                    >
+                      {isLoading ? (
+                        <img
+                          alt="Stop"
+                          height={24}
+                          src="/send_stop.svg"
+                          width={24}
+                        />
+                      ) : hasUsableInput ? (
+                        <img
+                          alt="Send"
+                          height={24}
+                          src="/send_enabled.svg"
+                          width={24}
+                        />
+                      ) : (
+                        <img
+                          alt="Send"
+                          height={24}
+                          src="/send_disabled.svg"
+                          width={24}
+                        />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 {skillsEnabled && (
                   <SkillsSelector
@@ -3131,16 +3087,27 @@ export default function LandingPage() {
 
         input::placeholder,
         textarea::placeholder {
-          color: rgba(255, 255, 255, 0.5);
+          color: rgba(255, 255, 255, 0.6);
         }
 
-        /* Hide scrollbar for textarea */
+        /* Custom scrollbar for textarea */
         textarea::-webkit-scrollbar {
-          display: none;
+          width: 6px;
+        }
+        textarea::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        textarea::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 12px;
+          opacity: 0.48;
+        }
+        textarea::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.3);
         }
         textarea {
-          -ms-overflow-style: none; /* IE and Edge */
-          scrollbar-width: none; /* Firefox */
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
         }
 
         /* Custom scrollbar for chat messages */
