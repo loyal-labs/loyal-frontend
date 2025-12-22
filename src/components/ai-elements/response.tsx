@@ -240,15 +240,17 @@ const customComponents = {
     </blockquote>
   ),
 
-  // Table - matching Figma design
+  // Table - matching Figma design (14px, 20px line-height, 36px row height)
   table: ({ children, ...props }: ComponentProps) => (
     <div style={{ overflowX: "auto", margin: "8px 0" }}>
       <table
         style={{
           width: "100%",
           borderCollapse: "collapse",
-          fontSize: "16px",
+          fontFamily: "'Geist', sans-serif",
+          fontSize: "14px",
           lineHeight: "20px",
+          background: "transparent",
         }}
         {...props}
       >
@@ -259,7 +261,7 @@ const customComponents = {
   thead: ({ children, ...props }: ComponentProps) => (
     <thead
       style={{
-        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+        background: "transparent",
       }}
       {...props}
     >
@@ -267,12 +269,16 @@ const customComponents = {
     </thead>
   ),
   tbody: ({ children, ...props }: ComponentProps) => (
-    <tbody {...props}>{children}</tbody>
+    <tbody style={{ background: "transparent" }} {...props}>
+      {children}
+    </tbody>
   ),
   tr: ({ children, ...props }: ComponentProps) => (
     <tr
       style={{
-        borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+        height: "36px",
+        background: "transparent",
       }}
       {...props}
     >
@@ -284,10 +290,13 @@ const customComponents = {
       style={{
         padding: "8px 8px 8px 0",
         textAlign: "left",
-        fontWeight: 600,
-        fontSize: "16px",
+        fontFamily: "'Geist', sans-serif",
+        fontWeight: 500,
+        fontSize: "14px",
         lineHeight: "20px",
         color: "#fff",
+        background: "transparent",
+        verticalAlign: "middle",
       }}
       {...props}
     >
@@ -298,9 +307,13 @@ const customComponents = {
     <td
       style={{
         padding: "8px 8px 8px 0",
-        fontSize: "16px",
+        fontFamily: "'Geist', sans-serif",
+        fontWeight: 400,
+        fontSize: "14px",
         lineHeight: "20px",
-        color: "rgba(255, 255, 255, 0.8)",
+        color: "#fff",
+        background: "transparent",
+        verticalAlign: "middle",
       }}
       {...props}
     >

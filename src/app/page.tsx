@@ -332,6 +332,13 @@ export default function LandingPage() {
     }
   }, [isSidebarOpen]);
 
+  // Open Phantom modal when wallet disconnects in chat mode
+  useEffect(() => {
+    if (isChatMode && !isConnected) {
+      open();
+    }
+  }, [isChatMode, isConnected, open]);
+
   // Auto-focus on initial load (but not if there's a hash in URL)
   useEffect(() => {
     // Don't auto-focus if there's a hash - let the hash scroll complete first
@@ -1480,342 +1487,345 @@ export default function LandingPage() {
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
-                transform: isSidebarOpen ? "translateX(0)" : "translateX(-110%)",
+                transform: isSidebarOpen
+                  ? "translateX(0)"
+                  : "translateX(-110%)",
                 opacity: isSidebarOpen ? 1 : 0,
-                transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                transition:
+                  "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                 pointerEvents: isSidebarOpen ? "auto" : "none",
               }}
             >
-                {/* Panel Header */}
-                <div
+              {/* Panel Header */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "8px",
+                }}
+              >
+                {/* Close Button */}
+                <button
+                  className="sidebar-icon-btn"
+                  onClick={() => setIsSidebarOpen(false)}
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    background: "rgba(255, 255, 255, 0.06)",
+                    backdropFilter: "blur(48px)",
+                    border: "none",
+                    borderRadius: "9999px",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    boxShadow:
+                      "0px 4px 8px 0px rgba(0, 0, 0, 0.04), 0px 2px 4px 0px rgba(0, 0, 0, 0.02)",
+                    mixBlendMode: "lighten",
+                    color: "#fff",
+                  }}
+                >
+                  <X size={24} />
+                </button>
+
+                {/* New Chat Button */}
+                <button
+                  className="sidebar-icon-btn"
+                  onClick={() => {
+                    setIsChatModeLocal(false);
+                    setInput([]);
+                    setPendingText("");
+                    setMessages([]);
+                    setShowSwapWidget(false);
+                    setShowSendWidget(false);
+                    setPendingSwapData(null);
+                    setPendingSendData(null);
+                    setSwapStatus(null);
+                    setSendStatus(null);
+                    setSwapResult(null);
+                    setSendResult(null);
+                    setTimeout(() => {
+                      inputRef.current?.focus();
+                    }, 100);
+                  }}
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "8px",
+                    gap: "6px",
+                    background: "rgba(255, 255, 255, 0.06)",
+                    backdropFilter: "blur(48px)",
+                    border: "none",
+                    borderRadius: "9999px",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    boxShadow:
+                      "0px 4px 8px 0px rgba(0, 0, 0, 0.04), 0px 2px 4px 0px rgba(0, 0, 0, 0.02)",
+                    mixBlendMode: "lighten",
+                    color: "#fff",
+                    padding: "6px 16px 6px 6px",
                   }}
                 >
-                  {/* Close Button */}
-                  <button
-                    className="sidebar-icon-btn"
-                    onClick={() => setIsSidebarOpen(false)}
+                  <PlusIcon
+                    onMouseEnter={() => {}}
+                    onMouseLeave={() => {}}
+                    ref={plusIconRef}
+                    size={24}
+                  />
+                  <span
                     style={{
-                      width: "36px",
-                      height: "36px",
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      background: "rgba(255, 255, 255, 0.06)",
-                      backdropFilter: "blur(48px)",
-                      border: "none",
-                      borderRadius: "9999px",
-                      cursor: "pointer",
-                      transition: "all 0.2s ease",
-                      boxShadow:
-                        "0px 4px 8px 0px rgba(0, 0, 0, 0.04), 0px 2px 4px 0px rgba(0, 0, 0, 0.02)",
-                      mixBlendMode: "lighten",
-                      color: "#fff",
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      lineHeight: "20px",
                     }}
                   >
-                    <X size={24} />
-                  </button>
+                    New Chat
+                  </span>
+                </button>
+              </div>
 
-                  {/* New Chat Button */}
-                  <button
-                    className="sidebar-icon-btn"
-                    onClick={() => {
-                      setIsChatModeLocal(false);
-                      setInput([]);
-                      setPendingText("");
-                      setMessages([]);
-                      setShowSwapWidget(false);
-                      setShowSendWidget(false);
-                      setPendingSwapData(null);
-                      setPendingSendData(null);
-                      setSwapStatus(null);
-                      setSendStatus(null);
-                      setSwapResult(null);
-                      setSendResult(null);
-                      setTimeout(() => {
-                        inputRef.current?.focus();
-                      }, 100);
-                    }}
+              {/* Services Group */}
+              <div
+                style={{
+                  padding: "12px 8px 0",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                {[
+                  { title: "Service 1", subtitle: "Subtitle" },
+                  { title: "Service 2", subtitle: "Subtitle" },
+                  { title: "Service 3", subtitle: "Subtitle" },
+                ].map((service, index) => (
+                  <div
+                    key={index}
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: "6px",
-                      background: "rgba(255, 255, 255, 0.06)",
-                      backdropFilter: "blur(48px)",
-                      border: "none",
-                      borderRadius: "9999px",
+                      padding: "0 8px",
+                      borderRadius: "16px",
                       cursor: "pointer",
-                      transition: "all 0.2s ease",
-                      boxShadow:
-                        "0px 4px 8px 0px rgba(0, 0, 0, 0.04), 0px 2px 4px 0px rgba(0, 0, 0, 0.02)",
-                      mixBlendMode: "lighten",
-                      color: "#fff",
-                      padding: "6px 16px 6px 6px",
                     }}
                   >
-                    <PlusIcon
-                      onMouseEnter={() => {}}
-                      onMouseLeave={() => {}}
-                      ref={plusIconRef}
-                      size={24}
-                    />
-                    <span
+                    <div
                       style={{
-                        fontSize: "14px",
-                        fontWeight: 500,
-                        lineHeight: "20px",
+                        padding: "4px 12px 4px 0",
                       }}
                     >
-                      New Chat
-                    </span>
-                  </button>
-                </div>
+                      <div
+                        style={{
+                          width: "40px",
+                          height: "40px",
+                          background: "rgba(255, 255, 255, 0.06)",
+                          mixBlendMode: "lighten",
+                          borderRadius: "8px",
+                        }}
+                      />
+                    </div>
+                    <div
+                      style={{
+                        flex: 1,
+                        padding: "10px 0",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "2px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "16px",
+                          fontWeight: 400,
+                          lineHeight: "20px",
+                          color: "#fff",
+                        }}
+                      >
+                        {service.title}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: 400,
+                          lineHeight: "16px",
+                          color: "rgba(255, 255, 255, 0.6)",
+                        }}
+                      >
+                        {service.subtitle}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
 
-                {/* Services Group */}
+              {/* History Section */}
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  overflow: "hidden",
+                  padding: "0 8px",
+                }}
+              >
+                {/* History Header */}
                 <div
                   style={{
-                    padding: "12px 8px 0",
-                    display: "flex",
-                    flexDirection: "column",
+                    padding: "12px 12px 8px",
                   }}
                 >
-                  {[
-                    { title: "Service 1", subtitle: "Subtitle" },
-                    { title: "Service 2", subtitle: "Subtitle" },
-                    { title: "Service 3", subtitle: "Subtitle" },
-                  ].map((service, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        padding: "0 8px",
-                        borderRadius: "16px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      <div
-                        style={{
-                          padding: "4px 12px 4px 0",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: "40px",
-                            height: "40px",
-                            background: "rgba(255, 255, 255, 0.06)",
-                            mixBlendMode: "lighten",
-                            borderRadius: "8px",
-                          }}
-                        />
-                      </div>
-                      <div
-                        style={{
-                          flex: 1,
-                          padding: "10px 0",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "2px",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: "16px",
-                            fontWeight: 400,
-                            lineHeight: "20px",
-                            color: "#fff",
-                          }}
-                        >
-                          {service.title}
-                        </span>
-                        <span
-                          style={{
-                            fontSize: "13px",
-                            fontWeight: 400,
-                            lineHeight: "16px",
-                            color: "rgba(255, 255, 255, 0.6)",
-                          }}
-                        >
-                          {service.subtitle}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                  <span
+                    style={{
+                      fontSize: "16px",
+                      fontWeight: 500,
+                      lineHeight: "20px",
+                      color: "#fff",
+                      letterSpacing: "-0.176px",
+                    }}
+                  >
+                    History
+                  </span>
                 </div>
 
-                {/* History Section */}
+                {/* History List */}
                 <div
                   style={{
                     flex: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    overflow: "hidden",
-                    padding: "0 8px",
+                    overflowY: "auto",
+                    overflowX: "hidden",
                   }}
                 >
-                  {/* History Header */}
-                  <div
-                    style={{
-                      padding: "12px 12px 8px",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: "16px",
-                        fontWeight: 500,
-                        lineHeight: "20px",
-                        color: "#fff",
-                        letterSpacing: "-0.176px",
-                      }}
-                    >
-                      History
-                    </span>
-                  </div>
-
-                  {/* History List */}
-                  <div
-                    style={{
-                      flex: 1,
-                      overflowY: "auto",
-                      overflowX: "hidden",
-                    }}
-                  >
-                    {/* Current conversation - highlighted when in chat mode */}
-                    {isChatMode && (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          height: "36px",
-                          padding: "0 12px",
-                          borderRadius: "9999px",
-                          cursor: "pointer",
-                          background: "rgba(255, 255, 255, 0.06)",
-                          boxShadow:
-                            "0px 4px 8px 0px rgba(0, 0, 0, 0.04), 0px 2px 4px 0px rgba(0, 0, 0, 0.02)",
-                          mixBlendMode: "lighten",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: "14px",
-                            fontWeight: 400,
-                            lineHeight: "20px",
-                            color: "#fff",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {messages.length > 0 && messages[0]?.role === "user"
-                            ? messages[0].parts
-                                .filter((part) => part.type === "text")
-                                .map((part) => part.text)
-                                .join("")
-                                .slice(0, 40) +
-                              (messages[0].parts
-                                .filter((part) => part.type === "text")
-                                .map((part) => part.text)
-                                .join("").length > 40
-                                ? "..."
-                                : "")
-                            : "New conversation"}
-                        </span>
-                      </div>
-                    )}
-                    {previousChats.map((chat) => (
-                      <div
-                        key={chat.id}
-                        className="sidebar-history-item"
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background =
-                            "rgba(255, 255, 255, 0.06)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "transparent";
-                        }}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          height: "36px",
-                          padding: "0 12px",
-                          borderRadius: "9999px",
-                          cursor: "pointer",
-                          transition: "background 0.2s ease",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontSize: "14px",
-                            fontWeight: 400,
-                            lineHeight: "20px",
-                            color: "#fff",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {chat.title}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Wallet Container - Bottom (only visible in chat mode when connected) */}
-                {isChatMode && isConnected && (
-                  <div
-                    style={{
-                      padding: "8px",
-                    }}
-                  >
-                    <button
-                      className="sidebar-icon-btn"
-                      onClick={() => open()}
+                  {/* Current conversation - highlighted when in chat mode */}
+                  {isChatMode && (
+                    <div
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: "8px",
-                        background: "rgba(255, 255, 255, 0.06)",
-                        backdropFilter: "blur(48px)",
-                        border: "none",
-                        borderRadius: "32px",
+                        height: "36px",
+                        padding: "0 12px",
+                        borderRadius: "9999px",
                         cursor: "pointer",
-                        transition: "all 0.2s ease",
+                        background: "rgba(255, 255, 255, 0.06)",
                         boxShadow:
                           "0px 4px 8px 0px rgba(0, 0, 0, 0.04), 0px 2px 4px 0px rgba(0, 0, 0, 0.02)",
                         mixBlendMode: "lighten",
-                        padding: "4px",
                       }}
                     >
-                      <img
-                        alt="Wallet"
-                        height={28}
-                        src="/Wallet-Icon.svg"
-                        style={{
-                          borderRadius: "9999px",
-                        }}
-                        width={28}
-                      />
                       <span
                         style={{
                           fontSize: "14px",
                           fontWeight: 400,
                           lineHeight: "20px",
                           color: "#fff",
-                          paddingRight: "12px",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
                         }}
                       >
-                        {truncatedAddress}
+                        {messages.length > 0 && messages[0]?.role === "user"
+                          ? messages[0].parts
+                              .filter((part) => part.type === "text")
+                              .map((part) => part.text)
+                              .join("")
+                              .slice(0, 40) +
+                            (messages[0].parts
+                              .filter((part) => part.type === "text")
+                              .map((part) => part.text)
+                              .join("").length > 40
+                              ? "..."
+                              : "")
+                          : "New conversation"}
                       </span>
-                    </button>
-                  </div>
-                )}
+                    </div>
+                  )}
+                  {previousChats.map((chat) => (
+                    <div
+                      key={chat.id}
+                      className="sidebar-history-item"
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background =
+                          "rgba(255, 255, 255, 0.06)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        height: "36px",
+                        padding: "0 12px",
+                        borderRadius: "9999px",
+                        cursor: "pointer",
+                        transition: "background 0.2s ease",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: "14px",
+                          fontWeight: 400,
+                          lineHeight: "20px",
+                          color: "#fff",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {chat.title}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
+
+              {/* Wallet Container - Bottom (only visible in chat mode when connected) */}
+              {isChatMode && isConnected && (
+                <div
+                  style={{
+                    padding: "8px",
+                  }}
+                >
+                  <button
+                    className="sidebar-icon-btn"
+                    onClick={() => open()}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      background: "rgba(255, 255, 255, 0.06)",
+                      backdropFilter: "blur(48px)",
+                      border: "none",
+                      borderRadius: "32px",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      boxShadow:
+                        "0px 4px 8px 0px rgba(0, 0, 0, 0.04), 0px 2px 4px 0px rgba(0, 0, 0, 0.02)",
+                      mixBlendMode: "lighten",
+                      padding: "4px",
+                    }}
+                  >
+                    <img
+                      alt="Wallet"
+                      height={28}
+                      src="/Wallet-Icon.svg"
+                      style={{
+                        borderRadius: "9999px",
+                      }}
+                      width={28}
+                    />
+                    <span
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: 400,
+                        lineHeight: "20px",
+                        color: "#fff",
+                        paddingRight: "12px",
+                      }}
+                    >
+                      {truncatedAddress}
+                    </span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Mobile backdrop overlay */}
@@ -1834,59 +1844,7 @@ export default function LandingPage() {
             />
           )}
 
-          <div
-            className={instrumentSerif.className}
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "flex-start",
-              textAlign: "center",
-              padding: "min(calc(22vh + 40px), 8rem) 1.5rem 0",
-              gap: "0.75rem",
-              color: "#fff",
-              transition: "transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
-              transform: isChatMode ? "translateY(-100vh)" : "translateY(0)",
-            }}
-          >
-            {/* For testers pill badge - commented out for now
-            <div
-              onClick={() => setIsModalOpen(true)}
-              style={{
-                marginBottom: "0.75rem",
-                animation: "fadeIn 0.6s ease-out",
-                fontFamily: "var(--font-geist-sans)",
-              }}
-            >
-              <AnimatedBadge color="#ef4444" text="Message for testers" />
-            </div>
-            */}
-
-            <h1
-              style={{
-                fontSize: "clamp(2rem, 5vw, 4.25rem)",
-                fontWeight: 400,
-                lineHeight: 1.1,
-                maxWidth: "100%",
-              }}
-            >
-              Agentic <em>computer</em> for private <em>people</em>
-            </h1>
-            <p
-              style={{
-                fontSize: "clamp(1.125rem, 2vw, 1.6rem)",
-                fontWeight: 400,
-                maxWidth: "40rem",
-                lineHeight: 1.45,
-              }}
-            >
-              Private onchain intelligence with real-time performance
-            </p>
-          </div>
-
-          {/* Chat container - full height in chat mode, centered input when not */}
+          {/* Chat container - always full screen, input position animates within */}
           <div
             onClick={(e) => {
               // Focus input when clicking on the container (but not on other elements)
@@ -1895,14 +1853,11 @@ export default function LandingPage() {
               }
             }}
             style={{
-              position: isChatMode ? "absolute" : "absolute",
-              top: isChatMode ? "0" : "auto",
-              bottom: isChatMode ? "0" : "clamp(5vh, calc(48vh - 40px), 38vh)",
-              left: isChatMode ? "0" : "50%",
-              right: isChatMode ? "0" : "auto",
-              transform: isChatMode ? "none" : "translateX(-50%)",
-              width: isChatMode ? "auto" : "min(600px, 90%)",
-              maxWidth: isChatMode ? "none" : "none",
+              position: "absolute",
+              top: "0",
+              bottom: "0",
+              left: "0",
+              right: "0",
               marginLeft: isChatMode && isSidebarOpen ? "314px" : "0",
               transition: "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
               display: "flex",
@@ -2277,19 +2232,21 @@ export default function LandingPage() {
               </button>
             )}
 
-            {/* Chat Input Container - fixed at bottom in chat mode */}
+            {/* Chat Input Container - animates between center and bottom */}
             <div
               style={{
-                position: isChatMode ? "absolute" : "relative",
-                bottom: isChatMode ? "0" : "auto",
-                left: isChatMode ? "0" : "auto",
-                right: isChatMode ? "0" : "auto",
+                position: "absolute",
+                bottom: isChatMode ? "16px" : "50%",
+                left: "16px",
+                right: "16px",
+                transform: isChatMode ? "translateY(0)" : "translateY(50%)",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                justifyContent: "flex-end",
-                padding: isChatMode ? "0 16px 16px" : "0",
+                justifyContent: "center",
                 pointerEvents: "none",
+                transition:
+                  "bottom 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
             >
               {/* Input form - liquid glass style with integrated send button */}
@@ -2299,241 +2256,241 @@ export default function LandingPage() {
                   position: "relative",
                   width: "100%",
                   maxWidth: "768px",
-                  marginTop: isChatMode ? "0" : "0.5rem",
                   pointerEvents: "auto",
-                }}
-              >
-              <div
-                style={{
-                  position: "relative",
-                  display: "flex",
-                  flexDirection: "column",
-                  background: "rgba(38, 38, 38, 0.7)",
-                  backdropFilter: "blur(48px)",
-                  borderRadius: "32px",
-                  boxShadow:
-                    "0px 4px 8px 0px rgba(0, 0, 0, 0.04), 0px 2px 4px 0px rgba(0, 0, 0, 0.02)",
-                  mixBlendMode: "luminosity",
-                  overflow: "hidden",
                 }}
               >
                 <div
                   style={{
+                    position: "relative",
                     display: "flex",
-                    alignItems: "flex-start",
-                    width: "100%",
+                    flexDirection: "column",
+                    background: "rgba(38, 38, 38, 0.5)",
+                    backdropFilter: "blur(24px) saturate(180%)",
+                    WebkitBackdropFilter: "blur(24px) saturate(180%)",
+                    borderRadius: "32px",
+                    boxShadow:
+                      "0px 4px 8px 0px rgba(0, 0, 0, 0.04), 0px 2px 4px 0px rgba(0, 0, 0, 0.02)",
+                    overflow: "hidden",
                   }}
                 >
-                  {/* Input field area */}
-                  <div
-                    style={{
-                      flex: 1,
-                      display: "flex",
-                      alignItems: "flex-end",
-                      maxHeight: "368px",
-                      overflow: "hidden",
-                      paddingLeft: "24px",
-                      paddingRight: "16px",
-                      paddingTop: "16px",
-                      paddingBottom: "16px",
-                    }}
-                  >
-                    {skillsEnabled ? (
-                      <SkillsInput
-                        className="min-h-[24px] w-full text-base"
-                        onChange={setInput}
-                        onNlpStateChange={setNlpState}
-                        onPendingTextChange={setPendingText}
-                        onSendComplete={handleSendComplete}
-                        onSendFlowChange={setSendFlowState}
-                        onSwapComplete={handleSwapComplete}
-                        onSwapFlowChange={setSwapFlowState}
-                        placeholder="Ask anything"
-                        ref={inputRef}
-                        value={input}
-                      />
-                    ) : (
-                      <textarea
-                        onChange={(e) => {
-                          setPendingText(e.target.value);
-
-                          // Auto-resize textarea based on content
-                          if (inputRef.current) {
-                            inputRef.current.style.height = "auto";
-                            const scrollHeight = inputRef.current.scrollHeight;
-                            const maxHeight = 336; // 368 - 32 (padding)
-                            if (scrollHeight > maxHeight) {
-                              inputRef.current.style.height = `${maxHeight}px`;
-                              inputRef.current.style.overflowY = "auto";
-                            } else {
-                              inputRef.current.style.height = `${scrollHeight}px`;
-                              inputRef.current.style.overflowY = "hidden";
-                            }
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          // Allow Shift+Enter to create new lines
-                          if (e.key === "Enter" && !e.shiftKey) {
-                            e.preventDefault();
-                            if (hasUsableInput && !isLoading) {
-                              handleSubmit(e as unknown as React.FormEvent);
-                            }
-                          }
-                        }}
-                        placeholder={
-                          isOnline
-                            ? isChatMode && !isConnected
-                              ? "Please reconnect wallet to continue..."
-                              : "Ask anything"
-                            : "No internet connection..."
-                        }
-                        ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-                        rows={1}
-                        style={{
-                          width: "100%",
-                          padding: "2px 0",
-                          background: "transparent",
-                          border: "none",
-                          color: "white",
-                          fontSize: "16px",
-                          fontFamily: "var(--font-geist-sans), sans-serif",
-                          lineHeight: "24px",
-                          resize: "none",
-                          outline: "none",
-                          overflowY: "hidden",
-                        }}
-                        value={pendingText}
-                      />
-                    )}
-                  </div>
-
-                  {/* Submit button wrapper */}
                   <div
                     style={{
                       display: "flex",
-                      alignItems: "flex-end",
-                      justifyContent: "center",
-                      padding: "8px",
-                      alignSelf: "stretch",
+                      alignItems: "flex-start",
+                      width: "100%",
                     }}
                   >
-                    <button
-                      disabled={!hasUsableInput && !isLoading}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (isLoading) {
-                          // TODO: Implement stop functionality
-                        } else if (hasUsableInput) {
-                          handleSubmit(e as unknown as React.FormEvent);
-                        }
-                      }}
+                    {/* Input field area */}
+                    <div
                       style={{
-                        width: "44px",
-                        height: "44px",
+                        flex: 1,
                         display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        background:
-                          hasUsableInput || isLoading
-                            ? "rgba(255, 255, 255, 0.06)"
-                            : "rgba(0, 0, 0, 0.3)",
-                        border: "none",
-                        borderRadius: "9999px",
-                        cursor:
-                          hasUsableInput || isLoading
-                            ? "pointer"
-                            : "not-allowed",
-                        outline: "none",
-                        transition: "all 0.2s ease",
-                        boxShadow:
-                          hasUsableInput || isLoading
-                            ? "0px 4px 8px 0px rgba(0, 0, 0, 0.04), 0px 2px 4px 0px rgba(0, 0, 0, 0.02)"
-                            : "none",
-                        mixBlendMode:
-                          hasUsableInput || isLoading ? "lighten" : "normal",
+                        alignItems: "flex-end",
+                        maxHeight: "368px",
+                        overflow: "hidden",
+                        paddingLeft: "24px",
+                        paddingRight: "16px",
+                        paddingTop: "16px",
+                        paddingBottom: "16px",
                       }}
-                      type="button"
                     >
-                      {isLoading ? (
-                        <img
-                          alt="Stop"
-                          height={24}
-                          src="/send_stop.svg"
-                          width={24}
-                        />
-                      ) : hasUsableInput ? (
-                        <img
-                          alt="Send"
-                          height={24}
-                          src="/send_enabled.svg"
-                          width={24}
+                      {skillsEnabled ? (
+                        <SkillsInput
+                          className="min-h-[24px] w-full text-base"
+                          onChange={setInput}
+                          onNlpStateChange={setNlpState}
+                          onPendingTextChange={setPendingText}
+                          onSendComplete={handleSendComplete}
+                          onSendFlowChange={setSendFlowState}
+                          onSwapComplete={handleSwapComplete}
+                          onSwapFlowChange={setSwapFlowState}
+                          placeholder="Ask anything"
+                          ref={inputRef}
+                          value={input}
                         />
                       ) : (
-                        <img
-                          alt="Send"
-                          height={24}
-                          src="/send_disabled.svg"
-                          width={24}
+                        <textarea
+                          onChange={(e) => {
+                            setPendingText(e.target.value);
+
+                            // Auto-resize textarea based on content
+                            if (inputRef.current) {
+                              inputRef.current.style.height = "auto";
+                              const scrollHeight =
+                                inputRef.current.scrollHeight;
+                              const maxHeight = 336; // 368 - 32 (padding)
+                              if (scrollHeight > maxHeight) {
+                                inputRef.current.style.height = `${maxHeight}px`;
+                                inputRef.current.style.overflowY = "auto";
+                              } else {
+                                inputRef.current.style.height = `${scrollHeight}px`;
+                                inputRef.current.style.overflowY = "hidden";
+                              }
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            // Allow Shift+Enter to create new lines
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              if (hasUsableInput && !isLoading) {
+                                handleSubmit(e as unknown as React.FormEvent);
+                              }
+                            }
+                          }}
+                          placeholder={
+                            isOnline
+                              ? isChatMode && !isConnected
+                                ? "Please reconnect wallet to continue..."
+                                : "Ask anything"
+                              : "No internet connection..."
+                          }
+                          ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+                          rows={1}
+                          style={{
+                            width: "100%",
+                            padding: "2px 0",
+                            background: "transparent",
+                            border: "none",
+                            color: "white",
+                            fontSize: "16px",
+                            fontFamily: "var(--font-geist-sans), sans-serif",
+                            lineHeight: "24px",
+                            resize: "none",
+                            outline: "none",
+                            overflowY: "hidden",
+                          }}
+                          value={pendingText}
                         />
                       )}
-                    </button>
-                  </div>
-                </div>
-                {skillsEnabled && (
-                  <SkillsSelector
-                    className="px-5 py-2"
-                    nlpState={nlpState}
-                    onSkillSelect={(skill) => {
-                      const currentActiveSkill = input.find(
-                        (s) => s.category === "action"
-                      );
+                    </div>
 
-                      // If null or deselecting the same skill - clear everything
-                      if (
-                        !skill ||
-                        (currentActiveSkill &&
-                          currentActiveSkill.id === skill.id)
-                      ) {
-                        if (inputRef.current && "clear" in inputRef.current) {
-                          (
-                            inputRef.current as HTMLTextAreaElement & {
-                              clear: () => void;
-                            }
-                          ).clear();
-                          setInput([]);
-                        }
-                      } else if (skill.id === "send" || skill.id === "swap") {
-                        // For "send" and "swap" skills, activate NLP mode instead of adding the skill object
+                    {/* Submit button wrapper */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-end",
+                        justifyContent: "center",
+                        padding: "8px",
+                        alignSelf: "stretch",
+                      }}
+                    >
+                      <button
+                        disabled={!hasUsableInput && !isLoading}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (isLoading) {
+                            // TODO: Implement stop functionality
+                          } else if (hasUsableInput) {
+                            handleSubmit(e as unknown as React.FormEvent);
+                          }
+                        }}
+                        style={{
+                          width: "44px",
+                          height: "44px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background:
+                            hasUsableInput || isLoading
+                              ? "rgba(255, 255, 255, 0.06)"
+                              : "rgba(0, 0, 0, 0.3)",
+                          border: "none",
+                          borderRadius: "9999px",
+                          cursor:
+                            hasUsableInput || isLoading
+                              ? "pointer"
+                              : "not-allowed",
+                          outline: "none",
+                          transition: "all 0.2s ease",
+                          boxShadow:
+                            hasUsableInput || isLoading
+                              ? "0px 4px 8px 0px rgba(0, 0, 0, 0.04), 0px 2px 4px 0px rgba(0, 0, 0, 0.02)"
+                              : "none",
+                          mixBlendMode:
+                            hasUsableInput || isLoading ? "lighten" : "normal",
+                        }}
+                        type="button"
+                      >
+                        {isLoading ? (
+                          <img
+                            alt="Stop"
+                            height={24}
+                            src="/send_stop.svg"
+                            width={24}
+                          />
+                        ) : hasUsableInput ? (
+                          <img
+                            alt="Send"
+                            height={24}
+                            src="/send_enabled.svg"
+                            width={24}
+                          />
+                        ) : (
+                          <img
+                            alt="Send"
+                            height={24}
+                            src="/send_disabled.svg"
+                            width={24}
+                          />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  {skillsEnabled && (
+                    <SkillsSelector
+                      className="px-5 py-2"
+                      nlpState={nlpState}
+                      onSkillSelect={(skill) => {
+                        const currentActiveSkill = input.find(
+                          (s) => s.category === "action"
+                        );
+
+                        // If null or deselecting the same skill - clear everything
                         if (
-                          inputRef.current &&
-                          "activateNlpMode" in inputRef.current
+                          !skill ||
+                          (currentActiveSkill &&
+                            currentActiveSkill.id === skill.id)
                         ) {
-                          (inputRef.current as any).activateNlpMode(
-                            `${skill.id} `
-                          );
+                          if (inputRef.current && "clear" in inputRef.current) {
+                            (
+                              inputRef.current as HTMLTextAreaElement & {
+                                clear: () => void;
+                              }
+                            ).clear();
+                            setInput([]);
+                          }
+                        } else if (skill.id === "send" || skill.id === "swap") {
+                          // For "send" and "swap" skills, activate NLP mode instead of adding the skill object
+                          if (
+                            inputRef.current &&
+                            "activateNlpMode" in inputRef.current
+                          ) {
+                            (inputRef.current as any).activateNlpMode(
+                              `${skill.id} `
+                            );
+                          }
+                        } else {
+                          // For other skills, use the old flow
+                          // Reset all state and add the selected skill
+                          if (
+                            inputRef.current &&
+                            "resetAndAddSkill" in inputRef.current
+                          ) {
+                            (
+                              inputRef.current as HTMLTextAreaElement & {
+                                resetAndAddSkill: (skill: LoyalSkill) => void;
+                              }
+                            ).resetAndAddSkill(skill);
+                          }
                         }
-                      } else {
-                        // For other skills, use the old flow
-                        // Reset all state and add the selected skill
-                        if (
-                          inputRef.current &&
-                          "resetAndAddSkill" in inputRef.current
-                        ) {
-                          (
-                            inputRef.current as HTMLTextAreaElement & {
-                              resetAndAddSkill: (skill: LoyalSkill) => void;
-                            }
-                          ).resetAndAddSkill(skill);
-                        }
+                      }}
+                      selectedSkillId={
+                        input.find((skill) => skill.category === "action")?.id
                       }
-                    }}
-                    selectedSkillId={
-                      input.find((skill) => skill.category === "action")?.id
-                    }
-                  />
-                )}
-              </div>
-            </form>
+                    />
+                  )}
+                </div>
+              </form>
             </div>
           </div>
         </div>
@@ -2634,108 +2591,6 @@ export default function LandingPage() {
         </div>
       )}
 
-      {/* Wallet disconnection warning overlay */}
-      {isChatMode && !isConnected && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 90,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "1rem",
-            backgroundColor: "rgba(0, 0, 0, 0.85)",
-            backdropFilter: "blur(12px)",
-            animation: "fadeIn 0.3s ease-out",
-          }}
-        >
-          <div
-            style={{
-              maxWidth: "500px",
-              width: "100%",
-              background: "rgba(255, 68, 68, 0.1)",
-              backdropFilter: "blur(20px)",
-              border: "1px solid rgba(255, 68, 68, 0.3)",
-              borderRadius: "20px",
-              padding: "2rem",
-              boxShadow:
-                "0 20px 60px 0 rgba(255, 68, 68, 0.2), " +
-                "inset 0 2px 4px rgba(255, 255, 255, 0.15)",
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "3rem",
-                marginBottom: "1rem",
-                animation: "pulse 2s ease-in-out infinite",
-              }}
-            >
-              ⚠️
-            </div>
-            <h3
-              style={{
-                fontSize: "1.5rem",
-                fontWeight: 600,
-                color: "#fff",
-                marginBottom: "1rem",
-              }}
-            >
-              Wallet Disconnected
-            </h3>
-            <p
-              style={{
-                color: "rgba(255, 255, 255, 0.9)",
-                fontSize: "1rem",
-                lineHeight: 1.6,
-                marginBottom: "1.5rem",
-              }}
-            >
-              Your wallet has been disconnected. Please reconnect to continue
-              your conversation.
-            </p>
-            <button
-              onClick={() => open()}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(255, 68, 68, 0.3)";
-                e.currentTarget.style.border =
-                  "1px solid rgba(255, 68, 68, 0.5)";
-                e.currentTarget.style.transform = "translateY(-1px)";
-                e.currentTarget.style.boxShadow =
-                  "0 6px 24px 0 rgba(255, 68, 68, 0.3), " +
-                  "inset 0 1px 2px rgba(255, 255, 255, 0.15)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(255, 68, 68, 0.2)";
-                e.currentTarget.style.border =
-                  "1px solid rgba(255, 68, 68, 0.4)";
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow =
-                  "0 4px 20px 0 rgba(255, 68, 68, 0.2), " +
-                  "inset 0 1px 2px rgba(255, 255, 255, 0.1)";
-              }}
-              style={{
-                padding: "0.875rem 2rem",
-                fontSize: "1rem",
-                fontWeight: 600,
-                color: "#fff",
-                background: "rgba(255, 68, 68, 0.2)",
-                backdropFilter: "blur(10px)",
-                border: "1px solid rgba(255, 68, 68, 0.4)",
-                borderRadius: "12px",
-                cursor: "pointer",
-                transition: "all 0.3s ease",
-                boxShadow:
-                  "0 4px 20px 0 rgba(255, 68, 68, 0.2), " +
-                  "inset 0 1px 2px rgba(255, 255, 255, 0.1)",
-              }}
-            >
-              Reconnect Wallet
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Modal for testers message */}
       {isModalOpen && (

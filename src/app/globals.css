@@ -695,50 +695,78 @@
     color: #fff !important;
   }
 
-  /* Streamdown Table Styles */
+  /* Streamdown Table Styles - Matching Figma design */
+  [data-streamdown="table"],
+  [data-streamdown="table"] * {
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+
   [data-streamdown="table"] {
     width: 100% !important;
     border-collapse: collapse !important;
-    font-size: 16px !important;
+    font-family: "Geist", sans-serif !important;
+    font-size: 14px !important;
     line-height: 20px !important;
     margin: 8px 0 !important;
-    background: transparent !important;
     border: none !important;
+    border-spacing: 0 !important;
   }
 
   [data-streamdown="table"] thead {
+    border: none !important;
+  }
+
+  [data-streamdown="table"] thead tr {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
   }
 
   [data-streamdown="table"] th {
     padding: 8px 8px 8px 0 !important;
     text-align: left !important;
-    font-weight: 600 !important;
-    font-size: 16px !important;
+    font-family: "Geist", sans-serif !important;
+    font-weight: 500 !important;
+    font-size: 14px !important;
     line-height: 20px !important;
     color: #fff !important;
-    background: transparent !important;
     border: none !important;
+    height: 36px !important;
+    vertical-align: middle !important;
+  }
+
+  [data-streamdown="table"] tbody {
+    border: none !important;
+  }
+
+  [data-streamdown="table"] tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    height: 36px !important;
+  }
+
+  [data-streamdown="table"] tbody tr:last-child {
+    border-bottom: none !important;
   }
 
   [data-streamdown="table"] td {
     padding: 8px 8px 8px 0 !important;
-    font-size: 16px !important;
+    font-family: "Geist", sans-serif !important;
+    font-weight: 400 !important;
+    font-size: 14px !important;
     line-height: 20px !important;
-    color: rgba(255, 255, 255, 0.8) !important;
-    background: transparent !important;
+    color: #fff !important;
     border: none !important;
+    height: 36px !important;
+    vertical-align: middle !important;
   }
 
   [data-streamdown="table"] tr {
     border: none !important;
   }
 
-  [data-streamdown="table"] tbody tr {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-  }
-
-  [data-streamdown="table"] tbody tr:last-child {
-    border-bottom: none !important;
+  /* Remove any alternating row backgrounds */
+  [data-streamdown="table"] tr:nth-child(odd),
+  [data-streamdown="table"] tr:nth-child(even) {
+    background: transparent !important;
+    background-color: transparent !important;
   }
 }
