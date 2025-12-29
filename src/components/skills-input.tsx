@@ -1568,7 +1568,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
           <textarea
             {...props}
             className={cn(
-              "resize-none overflow-hidden bg-transparent text-white outline-none placeholder:text-white/50",
+              "resize-none overflow-hidden bg-transparent text-white outline-none placeholder:text-white/60",
               isSendComplete || isSwapComplete
                 ? "h-0 w-0 min-w-0"
                 : getPlaceholder()
@@ -1580,6 +1580,13 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             placeholder={getPlaceholder()}
             ref={textareaRef}
             rows={1}
+            style={{
+              padding: "2px 0",
+              border: "none",
+              fontSize: "16px",
+              fontFamily: "var(--font-geist-sans), sans-serif",
+              lineHeight: "24px",
+            }}
             value={pendingInput}
           />
           {(walletAddressError || amountError) && (
