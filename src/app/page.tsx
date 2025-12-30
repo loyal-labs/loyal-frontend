@@ -1503,10 +1503,10 @@ export default function LandingPage() {
                 </button>
               </div>
 
-              {/* Wallet Button - Bottom (only visible in chat mode when connected) */}
+              {/* Wallet Button - Bottom (only visible in chat mode when connected, hidden on mobile) */}
               {isChatMode && isConnected && (
                 <button
-                  className="sidebar-icon-btn"
+                  className="sidebar-icon-btn sidebar-wallet-btn"
                   onClick={() => open()}
                   style={{
                     width: "36px",
@@ -3131,6 +3131,16 @@ export default function LandingPage() {
         .chat-messages-container {
           scrollbar-width: thin;
           scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+        }
+
+        /* Mobile styles for chat */
+        @media (max-width: 767px) {
+          .chat-messages-container {
+            padding-left: 56px !important;
+          }
+          .sidebar-wallet-btn {
+            display: none !important;
+          }
         }
       `}</style>
     </main>
