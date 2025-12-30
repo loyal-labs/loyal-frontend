@@ -158,6 +158,7 @@ function RoadmapSectionComponent() {
         <div style={{ position: "relative" }}>
           {/* Navigation buttons - inside relative container for proper positioning */}
           <button
+            className="desktop-nav-btn"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -210,6 +211,7 @@ function RoadmapSectionComponent() {
             </svg>
           </button>
           <button
+            className="desktop-nav-btn"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -348,8 +350,13 @@ function RoadmapSectionComponent() {
                 />
               </svg>
             </div>
-            {/* CSS for hiding mobile chevrons on desktop */}
+            {/* CSS for responsive navigation */}
             <style jsx>{`
+              @media (max-width: 767px) {
+                .desktop-nav-btn {
+                  display: none !important;
+                }
+              }
               @media (min-width: 768px) {
                 .mobile-nav-chevron {
                   display: none;
