@@ -598,23 +598,7 @@ export default function LandingPage() {
 
       if (inputNaturalCenterFromTop < stickThreshold) {
         setIsInputStuckToBottom(true);
-
-        // Check if we're near the copyright - adjust bottom offset to stay above it
-        const copyright = document.getElementById("footer-copyright");
-        const copyrightTop =
-          copyright?.getBoundingClientRect().top ?? viewportHeight;
-        const defaultBottomPadding = 24; // Same as header top padding
-
-        // If copyright is visible, push input up to stay above it
-        if (copyrightTop < viewportHeight) {
-          const requiredBottom =
-            viewportHeight - copyrightTop + defaultBottomPadding;
-          setStickyInputBottomOffset(
-            Math.max(requiredBottom, defaultBottomPadding)
-          );
-        } else {
-          setStickyInputBottomOffset(defaultBottomPadding);
-        }
+        setStickyInputBottomOffset(24);
       } else {
         setIsInputStuckToBottom(false);
         setStickyInputBottomOffset(24);

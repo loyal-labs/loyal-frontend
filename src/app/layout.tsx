@@ -28,13 +28,10 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon.png", sizes: "192x192", type: "image/png" },
-      { url: "/favicon.png", rel: "icon", type: "image/png" },
-      { url: "/favicon.ico", rel: "icon" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
     ],
-    shortcut: "/favicon.png",
-    apple: [{ url: "/favicon.png", sizes: "180x180" }],
+    shortcut: "/favicon.svg",
+    apple: [{ url: "/favicon.svg" }],
   },
   openGraph: {
     type: "website",

@@ -120,6 +120,7 @@ export function Footer() {
       }}
     >
       <div
+        className="footer-content"
         style={{
           maxWidth: "1200px",
           margin: "0 auto",
@@ -157,6 +158,7 @@ export function Footer() {
                 justifyContent: "center",
                 width: "3rem",
                 height: "3rem",
+                flexShrink: 0,
                 borderRadius: "50%",
                 background: "rgba(255, 255, 255, 0.08)",
                 backdropFilter: "blur(20px)",
@@ -240,7 +242,7 @@ export function Footer() {
               fontWeight: 400,
               textAlign: "center",
               background:
-                "linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%)",
+                "linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               backgroundClip: "text",
@@ -284,6 +286,13 @@ export function Footer() {
           />
         </div>
       </div>
+      <style jsx>{`
+        @media (max-width: 767px) {
+          .footer-content {
+            padding-bottom: 12rem !important;
+          }
+        }
+      `}</style>
     </footer>
   );
 }
