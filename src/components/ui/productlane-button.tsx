@@ -1,15 +1,17 @@
 "use client";
 
+import { MessageCircleQuestion } from "lucide-react";
+
 export function ProductlaneButton() {
   const handleClick = () => {
     if (typeof window !== "undefined" && window.Productlane) {
-      window.Productlane.open("CHANGELOG");
+      window.Productlane.open("INDEX");
     }
   };
 
   return (
     <button
-      aria-label="View changelog"
+      aria-label="Feedback and support"
       onClick={handleClick}
       style={{
         position: "fixed",
@@ -32,21 +34,7 @@ export function ProductlaneButton() {
       }}
       type="button"
     >
-      <svg
-        aria-hidden="true"
-        fill="none"
-        height="24"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-        viewBox="0 0 24 24"
-        width="24"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path d="m3 11 18-5v12L3 14v-3z" />
-        <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
-      </svg>
+      <MessageCircleQuestion size={24} />
     </button>
   );
 }
