@@ -1,6 +1,6 @@
 "use client";
 
-import { Repeat2, Send } from "lucide-react";
+import { Repeat2, Send, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { AVAILABLE_SKILLS, type LoyalSkill } from "@/types/skills";
@@ -10,6 +10,7 @@ const ACTION_SKILLS = AVAILABLE_SKILLS.filter((s) => s.category === "action");
 type SkillsSelectorProps = {
   selectedSkillId?: string;
   onSkillSelect: (skill: LoyalSkill | null) => void;
+  onClose?: () => void;
   className?: string;
   nlpState?: {
     isActive: boolean;
@@ -44,6 +45,7 @@ const getSkillIcon = (skillId: string) => {
 export function SkillsSelector({
   selectedSkillId,
   onSkillSelect,
+  onClose,
   className,
   nlpState,
 }: SkillsSelectorProps) {
@@ -93,6 +95,18 @@ export function SkillsSelector({
             <Send className="h-4 w-4 opacity-80" />
           )}
           {isSwap ? "Swap" : "Send"}
+          {onClose && (
+            <button
+              className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-white/10 transition-all hover:bg-white/20"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
+              type="button"
+            >
+              <X className="h-2.5 w-2.5" />
+            </button>
+          )}
         </span>
 
         {/* Amount Pill */}

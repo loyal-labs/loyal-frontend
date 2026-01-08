@@ -139,7 +139,7 @@ export default function LandingPage() {
   const navItemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   // Wallet hooks
-  const { isConnected } = usePhantom();
+  const { isConnected, isLoading: isWalletLoading } = usePhantom();
   const { open } = useModal();
   const accounts = useAccounts();
   const solanaAddress = accounts?.find(
@@ -154,12 +154,17 @@ export default function LandingPage() {
   const [hasPromptedAuth, setHasPromptedAuth] = useState(false);
 
   // Prompt auth on first character typed (works for both SkillsInput and textarea)
+  // Wait until wallet loading is complete to avoid false triggers during initialization
   useEffect(() => {
-    if (!(hasPromptedAuth || isConnected) && pendingText.length > 0) {
+    if (
+      !isWalletLoading &&
+      !(hasPromptedAuth || isConnected) &&
+      pendingText.length > 0
+    ) {
       setHasPromptedAuth(true);
       open();
     }
-  }, [hasPromptedAuth, isConnected, pendingText, open]);
+  }, [hasPromptedAuth, isConnected, isWalletLoading, pendingText, open]);
 
   // Toggle body class when sidebar opens (for header visibility on mobile)
   useEffect(() => {
@@ -349,11 +354,12 @@ export default function LandingPage() {
   }, [isSidebarOpen]);
 
   // Open Phantom modal when wallet disconnects in chat mode
+  // Wait until wallet loading is complete to avoid false triggers during initialization
   useEffect(() => {
-    if (isChatMode && !isConnected) {
+    if (!isWalletLoading && isChatMode && !isConnected) {
       open();
     }
-  }, [isChatMode, isConnected, open]);
+  }, [isChatMode, isConnected, isWalletLoading, open]);
 
   // Auto-focus on initial load (but not if there's a hash in URL)
   useEffect(() => {
@@ -2372,6 +2378,17 @@ export default function LandingPage() {
                 <div style={{ pointerEvents: "auto", marginBottom: "12px" }}>
                   <SkillsSelector
                     nlpState={nlpState}
+                    onClose={() => {
+                      if (inputRef.current && "clear" in inputRef.current) {
+                        (
+                          inputRef.current as HTMLTextAreaElement & {
+                            clear: () => void;
+                          }
+                        ).clear();
+                        setInput([]);
+                        setPendingText("");
+                      }
+                    }}
                     onSkillSelect={(skill) => {
                       const currentActiveSkill = input.find(
                         (s) => s.category === "action"
@@ -2663,6 +2680,17 @@ export default function LandingPage() {
                   <SkillsSelector
                     className="mt-4"
                     nlpState={nlpState}
+                    onClose={() => {
+                      if (inputRef.current && "clear" in inputRef.current) {
+                        (
+                          inputRef.current as HTMLTextAreaElement & {
+                            clear: () => void;
+                          }
+                        ).clear();
+                        setInput([]);
+                        setPendingText("");
+                      }
+                    }}
                     onSkillSelect={(skill) => {
                       const currentActiveSkill = input.find(
                         (s) => s.category === "action"
