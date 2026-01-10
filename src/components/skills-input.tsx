@@ -72,6 +72,7 @@ export type SkillsInputRef = HTMLTextAreaElement & {
   resetAndAddSkill: (skill: LoyalSkill) => void;
   clear: () => void;
   activateNlpMode: (initialText?: string) => void;
+  setText: (text: string) => void;
 };
 
 const ACTION_SKILLS = AVAILABLE_SKILLS.filter((s) => s.category === "action");
@@ -475,6 +476,16 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
               }, 0);
             };
           }
+          if (prop === "setText") {
+            return (text: string) => {
+              setPendingInput(text);
+              // Focus and move cursor to end
+              setTimeout(() => {
+                textarea.focus();
+                textarea.setSelectionRange(text.length, text.length);
+              }, 0);
+            };
+          }
           const value = target[prop as keyof HTMLTextAreaElement];
           return typeof value === "function" ? value.bind(target) : value;
         },
@@ -483,7 +494,8 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             prop === "clear" ||
             prop === "addSkill" ||
             prop === "resetAndAddSkill" ||
-            prop === "activateNlpMode"
+            prop === "activateNlpMode" ||
+            prop === "setText"
           ) {
             return true;
           }

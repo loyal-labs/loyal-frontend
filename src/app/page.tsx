@@ -365,11 +365,29 @@ export default function LandingPage() {
     const params = new URLSearchParams(window.location.search);
     const reqParam = params.get("req");
     if (reqParam) {
+      // Update parent state immediately for form submission logic
       setPendingText(reqParam);
-      // Focus the input after setting the text
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
+
+      // Try to set the input text, with retry if ref not ready
+      const setInputText = () => {
+        if (inputRef.current?.setText) {
+          inputRef.current.setText(reqParam);
+          return true;
+        }
+        return false;
+      };
+
+      // Try immediately, then retry after short delays if needed
+      if (!setInputText()) {
+        const timer1 = setTimeout(setInputText, 100);
+        const timer2 = setTimeout(setInputText, 300);
+        const timer3 = setTimeout(setInputText, 500);
+        return () => {
+          clearTimeout(timer1);
+          clearTimeout(timer2);
+          clearTimeout(timer3);
+        };
+      }
     }
   }, []);
 
