@@ -315,7 +315,7 @@ export function useSwap() {
 
       logger.debug("Transaction sent:", result.signature);
       logger.debug(
-        `View transaction: https://solscan.io/tx/${result.signature}?cluster=mainnet`
+        `View transaction: https://orbmarkets.io/tx/${result.signature}?tab=summary`
       );
 
       // Step 4: Confirm transaction with proper strategy

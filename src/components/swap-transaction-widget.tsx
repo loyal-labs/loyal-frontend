@@ -213,7 +213,7 @@ export function SwapTransactionWidget({
           </span>
           {result?.signature && (
             <a
-              href={`https://solscan.io/tx/${result.signature}`}
+              href={`https://orbmarkets.io/tx/${result.signature}?tab=summary`}
               rel="noopener noreferrer"
               style={{
                 color: "rgba(255, 255, 255, 0.6)",
@@ -222,7 +222,7 @@ export function SwapTransactionWidget({
               }}
               target="_blank"
             >
-              View on Solscan →
+              View on Orbmarkets →
             </a>
           )}
         </div>
