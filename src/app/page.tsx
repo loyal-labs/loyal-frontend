@@ -265,6 +265,7 @@ export default function LandingPage() {
     currencyDecimals: number | null;
     amount: string;
     walletAddress: string;
+    destinationType: "wallet" | "telegram";
   } | null>(null);
   const pendingSendDataRef = useRef<{
     currency: string;
@@ -272,6 +273,7 @@ export default function LandingPage() {
     currencyDecimals: number | null;
     amount: string;
     walletAddress: string;
+    destinationType: "wallet" | "telegram";
   } | null>(null);
 
   // NLP State
@@ -284,6 +286,7 @@ export default function LandingPage() {
       currencyMint: string | null;
       currencyDecimals: number | null;
       walletAddress: string | null;
+      destinationType: "wallet" | "telegram" | null;
       toCurrency: string | null;
       toCurrencyMint: string | null;
       toCurrencyDecimals: number | null;
@@ -297,6 +300,7 @@ export default function LandingPage() {
       currencyMint: null,
       currencyDecimals: null,
       walletAddress: null,
+      destinationType: null,
       toCurrency: null,
       toCurrencyMint: null,
       toCurrencyDecimals: null,
@@ -703,6 +707,7 @@ export default function LandingPage() {
     currencyDecimals: number | null;
     amount: string;
     walletAddress: string;
+    destinationType: "wallet" | "telegram";
   }) => {
     // Store in ref immediately (synchronous) for Enter key handling
     pendingSendDataRef.current = sendData;
@@ -876,8 +881,34 @@ export default function LandingPage() {
         isNlpSend &&
         nlpState?.parsedData.amount &&
         nlpState?.parsedData.currency &&
-        nlpState?.parsedData.walletAddress
+        nlpState?.parsedData.walletAddress &&
+        nlpState?.parsedData.destinationType
       ) {
+        // Validate SOL-only for telegram destinations
+        if (
+          nlpState.parsedData.destinationType === "telegram" &&
+          nlpState.parsedData.currency.toUpperCase() !== "SOL"
+        ) {
+          // Block the transaction - only SOL can be sent to Telegram usernames
+          // Clear input and show error via chat
+          inputRef.current?.clear();
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `error-${Date.now()}`,
+              role: "assistant",
+              createdAt: Date.now(),
+              parts: [
+                {
+                  type: "text",
+                  text: "Only SOL can be sent to Telegram usernames. Please use a wallet address for other tokens.",
+                },
+              ],
+            },
+          ]);
+          return;
+        }
+
         // Construct sendData from nlpState
         sendData = {
           amount: nlpState.parsedData.amount,
@@ -885,21 +916,24 @@ export default function LandingPage() {
           currencyMint: nlpState.parsedData.currencyMint,
           currencyDecimals: nlpState.parsedData.currencyDecimals,
           walletAddress: nlpState.parsedData.walletAddress,
+          destinationType: nlpState.parsedData.destinationType,
         };
         // Update ref just in case
         pendingSendDataRef.current = sendData;
       }
 
       if ((hasSendSkill || isNlpSend) && sendData) {
-        // Truncate wallet address for display (keep first 6 and last 4 chars)
-        const truncatedAddress =
-          sendData.walletAddress.length > 12
-            ? `${sendData.walletAddress.slice(
-                0,
-                6
-              )}...${sendData.walletAddress.slice(-4)}`
-            : sendData.walletAddress;
-        const sendMessage = `Send ${sendData.amount} ${sendData.currency} to ${truncatedAddress}`;
+        // Format recipient for display
+        const displayRecipient =
+          sendData.destinationType === "telegram"
+            ? `@${sendData.walletAddress}`
+            : sendData.walletAddress.length > 12
+              ? `${sendData.walletAddress.slice(
+                  0,
+                  6
+                )}...${sendData.walletAddress.slice(-4)}`
+              : sendData.walletAddress;
+        const sendMessage = `Send ${sendData.amount} ${sendData.currency} to ${displayRecipient}`;
         const timestamp = Date.now();
 
         // Add user's send message to chat
@@ -1113,6 +1147,7 @@ export default function LandingPage() {
         pendingSendData.currency,
         pendingSendData.amount,
         pendingSendData.walletAddress,
+        pendingSendData.destinationType,
         pendingSendData.currencyMint || undefined,
         pendingSendData.currencyDecimals || undefined
       );
@@ -2610,7 +2645,8 @@ export default function LandingPage() {
                               if (
                                 nlpState.parsedData.amount &&
                                 nlpState.parsedData.currency &&
-                                nlpState.parsedData.walletAddress
+                                nlpState.parsedData.walletAddress &&
+                                nlpState.parsedData.destinationType
                               ) {
                                 handleSendComplete({
                                   currency: nlpState.parsedData.currency,
@@ -2621,6 +2657,8 @@ export default function LandingPage() {
                                   amount: nlpState.parsedData.amount,
                                   walletAddress:
                                     nlpState.parsedData.walletAddress,
+                                  destinationType:
+                                    nlpState.parsedData.destinationType,
                                 });
                               }
                             } else if (

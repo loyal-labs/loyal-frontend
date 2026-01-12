@@ -42,6 +42,7 @@ type SkillsInputProps = Omit<
       currencyDecimals: number | null;
       amount: string | null;
       walletAddress: string | null;
+      destinationType: "wallet" | "telegram" | null;
     };
   }) => void;
   onSendComplete?: (data: {
@@ -50,6 +51,7 @@ type SkillsInputProps = Omit<
     currencyDecimals: number | null;
     amount: string;
     walletAddress: string;
+    destinationType: "wallet" | "telegram";
   }) => void;
   onNlpStateChange?: (state: {
     isActive: boolean;
@@ -60,6 +62,7 @@ type SkillsInputProps = Omit<
       currencyMint: string | null;
       currencyDecimals: number | null;
       walletAddress: string | null;
+      destinationType: "wallet" | "telegram" | null;
       toCurrency: string | null;
       toCurrencyMint: string | null;
       toCurrencyDecimals: number | null;
@@ -113,6 +116,10 @@ const SWAP_TARGET_TOKENS: LoyalSkill[] = [
 
 // Solana address validation regex (base58, 32-44 characters)
 const SOLANA_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+
+// Telegram username validation regex (5-32 chars, alphanumeric + underscore, must start with letter)
+// REQUIRES @ prefix to distinguish from token tickers like "USDT"
+const TELEGRAM_USERNAME_REGEX = /^@[a-zA-Z][a-zA-Z0-9_]{4,31}$/;
 
 // Strict numeric format regex - allows integers and decimals like 123, 123.45
 const NUMERIC_FORMAT_REGEX = /^\d+(\.\d+)?$/;
@@ -244,12 +251,14 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       currencyDecimals: number | null;
       amount: string | null;
       walletAddress: string | null;
+      destinationType: "wallet" | "telegram" | null;
     }>({
       currency: null,
       currencyMint: null,
       currencyDecimals: null,
       amount: null,
       walletAddress: null,
+      destinationType: null,
     });
     const [walletAddressError, setWalletAddressError] = React.useState<
       string | null
@@ -264,6 +273,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       currencyMint: string | null;
       currencyDecimals: number | null;
       walletAddress: string | null;
+      destinationType: "wallet" | "telegram" | null;
       toCurrency: string | null;
       toCurrencyMint: string | null;
       toCurrencyDecimals: number | null;
@@ -273,6 +283,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       currencyMint: null,
       currencyDecimals: null,
       walletAddress: null,
+      destinationType: null,
       toCurrency: null,
       toCurrencyMint: null,
       toCurrencyDecimals: null,
@@ -287,6 +298,14 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
     // Solana address validator
     const isValidSolanaAddress = (address: string): boolean =>
       SOLANA_ADDRESS_REGEX.test(address);
+
+    // Telegram username validator (strips optional @ prefix)
+    const isValidTelegramUsername = (input: string): boolean =>
+      TELEGRAM_USERNAME_REGEX.test(input);
+
+    // Normalize telegram username (remove @ prefix if present)
+    const normalizeTelegramUsername = (input: string): string =>
+      input.startsWith("@") ? input.slice(1) : input;
 
     // Auto-resize textarea on mount and when pendingInput or placeholder changes
     React.useEffect(() => {
@@ -333,8 +352,13 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                 currencyDecimals: null,
                 amount: null,
                 walletAddress: null,
+                destinationType: null,
               });
               setIsDropdownOpen(false);
+
+              // Clear error states
+              setWalletAddressError(null);
+              setAmountError(null);
 
               // Reset NLP state
               setIsNlpMode(false);
@@ -344,6 +368,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                 currencyMint: null,
                 currencyDecimals: null,
                 walletAddress: null,
+                destinationType: null,
                 toCurrency: null,
                 toCurrencyMint: null,
                 toCurrencyDecimals: null,
@@ -357,6 +382,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                   currencyMint: null,
                   currencyDecimals: null,
                   walletAddress: null,
+                  destinationType: null,
                   toCurrency: null,
                   toCurrencyMint: null,
                   toCurrencyDecimals: null,
@@ -390,6 +416,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                 currencyDecimals: null,
                 amount: null,
                 walletAddress: null,
+                destinationType: null,
               });
               setIsDropdownOpen(false);
               setAmountError(null);
@@ -403,6 +430,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                 currencyMint: null,
                 currencyDecimals: null,
                 walletAddress: null,
+                destinationType: null,
                 toCurrency: null,
                 toCurrencyMint: null,
                 toCurrencyDecimals: null,
@@ -416,6 +444,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                   currencyMint: null,
                   currencyDecimals: null,
                   walletAddress: null,
+                  destinationType: null,
                   toCurrency: null,
                   toCurrencyMint: null,
                   toCurrencyDecimals: null,
@@ -459,6 +488,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                   currencyMint: null,
                   currencyDecimals: null,
                   walletAddress: null,
+                  destinationType: null,
                   toCurrency: null,
                   toCurrencyMint: null,
                   toCurrencyDecimals: null,
@@ -577,6 +607,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       let currencyMint: string | null = null;
       let currencyDecimals: number | null = null;
       let walletAddress: string | null = null;
+      let destinationType: "wallet" | "telegram" | null = null;
       let toCurrency: string | null = null;
       let toCurrencyMint: string | null = null;
       let toCurrencyDecimals: number | null = null;
@@ -674,12 +705,20 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         }
       }
 
-      // 3. Find Wallet Address (only for send)
+      // 3. Find Wallet Address or Telegram Username (only for send)
       if (!isSwap) {
         const words = textOriginal.split(/\s+/);
         for (const word of words) {
+          // Check for wallet address first
           if (isValidSolanaAddress(word)) {
             walletAddress = word;
+            destinationType = "wallet";
+            break;
+          }
+          // Check for telegram username (with or without @)
+          if (isValidTelegramUsername(word)) {
+            walletAddress = normalizeTelegramUsername(word);
+            destinationType = "telegram";
             break;
           }
         }
@@ -691,6 +730,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         currencyMint,
         currencyDecimals,
         walletAddress,
+        destinationType,
         toCurrency,
         toCurrencyMint,
         toCurrencyDecimals,
@@ -836,6 +876,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
           currencyDecimals: null,
           amount: null,
           walletAddress: null,
+          destinationType: null,
         });
         setWalletAddressError(null);
         setIsDropdownOpen(false);
@@ -856,14 +897,27 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         if (
           nlpParsedData.amount &&
           nlpParsedData.currency &&
-          nlpParsedData.walletAddress
+          nlpParsedData.walletAddress &&
+          nlpParsedData.destinationType
         ) {
+          // Validate SOL-only for telegram
+          if (
+            nlpParsedData.destinationType === "telegram" &&
+            nlpParsedData.currency.toUpperCase() !== "SOL"
+          ) {
+            setWalletAddressError(
+              "Only SOL can be sent to Telegram usernames."
+            );
+            return;
+          }
+
           const completedSend = {
             currency: nlpParsedData.currency,
             currencyMint: nlpParsedData.currencyMint,
             currencyDecimals: nlpParsedData.currencyDecimals,
             amount: nlpParsedData.amount,
             walletAddress: nlpParsedData.walletAddress,
+            destinationType: nlpParsedData.destinationType,
           };
           onSendComplete?.(completedSend);
           setShouldSubmitForm(true);
@@ -981,6 +1035,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             currencyDecimals: null,
             amount: null,
             walletAddress: null,
+            destinationType: null,
           });
           setSendStep("currency");
           setWalletAddressError(null);
@@ -992,19 +1047,36 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         return;
       }
 
-      // Handle wallet address input during send
+      // Handle wallet address or telegram username input during send
       if (sendStep === "wallet_address") {
         // Prevent default Enter behavior (new line) for wallet address entry
         if (e.key === "Enter") {
           e.preventDefault();
         }
         if (e.key === "Enter" && pendingInput.trim()) {
-          const walletAddress = pendingInput.trim();
+          const input = pendingInput.trim();
 
-          // Validate Solana address
-          if (!isValidSolanaAddress(walletAddress)) {
+          // Determine destination type
+          let recipient: string;
+          let destType: "wallet" | "telegram";
+
+          if (isValidSolanaAddress(input)) {
+            recipient = input;
+            destType = "wallet";
+          } else if (isValidTelegramUsername(input)) {
+            recipient = normalizeTelegramUsername(input);
+            destType = "telegram";
+
+            // Validate SOL-only for telegram
+            if (sendData.currency?.toUpperCase() !== "SOL") {
+              setWalletAddressError(
+                "Only SOL can be sent to Telegram usernames."
+              );
+              return;
+            }
+          } else {
             setWalletAddressError(
-              "Invalid Solana address. Please enter a valid base58-encoded address (32-44 characters)."
+              "Invalid recipient. Enter a Solana address (32-44 chars) or @username for Telegram."
             );
             return;
           }
@@ -1017,11 +1089,13 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             currencyMint: sendData.currencyMint,
             currencyDecimals: sendData.currencyDecimals,
             amount: sendData.amount!,
-            walletAddress,
+            walletAddress: recipient,
+            destinationType: destType,
           };
           setSendData({
             ...sendData,
-            walletAddress,
+            walletAddress: recipient,
+            destinationType: destType,
           });
           setSendStep(null);
           setPendingInput("");
@@ -1031,7 +1105,12 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         } else if (e.key === "Backspace" && pendingInput.length === 0) {
           // If input is empty and user presses backspace, go back to amount
           e.preventDefault();
-          setSendData({ ...sendData, amount: null, walletAddress: null });
+          setSendData({
+            ...sendData,
+            amount: null,
+            walletAddress: null,
+            destinationType: null,
+          });
           setSendStep("amount");
           setPendingInput("");
           setWalletAddressError(null);
@@ -1107,13 +1186,22 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
 
         // Handle send data removal in reverse order
         if (sendData.walletAddress) {
-          // Remove wallet address
-          setSendData({ ...sendData, walletAddress: null });
+          // Remove wallet address and destination type
+          setSendData({
+            ...sendData,
+            walletAddress: null,
+            destinationType: null,
+          });
           setSendStep("wallet_address");
           setPendingInput("");
         } else if (sendData.amount) {
           // Remove amount
-          setSendData({ ...sendData, amount: null, walletAddress: null });
+          setSendData({
+            ...sendData,
+            amount: null,
+            walletAddress: null,
+            destinationType: null,
+          });
           setSendStep("amount");
           setPendingInput("");
         } else if (sendData.currency) {
@@ -1124,6 +1212,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             currencyDecimals: null,
             amount: null,
             walletAddress: null,
+            destinationType: null,
           });
           setSendStep("currency");
           setFilteredSkills(CURRENCY_SKILLS);
@@ -1213,6 +1302,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
               currencyMint: null,
               currencyDecimals: null,
               walletAddress: null,
+              destinationType: null,
               toCurrency: null,
               toCurrencyMint: null,
               toCurrencyDecimals: null,
@@ -1232,6 +1322,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
           currencyMint: null,
           currencyDecimals: null,
           walletAddress: null,
+          destinationType: null,
           toCurrency: null,
           toCurrencyMint: null,
           toCurrencyDecimals: null,
@@ -1245,6 +1336,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             currencyMint: null,
             currencyDecimals: null,
             walletAddress: null,
+            destinationType: null,
             toCurrency: null,
             toCurrencyMint: null,
             toCurrencyDecimals: null,
@@ -1333,7 +1425,9 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         return "Type amount (e.g., 10) then press Enter...";
       }
       if (sendStep === "wallet_address") {
-        return "Type wallet address then press Enter...";
+        return sendData.currency?.toUpperCase() === "SOL"
+          ? "Type wallet address or @username then press Enter..."
+          : "Type wallet address then press Enter...";
       }
 
       // Hide placeholder if there's any content (skills, swap data, send data, or pending text)
@@ -1542,6 +1636,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                   currencyDecimals: null,
                   amount: null,
                   walletAddress: null,
+                  destinationType: null,
                 });
                 setSendStep("currency");
                 setFilteredSkills(CURRENCY_SKILLS);
@@ -1573,6 +1668,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                   ...sendData,
                   amount: null,
                   walletAddress: null,
+                  destinationType: null,
                 });
                 setSendStep("amount");
                 setPendingInput("");
@@ -1590,20 +1686,32 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             className={cn(
               "inline-flex items-center gap-1 rounded-full border px-3 py-1.5 font-medium text-sm",
               "shadow-lg backdrop-blur-[18px]",
-              "border-blue-400/40 bg-blue-400/25 text-white"
+              sendData.destinationType === "telegram"
+                ? "border-purple-400/40 bg-purple-400/25 text-white"
+                : "border-blue-400/40 bg-blue-400/25 text-white"
             )}
-            title={sendData.walletAddress}
+            title={
+              sendData.destinationType === "telegram"
+                ? `@${sendData.walletAddress}`
+                : sendData.walletAddress
+            }
           >
-            {sendData.walletAddress.length > 12
-              ? `${sendData.walletAddress.slice(
-                  0,
-                  6
-                )}...${sendData.walletAddress.slice(-4)}`
-              : sendData.walletAddress}
+            {sendData.destinationType === "telegram"
+              ? `@${sendData.walletAddress}`
+              : sendData.walletAddress.length > 12
+                ? `${sendData.walletAddress.slice(
+                    0,
+                    6
+                  )}...${sendData.walletAddress.slice(-4)}`
+                : sendData.walletAddress}
             <button
               className="ml-1 h-3 w-3 cursor-pointer border-0 bg-transparent p-0 transition-transform duration-200 hover:scale-125"
               onClick={() => {
-                setSendData({ ...sendData, walletAddress: null });
+                setSendData({
+                  ...sendData,
+                  walletAddress: null,
+                  destinationType: null,
+                });
                 setSendStep("wallet_address");
                 setPendingInput("");
                 setWalletAddressError(null);
