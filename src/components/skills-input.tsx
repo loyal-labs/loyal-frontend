@@ -356,6 +356,10 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
               });
               setIsDropdownOpen(false);
 
+              // Clear error states
+              setWalletAddressError(null);
+              setAmountError(null);
+
               // Reset NLP state
               setIsNlpMode(false);
               setNlpParsedData({

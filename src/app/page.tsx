@@ -884,6 +884,31 @@ export default function LandingPage() {
         nlpState?.parsedData.walletAddress &&
         nlpState?.parsedData.destinationType
       ) {
+        // Validate SOL-only for telegram destinations
+        if (
+          nlpState.parsedData.destinationType === "telegram" &&
+          nlpState.parsedData.currency.toUpperCase() !== "SOL"
+        ) {
+          // Block the transaction - only SOL can be sent to Telegram usernames
+          // Clear input and show error via chat
+          inputRef.current?.clear();
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `error-${Date.now()}`,
+              role: "assistant",
+              createdAt: Date.now(),
+              parts: [
+                {
+                  type: "text",
+                  text: "Only SOL can be sent to Telegram usernames. Please use a wallet address for other tokens.",
+                },
+              ],
+            },
+          ]);
+          return;
+        }
+
         // Construct sendData from nlpState
         sendData = {
           amount: nlpState.parsedData.amount,
