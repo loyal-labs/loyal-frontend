@@ -1,7 +1,15 @@
 "use client";
 
-import { ArrowDown, CheckCircle2, Loader2, XCircle } from "lucide-react";
+import {
+  ArrowDown,
+  CheckCircle2,
+  Copy,
+  Loader2,
+  XCircle,
+} from "lucide-react";
 import { useState } from "react";
+
+const TELEGRAM_CLAIM_URL = "https://t.me/askloyal_tgbot/app";
 
 export type SendTransactionData = {
   currency: string;
@@ -31,6 +39,25 @@ export function SendTransactionWidget({
   result = null,
 }: SendTransactionWidgetProps) {
   const [isExecuting, setIsExecuting] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyClaimUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(TELEGRAM_CLAIM_URL);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = TELEGRAM_CLAIM_URL;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const handleApprove = async () => {
     setIsExecuting(true);
@@ -236,6 +263,60 @@ export function SendTransactionWidget({
             </a>
           )}
         </div>
+
+        {/* Telegram claim URL - only shown for telegram destinations */}
+        {sendData.destinationType === "telegram" && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "8px 12px",
+              background: "rgba(255, 255, 255, 0.06)",
+              borderRadius: "8px",
+              marginTop: "4px",
+            }}
+          >
+            <span
+              style={{
+                color: "rgba(255, 255, 255, 0.8)",
+                fontSize: "13px",
+                flex: 1,
+              }}
+            >
+              Receiver can claim at{" "}
+              <a
+                href={TELEGRAM_CLAIM_URL}
+                rel="noopener noreferrer"
+                style={{
+                  color: "#28c281",
+                  textDecoration: "none",
+                }}
+                target="_blank"
+              >
+                t.me/askloyal_tgbot/app
+              </a>
+            </span>
+            <button
+              onClick={handleCopyClaimUrl}
+              style={{
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                padding: "4px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: copied ? "#28c281" : "rgba(255, 255, 255, 0.6)",
+                transition: "color 0.2s ease",
+              }}
+              title={copied ? "Copied!" : "Copy URL"}
+              type="button"
+            >
+              <Copy size={14} />
+            </button>
+          </div>
+        )}
       </div>
     );
   }
