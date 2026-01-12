@@ -7,6 +7,7 @@ export type SendTransactionData = {
   currency: string;
   amount: string;
   walletAddress: string;
+  destinationType: "wallet" | "telegram";
 };
 
 type SendTransactionWidgetProps = {
@@ -40,10 +41,17 @@ export function SendTransactionWidget({
     }
   };
 
-  // Truncate wallet address for display
-  const truncatedAddress =
-    sendData.walletAddress.length > 12
-      ? `${sendData.walletAddress.slice(0, 6)}...${sendData.walletAddress.slice(-4)}`
+  // Format recipient for display
+  const displayRecipient =
+    sendData.destinationType === "telegram"
+      ? `@${sendData.walletAddress}` // Show full username with @ prefix
+      : sendData.walletAddress.length > 12
+        ? `${sendData.walletAddress.slice(0, 6)}...${sendData.walletAddress.slice(-4)}`
+        : sendData.walletAddress;
+
+  const recipientTitle =
+    sendData.destinationType === "telegram"
+      ? `Telegram: @${sendData.walletAddress}`
       : sendData.walletAddress;
 
   // Helper to render the send cards
@@ -152,9 +160,9 @@ export function SendTransactionWidget({
               letterSpacing: "-0.264px",
               fontFamily: "monospace",
             }}
-            title={sendData.walletAddress}
+            title={recipientTitle}
           >
-            {truncatedAddress}
+            {displayRecipient}
           </span>
         </div>
       </div>
@@ -462,9 +470,9 @@ export function SendTransactionWidget({
                 letterSpacing: "-0.264px",
                 fontFamily: "monospace",
               }}
-              title={sendData.walletAddress}
+              title={recipientTitle}
             >
-              {truncatedAddress}
+              {displayRecipient}
             </span>
           </div>
         </div>

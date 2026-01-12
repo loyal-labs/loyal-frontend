@@ -1,3 +1,7 @@
+import {
+  LoyalTransactionsClient,
+  solToLamports,
+} from "@loyal-labs/transactions";
 import { usePhantom, useSolana } from "@phantom/react-sdk";
 import {
   createAssociatedTokenAccountInstruction,
@@ -5,6 +9,7 @@ import {
   getAccount,
   getAssociatedTokenAddress,
 } from "@solana/spl-token";
+import type { Transaction } from "@solana/web3.js";
 import {
   ComputeBudgetProgram,
   LAMPORTS_PER_SOL,
@@ -63,6 +68,7 @@ export function useSend() {
       currency: string,
       amount: string,
       recipientAddress: string,
+      destinationType: "wallet" | "telegram" = "wallet",
       tokenMint?: string,
       tokenDecimals?: number
     ): Promise<SendResult> => {
@@ -76,7 +82,12 @@ export function useSend() {
       setError(null);
 
       try {
-        console.log("Executing send:", { currency, amount, recipientAddress });
+        console.log("Executing send:", {
+          currency,
+          amount,
+          recipientAddress,
+          destinationType,
+        });
 
         // Get the public key from Phantom
         const publicKeyString = await solana.getPublicKey();
@@ -85,15 +96,73 @@ export function useSend() {
         }
         const publicKey = new PublicKey(publicKeyString);
 
-        // Validate recipient address
+        const isSol = currency.toUpperCase() === "SOL";
+
+        // Handle Telegram deposit
+        if (destinationType === "telegram") {
+          // Telegram deposits only support SOL
+          if (!isSol) {
+            throw new Error("Only SOL can be sent to Telegram usernames.");
+          }
+
+          console.log("Executing Telegram deposit:", {
+            username: recipientAddress,
+            amount,
+          });
+
+          // Create wallet adapter for the SDK
+          const walletAdapter = {
+            publicKey,
+            signTransaction: async <
+              T extends Transaction | VersionedTransaction,
+            >(
+              tx: T
+            ): Promise<T> => {
+              const signed = await solana.signTransaction(tx);
+              return signed as T;
+            },
+            signAllTransactions: async <
+              T extends Transaction | VersionedTransaction,
+            >(
+              txs: T[]
+            ): Promise<T[]> => {
+              const signedTxs: T[] = [];
+              for (const tx of txs) {
+                const signed = await solana.signTransaction(tx);
+                signedTxs.push(signed as T);
+              }
+              return signedTxs;
+            },
+          };
+
+          // Create the Loyal Transactions client
+          const client = LoyalTransactionsClient.fromWallet(
+            connection,
+            walletAdapter
+          );
+
+          // Execute the deposit
+          const amountLamports = solToLamports(Number.parseFloat(amount));
+          const result = await client.deposit({
+            username: recipientAddress,
+            amountLamports,
+          });
+
+          console.log("Telegram deposit successful:", result.signature);
+          setLoading(false);
+          return {
+            signature: result.signature,
+            success: true,
+          };
+        }
+
+        // Validate recipient address for wallet transfers
         let recipientPubkey: PublicKey;
         try {
           recipientPubkey = new PublicKey(recipientAddress);
         } catch (err) {
           throw new Error("Invalid recipient wallet address");
         }
-
-        const isSol = currency.toUpperCase() === "SOL";
 
         // Get latest blockhash for the transaction
         const { blockhash, lastValidBlockHeight } =
