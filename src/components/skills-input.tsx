@@ -118,8 +118,8 @@ const SWAP_TARGET_TOKENS: LoyalSkill[] = [
 const SOLANA_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
 // Telegram username validation regex (5-32 chars, alphanumeric + underscore, must start with letter)
-// Allows optional @ prefix which will be stripped
-const TELEGRAM_USERNAME_REGEX = /^@?[a-zA-Z][a-zA-Z0-9_]{4,31}$/;
+// REQUIRES @ prefix to distinguish from token tickers like "USDT"
+const TELEGRAM_USERNAME_REGEX = /^@[a-zA-Z][a-zA-Z0-9_]{4,31}$/;
 
 // Strict numeric format regex - allows integers and decimals like 123, 123.45
 const NUMERIC_FORMAT_REGEX = /^\d+(\.\d+)?$/;
@@ -1072,7 +1072,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             }
           } else {
             setWalletAddressError(
-              "Invalid recipient. Enter a Solana address (32-44 chars) or Telegram username (5-32 chars, starts with letter)."
+              "Invalid recipient. Enter a Solana address (32-44 chars) or @username for Telegram."
             );
             return;
           }
@@ -1421,7 +1421,9 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         return "Type amount (e.g., 10) then press Enter...";
       }
       if (sendStep === "wallet_address") {
-        return "Type wallet address or @username then press Enter...";
+        return sendData.currency?.toUpperCase() === "SOL"
+          ? "Type wallet address or @username then press Enter..."
+          : "Type wallet address then press Enter...";
       }
 
       // Hide placeholder if there's any content (skills, swap data, send data, or pending text)
