@@ -71,6 +71,9 @@ const dirtyline = localFont({
 
 type TimestampedMessage = UIMessage & { createdAt?: number };
 
+// Pattern to detect partial "send" typing for skill hint (s, se, sen, send)
+const SEND_HINT_PATTERN = /^s(e(n(d)?)?)?$/i;
+
 export default function LandingPage() {
   const { messages, sendMessage, status, setMessages } =
     useChat<TimestampedMessage>({
@@ -193,6 +196,25 @@ export default function LandingPage() {
     (pendingText.trim().length > 0 || input.length > 0) &&
     (!swapFlowState?.isActive || swapFlowState?.isComplete) &&
     (!sendFlowState?.isActive || sendFlowState?.isComplete);
+
+  // Detect partial "send" typing for skill hint (s, se, sen, send)
+  const showSendHint =
+    input.length === 0 &&
+    pendingText.length > 0 &&
+    pendingText.length <= 4 &&
+    SEND_HINT_PATTERN.test(pendingText);
+
+  // Auto-activate Send skill when user types "send" fully (simulate typing space)
+  useEffect(() => {
+    if (
+      input.length === 0 &&
+      pendingText.toLowerCase() === "send" &&
+      inputRef.current &&
+      "activateNlpMode" in inputRef.current
+    ) {
+      (inputRef.current as SkillsInputRef).activateNlpMode("send ");
+    }
+  }, [pendingText, input.length]);
 
   // Track timestamps for messages that arrive without metadata
   useEffect(() => {
@@ -2445,6 +2467,7 @@ export default function LandingPage() {
               {skillsEnabled && !isChatMode && isInputStuckToBottom && (
                 <div style={{ pointerEvents: "auto", marginBottom: "12px" }}>
                   <SkillsSelector
+                    hintSkillId={showSendHint ? "send" : undefined}
                     nlpState={nlpState}
                     onClose={() => {
                       if (inputRef.current && "clear" in inputRef.current) {
@@ -2745,6 +2768,7 @@ export default function LandingPage() {
                 <div style={{ pointerEvents: "auto" }}>
                   <SkillsSelector
                     className="mt-4"
+                    hintSkillId={showSendHint ? "send" : undefined}
                     nlpState={nlpState}
                     onClose={() => {
                       if (inputRef.current && "clear" in inputRef.current) {

@@ -12,6 +12,7 @@ type SkillsSelectorProps = {
   onSkillSelect: (skill: LoyalSkill | null) => void;
   onClose?: () => void;
   className?: string;
+  hintSkillId?: string;
   nlpState?: {
     isActive: boolean;
     intent: "send" | "swap" | null;
@@ -47,6 +48,7 @@ export function SkillsSelector({
   onSkillSelect,
   onClose,
   className,
+  hintSkillId,
   nlpState,
 }: SkillsSelectorProps) {
   const handleButtonClick = (skill: LoyalSkill) => {
@@ -177,6 +179,7 @@ export function SkillsSelector({
     <div className={cn("flex gap-2", className)}>
       {ACTION_SKILLS.map((skill) => {
         const isActive = selectedSkillId === skill.id;
+        const isHinted = hintSkillId === skill.id && !isActive;
 
         return (
           <button
@@ -186,6 +189,7 @@ export function SkillsSelector({
               isActive
                 ? "bg-[rgba(58,58,58,0.6)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.08),0px_4px_24px_0px_rgba(0,0,0,0.12)]"
                 : "bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)] hover:bg-[rgba(58,58,58,0.6)]",
+              isHinted && "border border-dashed border-red-400/60",
               "focus:outline-none"
             )}
             key={skill.id}
