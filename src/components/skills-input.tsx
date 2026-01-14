@@ -58,6 +58,7 @@ type SkillsInputProps = Omit<
     intent: "send" | "swap" | null;
     parsedData: {
       amount: string | null;
+      partialAmount: boolean;
       currency: string | null;
       currencyMint: string | null;
       currencyDecimals: number | null;
@@ -123,6 +124,9 @@ const TELEGRAM_USERNAME_REGEX = /^@[a-zA-Z][a-zA-Z0-9_]{4,31}$/;
 
 // Strict numeric format regex - allows integers and decimals like 123, 123.45
 const NUMERIC_FORMAT_REGEX = /^\d+(\.\d+)?$/;
+
+// Pattern to detect partial amount input (e.g., "0" or "0." without complete decimal)
+const PARTIAL_AMOUNT_REGEX = /\b\d+\.?$/;
 
 // Maximum allowed amount (using a reasonable business limit)
 const MAX_AMOUNT = Number.MAX_SAFE_INTEGER;
@@ -269,6 +273,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
     const [isNlpMode, setIsNlpMode] = React.useState(false);
     const [nlpParsedData, setNlpParsedData] = React.useState<{
       amount: string | null;
+      partialAmount: boolean;
       currency: string | null;
       currencyMint: string | null;
       currencyDecimals: number | null;
@@ -279,6 +284,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       toCurrencyDecimals: number | null;
     }>({
       amount: null,
+      partialAmount: false,
       currency: null,
       currencyMint: null,
       currencyDecimals: null,
@@ -364,6 +370,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
               setIsNlpMode(false);
               setNlpParsedData({
                 amount: null,
+                partialAmount: false,
                 currency: null,
                 currencyMint: null,
                 currencyDecimals: null,
@@ -378,6 +385,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                 intent: null,
                 parsedData: {
                   amount: null,
+                  partialAmount: false,
                   currency: null,
                   currencyMint: null,
                   currencyDecimals: null,
@@ -426,6 +434,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
               setIsNlpMode(false);
               setNlpParsedData({
                 amount: null,
+                partialAmount: false,
                 currency: null,
                 currencyMint: null,
                 currencyDecimals: null,
@@ -440,6 +449,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                 intent: null,
                 parsedData: {
                   amount: null,
+                  partialAmount: false,
                   currency: null,
                   currencyMint: null,
                   currencyDecimals: null,
@@ -484,6 +494,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                   : "send",
                 parsedData: {
                   amount: null,
+                  partialAmount: false,
                   currency: null,
                   currencyMint: null,
                   currencyDecimals: null,
@@ -603,6 +614,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       const textOriginal = pendingInput.replace(/^(send|swap)\s*/i, "");
 
       let amount: string | null = null;
+      let partialAmount = false;
       let currency: string | null = null;
       let currencyMint: string | null = null;
       let currencyDecimals: number | null = null;
@@ -619,6 +631,12 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         if (val.isValid) {
           amount = amountMatch[0];
         }
+      }
+
+      // Detect partial amount (number without complete decimal, e.g., "0" or "0.")
+      // Only show hint when no complete amount found yet
+      if (!amount && PARTIAL_AMOUNT_REGEX.test(textLower)) {
+        partialAmount = true;
       }
 
       // 2. Find Currency (From Token) - from wallet tokens
@@ -726,6 +744,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
 
       const newData = {
         amount,
+        partialAmount,
         currency,
         currencyMint,
         currencyDecimals,
@@ -1298,6 +1317,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             intent: isSendStart ? "send" : "swap",
             parsedData: {
               amount: null,
+              partialAmount: false,
               currency: null,
               currencyMint: null,
               currencyDecimals: null,
@@ -1318,6 +1338,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         setIsNlpMode(false);
         setNlpParsedData({
           amount: null,
+          partialAmount: false,
           currency: null,
           currencyMint: null,
           currencyDecimals: null,
@@ -1332,6 +1353,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
           intent: null,
           parsedData: {
             amount: null,
+            partialAmount: false,
             currency: null,
             currencyMint: null,
             currencyDecimals: null,

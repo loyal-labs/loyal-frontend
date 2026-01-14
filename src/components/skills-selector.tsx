@@ -18,6 +18,7 @@ type SkillsSelectorProps = {
     intent: "send" | "swap" | null;
     parsedData: {
       amount: string | null;
+      partialAmount?: boolean;
       currency: string | null;
       currencyMint: string | null;
       currencyDecimals: number | null;
@@ -117,7 +118,9 @@ export function SkillsSelector({
             basePillStyle,
             nlpState.parsedData.amount
               ? cn(filledPillStyle, "bg-[rgba(22,101,52,0.6)]")
-              : emptyPillStyle
+              : nlpState.parsedData.partialAmount
+                ? "border border-dashed border-green-500/60 bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)]"
+                : emptyPillStyle
           )}
         >
           {nlpState.parsedData.amount || "Amount"}
