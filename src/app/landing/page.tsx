@@ -61,10 +61,10 @@ const ChatBotDemo = () => {
   const { connection } = useConnection();
   const anchorWallet = useAnchorWallet();
   const {
-    userContext,
     userChats,
     isLoading: isUserChatsLoading,
     refreshUserChats,
+    ensureUserContext,
   } = useUserChats();
 
   const { messages, sendMessage, status, setMessages } = useChat({
@@ -100,8 +100,8 @@ const ChatBotDemo = () => {
   }, []);
 
   const handleTestCreateChat = useCallback(async () => {
-    if (!(anchorWallet && userContext)) {
-      console.warn("Wallet or context not ready yet");
+    if (!anchorWallet) {
+      console.warn("Wallet not connected");
       return;
     }
     const messageText =
@@ -110,19 +110,22 @@ const ChatBotDemo = () => {
         : `Hello again! (#${userChats.length + 1})`;
     setIsCreatingChat(true);
     try {
-      await createAndUploadChat(
-        connection,
-        anchorWallet,
-        messageText,
-        userContext
-      );
+      // Lazily ensure context exists (creates if needed, triggers signing only once)
+      const context = await ensureUserContext();
+      await createAndUploadChat(connection, anchorWallet, messageText, context);
       await refreshUserChats();
     } catch (error) {
       console.error("Failed to create chat", error);
     } finally {
       setIsCreatingChat(false);
     }
-  }, [anchorWallet, connection, refreshUserChats, userContext, userChats]);
+  }, [
+    anchorWallet,
+    connection,
+    ensureUserContext,
+    refreshUserChats,
+    userChats,
+  ]);
 
   // apply dark mode
   useEffect(() => {
@@ -155,11 +158,7 @@ const ChatBotDemo = () => {
         <div className="relative mx-auto flex h-full max-w-4xl flex-col p-6">
           <button
             className="fixed top-6 right-[10.5rem] z-20 rounded-md border border-white/20 bg-zinc-900 px-3 py-2 font-medium text-white text-xs transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={
-              !(anchorWallet && userContext) ||
-              isCreatingChat ||
-              isUserChatsLoading
-            }
+            disabled={!anchorWallet || isCreatingChat || isUserChatsLoading}
             onClick={handleTestCreateChat}
             type="button"
           >

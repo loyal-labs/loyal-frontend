@@ -24,6 +24,7 @@ type UserChatsContextValue = {
   userChats: UserChat[];
   isLoading: boolean;
   refreshUserChats: () => Promise<void>;
+  ensureUserContext: () => Promise<UserContext>;
 };
 
 const UserChatsContext = createContext<UserChatsContextValue | undefined>(
@@ -52,33 +53,33 @@ export const UserChatsProvider = ({ children }: PropsWithChildren) => {
       setIsLoading(true);
 
       try {
-        let context = await fetchUserContext(connection, anchorWallet);
+        // Only FETCH context, never auto-create (no signing on page load)
+        const context = await fetchUserContext(connection, anchorWallet);
         if (signal?.aborted) return;
 
-        if (!context) {
-          context = await initializeUserContext(connection, anchorWallet);
-        }
+        if (context) {
+          setUserContext(context);
+          const chats =
+            (await fetchAllUserChats(
+              connection,
+              anchorWallet,
+              context.nextChatId
+            )) ?? [];
 
-        if (!context || signal?.aborted) {
-          return;
-        }
-
-        setUserContext(context);
-        const chats =
-          (await fetchAllUserChats(
-            connection,
-            anchorWallet,
-            context.nextChatId
-          )) ?? [];
-
-        if (!signal?.aborted) {
-          setUserChats(chats);
+          if (!signal?.aborted) {
+            setUserChats(chats);
+          }
+        } else {
+          // No context exists - that's fine, user hasn't created one yet
+          // Context will be created lazily when needed (e.g., first chat)
+          setUserContext(null);
+          setUserChats([]);
         }
       } catch (error) {
         if (signal?.aborted) {
           return;
         }
-        console.error("Failed to refresh user chats", error);
+        console.error("Failed to fetch user context:", error);
         setUserContext(null);
         setUserChats([]);
       } finally {
@@ -93,6 +94,26 @@ export const UserChatsProvider = ({ children }: PropsWithChildren) => {
   const refreshUserChats = useCallback(async () => {
     await loadUserChats();
   }, [loadUserChats]);
+
+  const ensureUserContext = useCallback(async (): Promise<UserContext> => {
+    // Return existing context if available
+    if (userContext) return userContext;
+
+    if (!anchorWallet) {
+      throw new Error("Wallet not connected");
+    }
+
+    // Try to fetch from blockchain first
+    let context = await fetchUserContext(connection, anchorWallet);
+
+    if (!context) {
+      // Context doesn't exist - create it now (this triggers signing)
+      context = await initializeUserContext(connection, anchorWallet);
+    }
+
+    setUserContext(context);
+    return context;
+  }, [anchorWallet, connection, userContext]);
 
   useEffect(() => {
     if (!anchorWallet) {
@@ -116,8 +137,9 @@ export const UserChatsProvider = ({ children }: PropsWithChildren) => {
       userChats,
       isLoading,
       refreshUserChats,
+      ensureUserContext,
     }),
-    [isLoading, refreshUserChats, userChats, userContext]
+    [ensureUserContext, isLoading, refreshUserChats, userChats, userContext]
   );
 
   return (
