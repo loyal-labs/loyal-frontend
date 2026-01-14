@@ -578,6 +578,19 @@ export function SendTransactionWidget({
         </div>
       </div>
 
+      {/* Telegram username warning */}
+      {sendData.destinationType === "telegram" && (
+        <span
+          style={{
+            color: "rgba(255, 255, 255, 0.6)",
+            fontSize: "13px",
+            textAlign: "center",
+          }}
+        >
+          Double check the username, it is CaSe-sEnSiTiVe!
+        </span>
+      )}
+
       {/* Action buttons */}
       <div
         style={{
