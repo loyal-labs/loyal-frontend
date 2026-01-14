@@ -7,7 +7,7 @@ import {
   Loader2,
   XCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const TELEGRAM_CLAIM_URL = "https://t.me/askloyal_tgbot/app";
 
@@ -40,6 +40,34 @@ export function SendTransactionWidget({
 }: SendTransactionWidgetProps) {
   const [isExecuting, setIsExecuting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showClaimModal, setShowClaimModal] = useState(false);
+  const [messageCopied, setMessageCopied] = useState(false);
+
+  // Auto-show claim modal on successful Telegram transaction
+  useEffect(() => {
+    if (status === "success" && sendData.destinationType === "telegram") {
+      setShowClaimModal(true);
+    }
+  }, [status, sendData.destinationType]);
+
+  const shareableMessage = `I just sent you ${sendData.amount} ${sendData.currency}, claim now at ${TELEGRAM_CLAIM_URL}!`;
+
+  const handleCopyShareableMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(shareableMessage);
+      setMessageCopied(true);
+      setTimeout(() => setMessageCopied(false), 2000);
+    } catch {
+      const textArea = document.createElement("textarea");
+      textArea.value = shareableMessage;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      setMessageCopied(true);
+      setTimeout(() => setMessageCopied(false), 2000);
+    }
+  };
 
   const handleCopyClaimUrl = async () => {
     try {
@@ -315,6 +343,146 @@ export function SendTransactionWidget({
             >
               <Copy size={14} />
             </button>
+          </div>
+        )}
+
+        {/* Telegram claim modal */}
+        {showClaimModal && sendData.destinationType === "telegram" && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.7)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+              padding: "16px",
+            }}
+          >
+            <div
+              style={{
+                background: "rgba(37, 37, 37, 0.95)",
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+                borderRadius: "20px",
+                padding: "24px",
+                maxWidth: "340px",
+                width: "100%",
+                display: "flex",
+                flexDirection: "column",
+                gap: "16px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                }}
+              >
+                <CheckCircle2 size={24} style={{ color: "#28c281" }} />
+                <span
+                  style={{
+                    color: "white",
+                    fontSize: "18px",
+                    fontWeight: 600,
+                  }}
+                >
+                  Send Successful!
+                </span>
+              </div>
+
+              <p
+                style={{
+                  color: "rgba(255, 255, 255, 0.8)",
+                  fontSize: "14px",
+                  lineHeight: "20px",
+                  margin: 0,
+                  textAlign: "center",
+                }}
+              >
+                Receiver can claim at{" "}
+                <a
+                  href={TELEGRAM_CLAIM_URL}
+                  rel="noopener noreferrer"
+                  style={{ color: "#28c281", textDecoration: "none" }}
+                  target="_blank"
+                >
+                  {TELEGRAM_CLAIM_URL}
+                </a>
+                . You can send this to receiver:
+              </p>
+
+              <div
+                style={{
+                  background: "rgba(255, 255, 255, 0.06)",
+                  borderRadius: "12px",
+                  padding: "12px",
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "8px",
+                }}
+              >
+                <span
+                  style={{
+                    color: "white",
+                    fontSize: "14px",
+                    lineHeight: "20px",
+                    flex: 1,
+                    wordBreak: "break-word",
+                  }}
+                >
+                  "{shareableMessage}"
+                </span>
+                <button
+                  onClick={handleCopyShareableMessage}
+                  style={{
+                    background: messageCopied
+                      ? "rgba(40, 194, 129, 0.2)"
+                      : "rgba(255, 255, 255, 0.1)",
+                    border: "none",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    padding: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: messageCopied ? "#28c281" : "white",
+                    transition: "all 0.2s ease",
+                    flexShrink: 0,
+                  }}
+                  title={messageCopied ? "Copied!" : "Copy message"}
+                  type="button"
+                >
+                  <Copy size={16} />
+                </button>
+              </div>
+
+              <button
+                onClick={() => setShowClaimModal(false)}
+                style={{
+                  height: "44px",
+                  borderRadius: "59px",
+                  background: "#28c281",
+                  border: "none",
+                  color: "white",
+                  fontSize: "15px",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                type="button"
+              >
+                I understand
+              </button>
+            </div>
           </div>
         )}
       </div>
