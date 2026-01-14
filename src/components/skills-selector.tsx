@@ -12,15 +12,20 @@ type SkillsSelectorProps = {
   onSkillSelect: (skill: LoyalSkill | null) => void;
   onClose?: () => void;
   className?: string;
+  hintSkillId?: string;
   nlpState?: {
     isActive: boolean;
     intent: "send" | "swap" | null;
     parsedData: {
       amount: string | null;
+      partialAmount?: boolean;
       currency: string | null;
+      partialCurrency?: boolean;
       currencyMint: string | null;
       currencyDecimals: number | null;
       walletAddress: string | null;
+      partialRecipient?: boolean;
+      recipientHintType?: "wallet" | "telegram" | null;
       toCurrency: string | null;
       toCurrencyMint: string | null;
       toCurrencyDecimals: number | null;
@@ -47,6 +52,7 @@ export function SkillsSelector({
   onSkillSelect,
   onClose,
   className,
+  hintSkillId,
   nlpState,
 }: SkillsSelectorProps) {
   const handleButtonClick = (skill: LoyalSkill) => {
@@ -115,7 +121,9 @@ export function SkillsSelector({
             basePillStyle,
             nlpState.parsedData.amount
               ? cn(filledPillStyle, "bg-[rgba(22,101,52,0.6)]")
-              : emptyPillStyle
+              : nlpState.parsedData.partialAmount
+                ? "border border-dashed border-green-500/60 bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)]"
+                : emptyPillStyle
           )}
         >
           {nlpState.parsedData.amount || "Amount"}
@@ -126,8 +134,10 @@ export function SkillsSelector({
           className={cn(
             basePillStyle,
             nlpState.parsedData.currency
-              ? cn(filledPillStyle, "bg-[rgba(38,38,38,0.6)]")
-              : emptyPillStyle
+              ? cn(filledPillStyle, "bg-[rgba(161,98,7,0.6)]")
+              : nlpState.parsedData.partialCurrency
+                ? "border border-dashed border-yellow-500/60 bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)]"
+                : emptyPillStyle
           )}
         >
           {nlpState.parsedData.currency || "Currency"}
@@ -151,7 +161,9 @@ export function SkillsSelector({
               basePillStyle,
               nlpState.parsedData.walletAddress
                 ? cn(filledPillStyle, "bg-[rgba(30,64,175,0.6)]")
-                : emptyPillStyle
+                : nlpState.parsedData.partialRecipient
+                  ? "border border-dashed border-blue-500/60 bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)]"
+                  : emptyPillStyle
             )}
             title={nlpState.parsedData.walletAddress || undefined}
           >
@@ -159,7 +171,11 @@ export function SkillsSelector({
               ? nlpState.parsedData.walletAddress.length > 12
                 ? `${nlpState.parsedData.walletAddress.slice(0, 6)}...${nlpState.parsedData.walletAddress.slice(-4)}`
                 : nlpState.parsedData.walletAddress
-              : "To Address"}
+              : nlpState.parsedData.partialRecipient
+                ? nlpState.parsedData.recipientHintType === "telegram"
+                  ? "TG username"
+                  : "Wallet"
+                : "Recipient"}
           </span>
         )}
 
@@ -177,6 +193,7 @@ export function SkillsSelector({
     <div className={cn("flex gap-2", className)}>
       {ACTION_SKILLS.map((skill) => {
         const isActive = selectedSkillId === skill.id;
+        const isHinted = hintSkillId === skill.id && !isActive;
 
         return (
           <button
@@ -186,6 +203,7 @@ export function SkillsSelector({
               isActive
                 ? "bg-[rgba(58,58,58,0.6)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.08),0px_4px_24px_0px_rgba(0,0,0,0.12)]"
                 : "bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)] hover:bg-[rgba(58,58,58,0.6)]",
+              isHinted && "border border-dashed border-red-400/60",
               "focus:outline-none"
             )}
             key={skill.id}
