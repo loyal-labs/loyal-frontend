@@ -20,10 +20,12 @@ type SkillsSelectorProps = {
       amount: string | null;
       partialAmount?: boolean;
       currency: string | null;
+      partialCurrency?: boolean;
       currencyMint: string | null;
       currencyDecimals: number | null;
       walletAddress: string | null;
       partialRecipient?: boolean;
+      recipientHintType?: "wallet" | "telegram" | null;
       toCurrency: string | null;
       toCurrencyMint: string | null;
       toCurrencyDecimals: number | null;
@@ -132,8 +134,10 @@ export function SkillsSelector({
           className={cn(
             basePillStyle,
             nlpState.parsedData.currency
-              ? cn(filledPillStyle, "bg-[rgba(38,38,38,0.6)]")
-              : emptyPillStyle
+              ? cn(filledPillStyle, "bg-[rgba(161,98,7,0.6)]")
+              : nlpState.parsedData.partialCurrency
+                ? "border border-dashed border-yellow-500/60 bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)]"
+                : emptyPillStyle
           )}
         >
           {nlpState.parsedData.currency || "Currency"}
@@ -168,7 +172,9 @@ export function SkillsSelector({
                 ? `${nlpState.parsedData.walletAddress.slice(0, 6)}...${nlpState.parsedData.walletAddress.slice(-4)}`
                 : nlpState.parsedData.walletAddress
               : nlpState.parsedData.partialRecipient
-                ? "TG username"
+                ? nlpState.parsedData.recipientHintType === "telegram"
+                  ? "TG username"
+                  : "Wallet"
                 : "Recipient"}
           </span>
         )}

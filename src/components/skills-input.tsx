@@ -60,10 +60,12 @@ type SkillsInputProps = Omit<
       amount: string | null;
       partialAmount: boolean;
       currency: string | null;
+      partialCurrency: boolean;
       currencyMint: string | null;
       currencyDecimals: number | null;
       walletAddress: string | null;
       partialRecipient: boolean;
+      recipientHintType: "wallet" | "telegram" | null;
       destinationType: "wallet" | "telegram" | null;
       toCurrency: string | null;
       toCurrencyMint: string | null;
@@ -118,6 +120,13 @@ const SWAP_TARGET_TOKENS: LoyalSkill[] = [
 
 // Solana address validation regex (base58, 32-44 characters)
 const SOLANA_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+
+// Characters NOT allowed in base58 (if present, input cannot be a Solana address)
+// Excluded: 0, I, O, l
+const NON_BASE58_CHARS_REGEX = /[0IOl]/;
+
+// Partial base58 pattern - could be start of a Solana address
+const PARTIAL_BASE58_REGEX = /^[1-9A-HJ-NP-Za-km-z]+$/;
 
 // Telegram username validation regex (5-32 chars, alphanumeric + underscore, must start with letter)
 // REQUIRES @ prefix to distinguish from token tickers like "USDT"
@@ -280,10 +289,12 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       amount: string | null;
       partialAmount: boolean;
       currency: string | null;
+      partialCurrency: boolean;
       currencyMint: string | null;
       currencyDecimals: number | null;
       walletAddress: string | null;
       partialRecipient: boolean;
+      recipientHintType: "wallet" | "telegram" | null;
       destinationType: "wallet" | "telegram" | null;
       toCurrency: string | null;
       toCurrencyMint: string | null;
@@ -292,10 +303,12 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       amount: null,
       partialAmount: false,
       currency: null,
+      partialCurrency: false,
       currencyMint: null,
       currencyDecimals: null,
       walletAddress: null,
       partialRecipient: false,
+      recipientHintType: null,
       destinationType: null,
       toCurrency: null,
       toCurrencyMint: null,
@@ -379,10 +392,12 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                 amount: null,
                 partialAmount: false,
                 currency: null,
+                partialCurrency: false,
                 currencyMint: null,
                 currencyDecimals: null,
                 walletAddress: null,
                 partialRecipient: false,
+                recipientHintType: null,
                 destinationType: null,
                 toCurrency: null,
                 toCurrencyMint: null,
@@ -395,10 +410,12 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                   amount: null,
                   partialAmount: false,
                   currency: null,
+                  partialCurrency: false,
                   currencyMint: null,
                   currencyDecimals: null,
                   walletAddress: null,
                   partialRecipient: false,
+                  recipientHintType: null,
                   destinationType: null,
                   toCurrency: null,
                   toCurrencyMint: null,
@@ -445,10 +462,12 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                 amount: null,
                 partialAmount: false,
                 currency: null,
+                partialCurrency: false,
                 currencyMint: null,
                 currencyDecimals: null,
                 walletAddress: null,
                 partialRecipient: false,
+                recipientHintType: null,
                 destinationType: null,
                 toCurrency: null,
                 toCurrencyMint: null,
@@ -461,10 +480,12 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                   amount: null,
                   partialAmount: false,
                   currency: null,
+                  partialCurrency: false,
                   currencyMint: null,
                   currencyDecimals: null,
                   walletAddress: null,
                   partialRecipient: false,
+                  recipientHintType: null,
                   destinationType: null,
                   toCurrency: null,
                   toCurrencyMint: null,
@@ -507,10 +528,12 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                   amount: null,
                   partialAmount: false,
                   currency: null,
+                  partialCurrency: false,
                   currencyMint: null,
                   currencyDecimals: null,
                   walletAddress: null,
                   partialRecipient: false,
+                  recipientHintType: null,
                   destinationType: null,
                   toCurrency: null,
                   toCurrencyMint: null,
@@ -656,6 +679,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       // For swap, we need to be careful not to match the "to" token as the "from" token
       // A simple heuristic: the first token found is likely the "from" token
       const foundTokens: { skill: LoyalSkill; index: number }[] = [];
+      let partialCurrency = false;
 
       for (const skill of CURRENCY_SKILLS) {
         const match = new RegExp(`\\b${skill.label}\\b`, "i").exec(textLower);
@@ -666,6 +690,35 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
 
       // Sort by position in text
       foundTokens.sort((a, b) => a.index - b.index);
+
+      // Check for partial currency match (word that could become a token ticker)
+      if (foundTokens.length === 0) {
+        const words = textLower.split(/\s+/).filter((w) => w.length > 0);
+        for (const word of words) {
+          // Skip if it's a number (amount)
+          if (/^\d+\.?\d*$/.test(word)) continue;
+          // Skip if it starts with @ (telegram handle)
+          if (word.startsWith("@")) continue;
+
+          // Check if this word is a partial match for any known token
+          const isPartialTokenMatch = CURRENCY_SKILLS.some((skill) =>
+            skill.label.toLowerCase().startsWith(word.toLowerCase())
+          );
+
+          if (isPartialTokenMatch) {
+            // If word contains non-base58 chars (O, I, 0, l), it's definitely a currency hint
+            // If word is pure base58, it could be either currency or address
+            const hasNonBase58 = NON_BASE58_CHARS_REGEX.test(word);
+            if (hasNonBase58 || word.length < 3) {
+              // Definitely currency (contains O/I/0/l or too short for address)
+              partialCurrency = true;
+            } else {
+              // Could be either - show currency hint
+              partialCurrency = true;
+            }
+          }
+        }
+      }
 
       if (foundTokens.length > 0) {
         const fromToken = foundTokens[0].skill;
@@ -737,6 +790,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
 
       // 3. Find Wallet Address or Telegram Username (only for send)
       let partialRecipient = false;
+      let recipientHintType: "wallet" | "telegram" | null = null;
       if (!isSwap) {
         const words = textOriginal.split(/\s+/);
         for (const word of words) {
@@ -755,6 +809,20 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
           // Check for partial telegram handle (@ followed by some chars but not yet valid)
           if (!walletAddress && PARTIAL_TELEGRAM_REGEX.test(word)) {
             partialRecipient = true;
+            recipientHintType = "telegram";
+          }
+          // Check for partial wallet address (base58 chars, could become an address)
+          // Show hint if word is pure base58 (no O/I/0/l) and at least 2 chars
+          if (
+            !walletAddress &&
+            !partialRecipient &&
+            word.length >= 2 &&
+            PARTIAL_BASE58_REGEX.test(word) &&
+            !NON_BASE58_CHARS_REGEX.test(word)
+          ) {
+            // This could be a partial wallet address
+            partialRecipient = true;
+            recipientHintType = "wallet";
           }
         }
       }
@@ -763,10 +831,12 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         amount,
         partialAmount,
         currency,
+        partialCurrency,
         currencyMint,
         currencyDecimals,
         walletAddress,
         partialRecipient,
+        recipientHintType,
         destinationType,
         toCurrency,
         toCurrencyMint,
@@ -1337,10 +1407,12 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
               amount: null,
               partialAmount: false,
               currency: null,
+              partialCurrency: false,
               currencyMint: null,
               currencyDecimals: null,
               walletAddress: null,
               partialRecipient: false,
+              recipientHintType: null,
               destinationType: null,
               toCurrency: null,
               toCurrencyMint: null,
@@ -1359,10 +1431,12 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
           amount: null,
           partialAmount: false,
           currency: null,
+          partialCurrency: false,
           currencyMint: null,
           currencyDecimals: null,
           walletAddress: null,
           partialRecipient: false,
+          recipientHintType: null,
           destinationType: null,
           toCurrency: null,
           toCurrencyMint: null,
@@ -1375,10 +1449,12 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             amount: null,
             partialAmount: false,
             currency: null,
+            partialCurrency: false,
             currencyMint: null,
             currencyDecimals: null,
             walletAddress: null,
             partialRecipient: false,
+            recipientHintType: null,
             destinationType: null,
             toCurrency: null,
             toCurrencyMint: null,
