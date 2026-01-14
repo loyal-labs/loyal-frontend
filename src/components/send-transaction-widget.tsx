@@ -763,9 +763,9 @@ export function SendTransactionWidget({
       {sendData.destinationType === "telegram" && (
         <span
           style={{
-            color: "rgba(255, 255, 255, 0.6)",
+            color: "rgba(239, 68, 68, 0.9)",
             fontSize: "13px",
-            textAlign: "center",
+            textAlign: "left",
           }}
         >
           Double check the username, it is CaSe-sEnSiTiVe!
