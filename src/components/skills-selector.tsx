@@ -161,7 +161,7 @@ export function SkillsSelector({
               ? nlpState.parsedData.walletAddress.length > 12
                 ? `${nlpState.parsedData.walletAddress.slice(0, 6)}...${nlpState.parsedData.walletAddress.slice(-4)}`
                 : nlpState.parsedData.walletAddress
-              : "To Address"}
+              : "Recipient"}
           </span>
         )}
 
