@@ -122,7 +122,7 @@ export function SkillsSelector({
             nlpState.parsedData.amount
               ? cn(filledPillStyle, "bg-[rgba(22,101,52,0.6)]")
               : nlpState.parsedData.partialAmount
-                ? "border border-dashed border-green-500/60 bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)]"
+                ? "border border-green-500/60 border-dashed bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)]"
                 : emptyPillStyle
           )}
         >
@@ -136,7 +136,7 @@ export function SkillsSelector({
             nlpState.parsedData.currency
               ? cn(filledPillStyle, "bg-[rgba(161,98,7,0.6)]")
               : nlpState.parsedData.partialCurrency
-                ? "border border-dashed border-yellow-500/60 bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)]"
+                ? "border border-yellow-500/60 border-dashed bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)]"
                 : emptyPillStyle
           )}
         >
@@ -162,7 +162,7 @@ export function SkillsSelector({
               nlpState.parsedData.walletAddress
                 ? cn(filledPillStyle, "bg-[rgba(30,64,175,0.6)]")
                 : nlpState.parsedData.partialRecipient
-                  ? "border border-dashed border-blue-500/60 bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)]"
+                  ? "border border-blue-500/60 border-dashed bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)]"
                   : emptyPillStyle
             )}
             title={nlpState.parsedData.walletAddress || undefined}
@@ -203,7 +203,7 @@ export function SkillsSelector({
               isActive
                 ? "bg-[rgba(58,58,58,0.6)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.08),0px_4px_24px_0px_rgba(0,0,0,0.12)]"
                 : "bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)] hover:bg-[rgba(58,58,58,0.6)]",
-              isHinted && "border border-dashed border-red-400/60",
+              isHinted && "border border-red-400/60 border-dashed",
               "focus:outline-none"
             )}
             key={skill.id}

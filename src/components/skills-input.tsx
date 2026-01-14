@@ -814,8 +814,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
           // Check for partial wallet address (base58 chars, could become an address)
           // Show hint if word is pure base58 (no O/I/0/l) and at least 2 chars
           if (
-            !walletAddress &&
-            !partialRecipient &&
+            !(walletAddress || partialRecipient) &&
             word.length >= 2 &&
             PARTIAL_BASE58_REGEX.test(word) &&
             !NON_BASE58_CHARS_REGEX.test(word)

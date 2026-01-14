@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  ArrowDown,
-  CheckCircle2,
-  Copy,
-  Loader2,
-  XCircle,
-} from "lucide-react";
+import { ArrowDown, CheckCircle2, Copy, Loader2, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
