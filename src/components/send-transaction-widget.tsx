@@ -355,9 +355,7 @@ export function SendTransactionWidget({
               left: 0,
               right: 0,
               bottom: 0,
-              background: "rgba(0, 0, 0, 0.7)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
+              background: "rgba(0, 0, 0, 0.85)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -367,9 +365,7 @@ export function SendTransactionWidget({
           >
             <div
               style={{
-                background: "rgba(37, 37, 37, 0.95)",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
+                background: "#252525",
                 borderRadius: "20px",
                 padding: "24px",
                 maxWidth: "340px",
@@ -417,7 +413,18 @@ export function SendTransactionWidget({
                 >
                   {TELEGRAM_CLAIM_URL}
                 </a>
-                . You can send this to receiver:
+              </p>
+
+              <p
+                style={{
+                  color: "rgba(255, 255, 255, 0.8)",
+                  fontSize: "14px",
+                  lineHeight: "20px",
+                  margin: 0,
+                  textAlign: "center",
+                }}
+              >
+                Send this to receiver:
               </p>
 
               <div
@@ -426,8 +433,8 @@ export function SendTransactionWidget({
                   borderRadius: "12px",
                   padding: "12px",
                   display: "flex",
-                  alignItems: "flex-start",
-                  gap: "8px",
+                  flexDirection: "column",
+                  gap: "10px",
                 }}
               >
                 <span
@@ -435,7 +442,6 @@ export function SendTransactionWidget({
                     color: "white",
                     fontSize: "14px",
                     lineHeight: "20px",
-                    flex: 1,
                     wordBreak: "break-word",
                   }}
                 >
@@ -450,18 +456,20 @@ export function SendTransactionWidget({
                     border: "none",
                     borderRadius: "8px",
                     cursor: "pointer",
-                    padding: "8px",
+                    padding: "10px 16px",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    gap: "6px",
                     color: messageCopied ? "#28c281" : "white",
+                    fontSize: "14px",
+                    fontWeight: 500,
                     transition: "all 0.2s ease",
-                    flexShrink: 0,
                   }}
-                  title={messageCopied ? "Copied!" : "Copy message"}
                   type="button"
                 >
                   <Copy size={16} />
+                  {messageCopied ? "Copied!" : "Copy"}
                 </button>
               </div>
 
