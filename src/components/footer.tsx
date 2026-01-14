@@ -106,6 +106,10 @@ const legalLinks = [
   },
   { name: "Join Discord community", url: "https://discord.askloyal.com" },
   { name: "Join Telegram community", url: "https://t.me/loyal_tgchat" },
+  {
+    name: "Q4 2025 Report",
+    url: "/Loyal_Public_Transparency_Report_Q4_2025.pdf",
+  },
 ];
 
 export function Footer() {
