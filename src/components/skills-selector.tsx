@@ -23,6 +23,7 @@ type SkillsSelectorProps = {
       currencyMint: string | null;
       currencyDecimals: number | null;
       walletAddress: string | null;
+      partialRecipient?: boolean;
       toCurrency: string | null;
       toCurrencyMint: string | null;
       toCurrencyDecimals: number | null;
@@ -156,7 +157,9 @@ export function SkillsSelector({
               basePillStyle,
               nlpState.parsedData.walletAddress
                 ? cn(filledPillStyle, "bg-[rgba(30,64,175,0.6)]")
-                : emptyPillStyle
+                : nlpState.parsedData.partialRecipient
+                  ? "border border-dashed border-blue-500/60 bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)]"
+                  : emptyPillStyle
             )}
             title={nlpState.parsedData.walletAddress || undefined}
           >
@@ -164,7 +167,9 @@ export function SkillsSelector({
               ? nlpState.parsedData.walletAddress.length > 12
                 ? `${nlpState.parsedData.walletAddress.slice(0, 6)}...${nlpState.parsedData.walletAddress.slice(-4)}`
                 : nlpState.parsedData.walletAddress
-              : "Recipient"}
+              : nlpState.parsedData.partialRecipient
+                ? "TG username"
+                : "Recipient"}
           </span>
         )}
 

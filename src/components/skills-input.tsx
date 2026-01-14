@@ -63,6 +63,7 @@ type SkillsInputProps = Omit<
       currencyMint: string | null;
       currencyDecimals: number | null;
       walletAddress: string | null;
+      partialRecipient: boolean;
       destinationType: "wallet" | "telegram" | null;
       toCurrency: string | null;
       toCurrencyMint: string | null;
@@ -121,6 +122,10 @@ const SOLANA_ADDRESS_REGEX = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 // Telegram username validation regex (5-32 chars, alphanumeric + underscore, must start with letter)
 // REQUIRES @ prefix to distinguish from token tickers like "USDT"
 const TELEGRAM_USERNAME_REGEX = /^@[a-zA-Z][a-zA-Z0-9_]{4,31}$/;
+
+// Partial telegram username regex - starts with @ but not yet valid
+// Matches: "@" alone, "@a", "@ab", "@abc", "@abcd" (less than 5 chars after @)
+const PARTIAL_TELEGRAM_REGEX = /^@([a-zA-Z][a-zA-Z0-9_]{0,3})?$/;
 
 // Strict numeric format regex - allows integers and decimals like 123, 123.45
 const NUMERIC_FORMAT_REGEX = /^\d+(\.\d+)?$/;
@@ -278,6 +283,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       currencyMint: string | null;
       currencyDecimals: number | null;
       walletAddress: string | null;
+      partialRecipient: boolean;
       destinationType: "wallet" | "telegram" | null;
       toCurrency: string | null;
       toCurrencyMint: string | null;
@@ -289,6 +295,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       currencyMint: null,
       currencyDecimals: null,
       walletAddress: null,
+      partialRecipient: false,
       destinationType: null,
       toCurrency: null,
       toCurrencyMint: null,
@@ -375,6 +382,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                 currencyMint: null,
                 currencyDecimals: null,
                 walletAddress: null,
+                partialRecipient: false,
                 destinationType: null,
                 toCurrency: null,
                 toCurrencyMint: null,
@@ -390,6 +398,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                   currencyMint: null,
                   currencyDecimals: null,
                   walletAddress: null,
+                  partialRecipient: false,
                   destinationType: null,
                   toCurrency: null,
                   toCurrencyMint: null,
@@ -439,6 +448,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                 currencyMint: null,
                 currencyDecimals: null,
                 walletAddress: null,
+                partialRecipient: false,
                 destinationType: null,
                 toCurrency: null,
                 toCurrencyMint: null,
@@ -454,6 +464,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                   currencyMint: null,
                   currencyDecimals: null,
                   walletAddress: null,
+                  partialRecipient: false,
                   destinationType: null,
                   toCurrency: null,
                   toCurrencyMint: null,
@@ -499,6 +510,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
                   currencyMint: null,
                   currencyDecimals: null,
                   walletAddress: null,
+                  partialRecipient: false,
                   destinationType: null,
                   toCurrency: null,
                   toCurrencyMint: null,
@@ -724,6 +736,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
       }
 
       // 3. Find Wallet Address or Telegram Username (only for send)
+      let partialRecipient = false;
       if (!isSwap) {
         const words = textOriginal.split(/\s+/);
         for (const word of words) {
@@ -739,6 +752,10 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             destinationType = "telegram";
             break;
           }
+          // Check for partial telegram handle (@ followed by some chars but not yet valid)
+          if (!walletAddress && PARTIAL_TELEGRAM_REGEX.test(word)) {
+            partialRecipient = true;
+          }
         }
       }
 
@@ -749,6 +766,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
         currencyMint,
         currencyDecimals,
         walletAddress,
+        partialRecipient,
         destinationType,
         toCurrency,
         toCurrencyMint,
@@ -1322,6 +1340,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
               currencyMint: null,
               currencyDecimals: null,
               walletAddress: null,
+              partialRecipient: false,
               destinationType: null,
               toCurrency: null,
               toCurrencyMint: null,
@@ -1343,6 +1362,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
           currencyMint: null,
           currencyDecimals: null,
           walletAddress: null,
+          partialRecipient: false,
           destinationType: null,
           toCurrency: null,
           toCurrencyMint: null,
@@ -1358,6 +1378,7 @@ const SkillsInput = React.forwardRef<HTMLTextAreaElement, SkillsInputProps>(
             currencyMint: null,
             currencyDecimals: null,
             walletAddress: null,
+            partialRecipient: false,
             destinationType: null,
             toCurrency: null,
             toCurrencyMint: null,
