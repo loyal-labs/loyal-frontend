@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import type { DragEvent } from "react";
 import { useCallback } from "react";
 import { useDragDrop } from "@/hooks/use-drag-drop";
@@ -270,252 +270,202 @@ export function TransactionWidget({
 
   const isAnyZoneExpanded = state.expandedZone !== null;
 
-  // Shared container with perspective for 3D depth effect
+  // SINGLE CONTINUOUS SCENE - all elements always exist, just animate based on state
   return (
-    <div
+    <motion.div
       className={className}
+      layout
       style={{
         position: "relative",
         width: "100%",
-        perspective: "1200px",
-        perspectiveOrigin: "center center",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+        gap: isAnyZoneExpanded ? "0px" : "48px",
       }}
+      transition={{ type: "spring", stiffness: 400, damping: 35 }}
     >
-      <AnimatePresence mode="wait">
-        {isAnyZoneExpanded ? (
-          // DEEPER LAYER: Expanded action form - we've zoomed INTO this
-          <motion.div
-            animate={{
-              scale: 1,
-              opacity: 1,
-              filter: "blur(0px)",
-            }}
-            exit={{
-              // Zooming OUT: form shrinks back into the distance
-              scale: 0.85,
-              opacity: 0,
-              filter: "blur(6px)",
-            }}
-            initial={{
-              // Zooming IN: form starts small/far, grows towards us
-              scale: 0.8,
-              opacity: 0,
-              filter: "blur(8px)",
-            }}
-            key="expanded-layer"
-            style={{
-              transformStyle: "preserve-3d",
-              width: "100%",
-            }}
-            transition={{
-              type: "spring",
-              stiffness: 350,
-              damping: 32,
-              mass: 0.8,
-            }}
-          >
-            {/* Expanded zone takes full width */}
-            <DropZone
-              droppedToken={state.droppedToken}
-              isDragOver={false}
-              isExpanded={true}
-              onDragLeave={handleDragLeave()}
-              onDragOver={handleDragOver(state.expandedZone as DropZoneType)}
-              onDrop={handleDrop(state.expandedZone as DropZoneType)}
-              type={state.expandedZone as DropZoneType}
-            >
-              {state.expandedZone === "telegram" && state.droppedToken && (
-                <SendForm
-                  destinationType="telegram"
-                  isLoading={state.isExecuting}
-                  onCancel={cancelForm}
-                  onSend={handleSend}
-                  result={state.transactionResult}
-                  status={state.transactionStatus}
-                  token={state.droppedToken}
-                />
-              )}
-              {state.expandedZone === "wallet" && state.droppedToken && (
-                <SendForm
-                  destinationType="wallet"
-                  isLoading={state.isExecuting}
-                  onCancel={cancelForm}
-                  onSend={handleSend}
-                  result={state.transactionResult}
-                  status={state.transactionStatus}
-                  token={state.droppedToken}
-                />
-              )}
-              {state.expandedZone === "swap" && state.droppedToken && (
-                <SwapForm
-                  isLoading={state.isExecuting}
-                  onCancel={cancelForm}
-                  onGetQuote={handleGetQuote}
-                  onSwap={handleSwap}
-                  result={state.transactionResult}
-                  status={state.transactionStatus}
-                  token={state.droppedToken}
-                />
-              )}
-            </DropZone>
-          </motion.div>
-        ) : (
-          // SURFACE LAYER: Default tokens + actions view - we're at this level
-          <motion.div
-            animate={{
-              scale: 1,
-              opacity: 1,
-              filter: "blur(0px)",
-            }}
-            exit={{
-              // Zooming IN to action: surface zooms PAST us (scales up, blurs out)
-              scale: 1.15,
-              opacity: 0,
-              filter: "blur(10px)",
-            }}
-            initial={{
-              // Coming BACK from deeper: surface was behind us, comes back
-              scale: 1.1,
-              opacity: 0,
-              filter: "blur(8px)",
-            }}
-            key="surface-layer"
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              width: "100%",
-              gap: "48px",
-              transformStyle: "preserve-3d",
-            }}
-            transition={{
-              type: "spring",
-              stiffness: 350,
-              damping: 32,
-              mass: 0.8,
-            }}
-          >
-            {/* Left side: Tokens */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-              }}
-            >
-              {/* Section label */}
-              <span
-                style={{
-                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                  fontSize: "11px",
-                  fontWeight: 500,
-                  color: "rgba(255, 255, 255, 0.4)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  paddingLeft: "4px",
-                }}
-              >
-                Your Tokens
-              </span>
+      {/* Left side: Tokens - fade out when zoomed in */}
+      <motion.div
+        animate={{
+          opacity: isAnyZoneExpanded ? 0 : 1,
+          scale: isAnyZoneExpanded ? 0.8 : 1,
+          filter: isAnyZoneExpanded ? "blur(8px)" : "blur(0px)",
+          width: isAnyZoneExpanded ? 0 : "auto",
+          marginRight: isAnyZoneExpanded ? 0 : undefined,
+        }}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px",
+          overflow: "hidden",
+          transformOrigin: "left center",
+        }}
+        transition={{ type: "spring", stiffness: 400, damping: 35 }}
+      >
+        {/* Section label */}
+        <span
+          style={{
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            fontSize: "11px",
+            fontWeight: 500,
+            color: "rgba(255, 255, 255, 0.4)",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            paddingLeft: "4px",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Your Tokens
+        </span>
 
-              {/* Token cards - 2 column grid */}
+        {/* Token cards - 2 column grid */}
+        <motion.div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, 1fr)",
+            gap: "10px",
+            padding: "8px",
+            margin: "-8px",
+          }}
+        >
+          {balances.map((token) => (
+            <TokenCard
+              isDragging={state.draggedToken?.mint === token.mint}
+              isOtherDragging={
+                state.isDragging && state.draggedToken?.mint !== token.mint
+              }
+              key={token.mint}
+              onDragEnd={handleDragEnd}
+              onDragStart={handleDragStart}
+              token={token}
+            />
+          ))}
+        </motion.div>
+      </motion.div>
+
+      {/* Right side: Actions - transforms based on expanded state */}
+      <motion.div
+        animate={{
+          flex: isAnyZoneExpanded ? 1 : "none",
+        }}
+        layout
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px",
+        }}
+        transition={{ type: "spring", stiffness: 400, damping: 35 }}
+      >
+        {/* Section label - fades when expanded */}
+        <motion.span
+          animate={{
+            opacity: isAnyZoneExpanded ? 0 : 1,
+            height: isAnyZoneExpanded ? 0 : "auto",
+            marginBottom: isAnyZoneExpanded ? -12 : 0,
+          }}
+          style={{
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            fontSize: "11px",
+            fontWeight: 500,
+            color: "rgba(255, 255, 255, 0.4)",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            paddingLeft: "4px",
+            overflow: "hidden",
+          }}
+          transition={{ type: "spring", stiffness: 400, damping: 35 }}
+        >
+          Actions
+        </motion.span>
+
+        {/* Drop zones container - morphs from grid to single expanded */}
+        <motion.div
+          layout
+          style={{
+            display: "flex",
+            gap: "10px",
+            padding: "8px",
+            margin: "-8px",
+            flexWrap: isAnyZoneExpanded ? "nowrap" : "wrap",
+            width: isAnyZoneExpanded ? "100%" : "auto",
+          }}
+          transition={{ type: "spring", stiffness: 400, damping: 35 }}
+        >
+          {(["telegram", "wallet", "swap"] as const).map((zone) => {
+            const isThisExpanded = state.expandedZone === zone;
+            const isOtherExpanded = isAnyZoneExpanded && !isThisExpanded;
+
+            return (
               <motion.div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2, 1fr)",
-                  gap: "10px",
-                  padding: "8px",
-                  margin: "-8px",
+                animate={{
+                  opacity: isOtherExpanded ? 0 : 1,
+                  scale: isOtherExpanded ? 0.8 : 1,
+                  width: isThisExpanded ? "100%" : isOtherExpanded ? 0 : "calc(50% - 5px)",
+                  filter: isOtherExpanded ? "blur(4px)" : "blur(0px)",
                 }}
+                key={zone}
+                layout
+                style={{
+                  overflow: "hidden",
+                  transformOrigin: "center center",
+                  flexShrink: isOtherExpanded ? 1 : 0,
+                }}
+                transition={{ type: "spring", stiffness: 400, damping: 35 }}
               >
-                {balances.map((token, index) => (
-                  <motion.div
-                    animate={{ opacity: 1, y: 0 }}
-                    initial={{ opacity: 0, y: 20 }}
-                    key={token.mint}
-                    transition={{
-                      delay: index * 0.05,
-                      type: "spring",
-                      stiffness: 400,
-                      damping: 25,
-                    }}
-                  >
-                    <TokenCard
-                      isDragging={state.draggedToken?.mint === token.mint}
-                      isOtherDragging={
-                        state.isDragging && state.draggedToken?.mint !== token.mint
-                      }
-                      onDragEnd={handleDragEnd}
-                      onDragStart={handleDragStart}
-                      token={token}
-                    />
-                  </motion.div>
-                ))}
+                <DropZone
+                  droppedToken={state.droppedToken}
+                  isDragOver={state.dragOverZone === zone}
+                  isExpanded={isThisExpanded}
+                  onDragLeave={handleDragLeave()}
+                  onDragOver={handleDragOver(zone)}
+                  onDrop={handleDrop(zone)}
+                  type={zone}
+                >
+                  {isThisExpanded && state.droppedToken && (
+                    <>
+                      {zone === "telegram" && (
+                        <SendForm
+                          destinationType="telegram"
+                          isLoading={state.isExecuting}
+                          onCancel={cancelForm}
+                          onSend={handleSend}
+                          result={state.transactionResult}
+                          status={state.transactionStatus}
+                          token={state.droppedToken}
+                        />
+                      )}
+                      {zone === "wallet" && (
+                        <SendForm
+                          destinationType="wallet"
+                          isLoading={state.isExecuting}
+                          onCancel={cancelForm}
+                          onSend={handleSend}
+                          result={state.transactionResult}
+                          status={state.transactionStatus}
+                          token={state.droppedToken}
+                        />
+                      )}
+                      {zone === "swap" && (
+                        <SwapForm
+                          isLoading={state.isExecuting}
+                          onCancel={cancelForm}
+                          onGetQuote={handleGetQuote}
+                          onSwap={handleSwap}
+                          result={state.transactionResult}
+                          status={state.transactionStatus}
+                          token={state.droppedToken}
+                        />
+                      )}
+                    </>
+                  )}
+                </DropZone>
               </motion.div>
-            </div>
-
-            {/* Right side: Actions */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-              }}
-            >
-              {/* Section label */}
-              <span
-                style={{
-                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                  fontSize: "11px",
-                  fontWeight: 500,
-                  color: "rgba(255, 255, 255, 0.4)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  paddingLeft: "4px",
-                }}
-              >
-                Actions
-              </span>
-
-              {/* Drop zones - 2 column grid */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2, 1fr)",
-                  gap: "10px",
-                  padding: "8px",
-                  margin: "-8px",
-                }}
-              >
-                {(["telegram", "wallet", "swap"] as const).map((zone, index) => (
-                  <motion.div
-                    animate={{ opacity: 1, y: 0 }}
-                    initial={{ opacity: 0, y: 20 }}
-                    key={zone}
-                    transition={{
-                      delay: 0.1 + index * 0.05,
-                      type: "spring",
-                      stiffness: 400,
-                      damping: 25,
-                    }}
-                  >
-                    <DropZone
-                      droppedToken={state.droppedToken}
-                      isDragOver={state.dragOverZone === zone}
-                      isExpanded={false}
-                      onDragLeave={handleDragLeave()}
-                      onDragOver={handleDragOver(zone)}
-                      onDrop={handleDrop(zone)}
-                      type={zone}
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+            );
+          })}
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 }
 
