@@ -123,16 +123,16 @@ export function TokenCard({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "6px",
-          padding: "14px 16px",
+          gap: "4px",
+          padding: "10px 12px",
           width: "100%",
-          minWidth: "110px",
+          minWidth: "80px",
           background: isDragging
             ? "rgba(255, 255, 255, 0.08)"
             : "rgba(26, 26, 26, 0.4)",
           backdropFilter: "blur(24px) saturate(150%)",
           WebkitBackdropFilter: "blur(24px) saturate(150%)",
-          borderRadius: "16px",
+          borderRadius: "20px",
           border: isDragging
             ? "1px solid rgba(255, 255, 255, 0.2)"
             : "1px solid rgba(255, 255, 255, 0.06)",
@@ -165,10 +165,10 @@ export function TokenCard({
             top: "0",
             left: "50%",
             transform: "translateX(-50%)",
-            width: "80%",
-            height: "40px",
+            width: "70%",
+            height: "30px",
             background: config.gradient,
-            filter: "blur(30px)",
+            filter: "blur(20px)",
             borderRadius: "50%",
             pointerEvents: "none",
           }}
@@ -179,20 +179,20 @@ export function TokenCard({
         <div
           style={{
             position: "relative",
-            width: "40px",
-            height: "40px",
-            borderRadius: "12px",
+            width: "32px",
+            height: "32px",
+            borderRadius: "50%",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             background: config.gradient,
-            boxShadow: `0 4px 12px ${config.glow}`,
+            boxShadow: `0 3px 10px ${config.glow}`,
           }}
         >
           <span
             style={{
               fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontSize: "16px",
+              fontSize: "13px",
               fontWeight: 700,
               color: "#fff",
               textShadow: "0 1px 2px rgba(0, 0, 0, 0.3)",
@@ -207,7 +207,7 @@ export function TokenCard({
           style={{
             fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontWeight: 600,
-            fontSize: "15px",
+            fontSize: "12px",
             color: "#fff",
             letterSpacing: "0.02em",
           }}
@@ -220,7 +220,7 @@ export function TokenCard({
           style={{
             fontFamily: "var(--font-geist-mono), monospace",
             fontWeight: 500,
-            fontSize: "14px",
+            fontSize: "11px",
             color: "rgba(255, 255, 255, 0.9)",
             fontVariantNumeric: "tabular-nums",
           }}
@@ -233,7 +233,7 @@ export function TokenCard({
           style={{
             fontFamily: "var(--font-geist-mono), monospace",
             fontWeight: 400,
-            fontSize: "12px",
+            fontSize: "10px",
             color: "rgba(255, 255, 255, 0.5)",
           }}
         >

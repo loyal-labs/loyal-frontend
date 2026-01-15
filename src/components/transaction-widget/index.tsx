@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import type { DragEvent } from "react";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDragDrop } from "@/hooks/use-drag-drop";
 import { useSend } from "@/hooks/use-send";
 import { useSwap } from "@/hooks/use-swap";
@@ -39,6 +39,29 @@ export function TransactionWidget({
     setExecuting,
     setTransactionResult,
   } = useDragDrop();
+
+  // Animation phases:
+  // Opening: "zooming" (card comes closer) -> "opened" (content visible)
+  // Closing: "returning" (expanded form exits, card zooms back)
+  const [animationPhase, setAnimationPhase] = useState<
+    "zooming" | "opened" | "returning"
+  >("zooming");
+
+  // Reset animation phase when zone changes
+  useEffect(() => {
+    if (state.expandedZone) {
+      setAnimationPhase("zooming");
+    }
+  }, [state.expandedZone]);
+
+  // Handle cancel - go directly to returning phase
+  const handleCancel = useCallback(() => {
+    if (animationPhase === "opened") {
+      setAnimationPhase("returning");
+    } else {
+      cancelForm();
+    }
+  }, [animationPhase, cancelForm]);
 
   // Handle drag start
   const handleDragStart = useCallback(
@@ -271,7 +294,7 @@ export function TransactionWidget({
   const isAnyZoneExpanded = state.expandedZone !== null;
 
   // Smooth spring for zoom
-  const zoomSpring = { type: "spring", stiffness: 280, damping: 30 };
+  const zoomSpring = { type: "spring", stiffness: 280, damping: 30 } as const;
 
   // Transform origin based on which zone is expanded (zoom centers on that zone)
   const getSceneOrigin = () => {
@@ -287,7 +310,7 @@ export function TransactionWidget({
   return (
     <motion.div
       animate={{
-        scale: isAnyZoneExpanded ? 1.05 : 1, // Subtle scene zoom
+        scale: isAnyZoneExpanded ? 1.15 : 1,
       }}
       className={className}
       style={{
@@ -309,8 +332,8 @@ export function TransactionWidget({
         {/* Tokens - blur when zoomed (out of focus) */}
         <motion.div
           animate={{
-            opacity: isAnyZoneExpanded ? 0.35 : 1,
-            filter: isAnyZoneExpanded ? "blur(4px)" : "blur(0px)",
+            opacity: isAnyZoneExpanded ? 0.25 : 1,
+            filter: isAnyZoneExpanded ? "blur(6px)" : "blur(0px)",
           }}
           style={{
             display: "flex",
@@ -358,9 +381,10 @@ export function TransactionWidget({
           </div>
         </motion.div>
 
-        {/* Actions section */}
+        {/* Actions section - position relative for expanded form */}
         <div
           style={{
+            position: "relative",
             display: "flex",
             flexDirection: "column",
             gap: "12px",
@@ -385,12 +409,10 @@ export function TransactionWidget({
             Actions
           </motion.span>
 
-          {/* Action cards container - relative for absolute expanded card */}
+          {/* Action cards container */}
           <div
             style={{
-              position: "relative",
-              display: "grid",
-              gridTemplateColumns: "repeat(2, 1fr)",
+              display: "flex",
               gap: "10px",
               padding: "12px",
               margin: "-12px",
@@ -400,19 +422,54 @@ export function TransactionWidget({
               const isSelected = state.expandedZone === zone;
               const isOther = isAnyZoneExpanded && !isSelected;
 
+              // Collapsed card visibility:
+              // - Show during "zooming" (opening phase 1)
+              // - Hide during "opened" (expanded form visible)
+              // - Show during "returning" (zoom back out)
+              const showCollapsed = !isSelected ||
+                animationPhase === "zooming" ||
+                animationPhase === "returning";
+
+              // Scale logic for selected card:
+              // - "zooming": scale up to 1.28 (coming closer)
+              // - "opened": stay at 1.28 (hidden, but maintain scale for seamless transition)
+              // - "returning": animate from 1.28 back to 1
+              const getSelectedScale = () => {
+                if (animationPhase === "returning") {
+                  return 1;
+                }
+                return 1.28; // "zooming" or "opened"
+              };
+
               return (
                 <motion.div
                   animate={{
-                    opacity: isOther ? 0.3 : 1,
-                    scale: isOther ? 0.92 : 1,
-                    filter: isOther ? "blur(2px)" : "blur(0px)",
+                    opacity: isOther ? 0.25 : 1,
+                    scale: isSelected
+                      ? getSelectedScale()
+                      : isOther
+                        ? 0.85
+                        : 1,
+                    filter: isOther ? "blur(4px)" : "blur(0px)",
                   }}
                   key={zone}
+                  onAnimationComplete={() => {
+                    if (isSelected) {
+                      // Opening: zooming -> opened
+                      if (animationPhase === "zooming") {
+                        setAnimationPhase("opened");
+                      }
+                      // Closing complete: returning -> reset
+                      if (animationPhase === "returning") {
+                        cancelForm();
+                      }
+                    }
+                  }}
                   style={{
                     transformOrigin: "center center",
                     pointerEvents: isOther ? "none" : "auto",
-                    // Hide content but keep space when this card is expanded
-                    visibility: isSelected ? "hidden" : "visible",
+                    visibility: showCollapsed ? "visible" : "hidden",
+                    zIndex: isSelected ? 5 : 1,
                   }}
                   transition={zoomSpring}
                 >
@@ -428,72 +485,72 @@ export function TransactionWidget({
                 </motion.div>
               );
             })}
-
-            {/* Expanded card - absolutely positioned, animates in/out */}
-            <AnimatePresence>
-              {state.expandedZone && state.droppedToken && (
-                <motion.div
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  initial={{ opacity: 0, scale: 0.85 }}
-                  key={state.expandedZone}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    zIndex: 10,
-                    transformOrigin: "center top",
-                  }}
-                  transition={zoomSpring}
-                >
-                  <DropZone
-                    droppedToken={state.droppedToken}
-                    isDragOver={false}
-                    isExpanded={true}
-                    onDragLeave={handleDragLeave()}
-                    onDragOver={handleDragOver(state.expandedZone)}
-                    onDrop={handleDrop(state.expandedZone)}
-                    type={state.expandedZone}
-                  >
-                    {state.expandedZone === "telegram" && (
-                      <SendForm
-                        destinationType="telegram"
-                        isLoading={state.isExecuting}
-                        onCancel={cancelForm}
-                        onSend={handleSend}
-                        result={state.transactionResult}
-                        status={state.transactionStatus}
-                        token={state.droppedToken}
-                      />
-                    )}
-                    {state.expandedZone === "wallet" && (
-                      <SendForm
-                        destinationType="wallet"
-                        isLoading={state.isExecuting}
-                        onCancel={cancelForm}
-                        onSend={handleSend}
-                        result={state.transactionResult}
-                        status={state.transactionStatus}
-                        token={state.droppedToken}
-                      />
-                    )}
-                    {state.expandedZone === "swap" && (
-                      <SwapForm
-                        isLoading={state.isExecuting}
-                        onCancel={cancelForm}
-                        onGetQuote={handleGetQuote}
-                        onSwap={handleSwap}
-                        result={state.transactionResult}
-                        status={state.transactionStatus}
-                        token={state.droppedToken}
-                      />
-                    )}
-                  </DropZone>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
+
+          {/* Expanded form - appears after zoom phase */}
+          <AnimatePresence>
+            {state.expandedZone && state.droppedToken && animationPhase === "opened" && (
+              <motion.div
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 1.08 }}
+                key={state.expandedZone}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  zIndex: 10,
+                  transformOrigin: "center top",
+                }}
+                transition={{ type: "spring", stiffness: 400, damping: 35 }}
+              >
+                <DropZone
+                  droppedToken={state.droppedToken}
+                  isDragOver={false}
+                  isExpanded={true}
+                  onDragLeave={handleDragLeave()}
+                  onDragOver={handleDragOver(state.expandedZone)}
+                  onDrop={handleDrop(state.expandedZone)}
+                  type={state.expandedZone}
+                >
+                  {state.expandedZone === "telegram" && (
+                    <SendForm
+                      destinationType="telegram"
+                      isLoading={state.isExecuting}
+                      onCancel={handleCancel}
+                      onSend={handleSend}
+                      result={state.transactionResult}
+                      status={state.transactionStatus}
+                      token={state.droppedToken}
+                    />
+                  )}
+                  {state.expandedZone === "wallet" && (
+                    <SendForm
+                      destinationType="wallet"
+                      isLoading={state.isExecuting}
+                      onCancel={handleCancel}
+                      onSend={handleSend}
+                      result={state.transactionResult}
+                      status={state.transactionStatus}
+                      token={state.droppedToken}
+                    />
+                  )}
+                  {state.expandedZone === "swap" && (
+                    <SwapForm
+                      isLoading={state.isExecuting}
+                      onCancel={handleCancel}
+                      onGetQuote={handleGetQuote}
+                      onSwap={handleSwap}
+                      result={state.transactionResult}
+                      status={state.transactionStatus}
+                      token={state.droppedToken}
+                    />
+                  )}
+                </DropZone>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </motion.div>
