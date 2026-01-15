@@ -270,49 +270,16 @@ export function TransactionWidget({
 
   const isAnyZoneExpanded = state.expandedZone !== null;
 
-  return (
-    <div
-      className={className}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "12px",
-      }}
-    >
-      {/* Token cards row */}
-      <AnimatePresence>
-        {!isAnyZoneExpanded && (
-          <motion.div
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            initial={{ opacity: 0, height: 0 }}
-            style={{
-              display: "flex",
-              gap: "10px",
-              overflowX: "auto",
-              paddingBottom: "4px",
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-            }}
-          >
-            {balances.map((token) => (
-              <TokenCard
-                isDragging={state.draggedToken?.mint === token.mint}
-                isOtherDragging={
-                  state.isDragging && state.draggedToken?.mint !== token.mint
-                }
-                key={token.mint}
-                onDragEnd={handleDragEnd}
-                onDragStart={handleDragStart}
-                token={token}
-              />
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Drop zones row */}
-      <div style={{ display: "flex", gap: "10px" }}>
+  // When a zone is expanded, show the full-width form
+  if (isAnyZoneExpanded) {
+    return (
+      <div
+        className={className}
+        style={{
+          display: "flex",
+          gap: "12px",
+        }}
+      >
         {/* Telegram zone */}
         <DropZone
           droppedToken={state.droppedToken}
@@ -381,6 +348,140 @@ export function TransactionWidget({
             />
           )}
         </DropZone>
+      </div>
+    );
+  }
+
+  // Default state: Tokens on left, Actions on right
+  return (
+    <div
+      className={className}
+      style={{
+        display: "flex",
+        gap: "24px",
+        alignItems: "flex-start",
+      }}
+    >
+      {/* Left side: Tokens */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+        }}
+      >
+        {/* Section label */}
+        <span
+          style={{
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            fontSize: "11px",
+            fontWeight: 500,
+            color: "rgba(255, 255, 255, 0.4)",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            paddingLeft: "4px",
+          }}
+        >
+          Your Tokens
+        </span>
+
+        {/* Token cards - horizontal scroll with overflow visible for hover effects */}
+        <AnimatePresence>
+          <motion.div
+            animate={{ opacity: 1 }}
+            initial={{ opacity: 0 }}
+            style={{
+              display: "flex",
+              gap: "10px",
+              padding: "8px", // Padding to allow for scale overflow
+              margin: "-8px", // Negative margin to compensate
+              overflowX: "auto",
+              overflowY: "visible",
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}
+          >
+            {balances.map((token) => (
+              <TokenCard
+                isDragging={state.draggedToken?.mint === token.mint}
+                isOtherDragging={
+                  state.isDragging && state.draggedToken?.mint !== token.mint
+                }
+                key={token.mint}
+                onDragEnd={handleDragEnd}
+                onDragStart={handleDragStart}
+                token={token}
+              />
+            ))}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Right side: Actions */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+        }}
+      >
+        {/* Section label */}
+        <span
+          style={{
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            fontSize: "11px",
+            fontWeight: 500,
+            color: "rgba(255, 255, 255, 0.4)",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            paddingLeft: "4px",
+          }}
+        >
+          Actions
+        </span>
+
+        {/* Drop zones - vertical stack */}
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            padding: "8px",
+            margin: "-8px",
+          }}
+        >
+          {/* Telegram zone */}
+          <DropZone
+            droppedToken={state.droppedToken}
+            isDragOver={state.dragOverZone === "telegram"}
+            isExpanded={false}
+            onDragLeave={handleDragLeave()}
+            onDragOver={handleDragOver("telegram")}
+            onDrop={handleDrop("telegram")}
+            type="telegram"
+          />
+
+          {/* Wallet zone */}
+          <DropZone
+            droppedToken={state.droppedToken}
+            isDragOver={state.dragOverZone === "wallet"}
+            isExpanded={false}
+            onDragLeave={handleDragLeave()}
+            onDragOver={handleDragOver("wallet")}
+            onDrop={handleDrop("wallet")}
+            type="wallet"
+          />
+
+          {/* Swap zone */}
+          <DropZone
+            droppedToken={state.droppedToken}
+            isDragOver={state.dragOverZone === "swap"}
+            isExpanded={false}
+            onDragLeave={handleDragLeave()}
+            onDragOver={handleDragOver("swap")}
+            onDrop={handleDrop("swap")}
+            type="swap"
+          />
+        </div>
       </div>
     </div>
   );
