@@ -122,8 +122,8 @@ export function SkillsSelector({
             nlpState.parsedData.amount
               ? cn(filledPillStyle, "bg-[rgba(22,101,52,0.6)]")
               : nlpState.parsedData.partialAmount
-                ? "border border-green-500/60 border-dashed bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)]"
-                : emptyPillStyle
+              ? "border border-green-500/60 border-dashed bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)]"
+              : emptyPillStyle
           )}
         >
           {nlpState.parsedData.amount || "Amount"}
@@ -136,8 +136,8 @@ export function SkillsSelector({
             nlpState.parsedData.currency
               ? cn(filledPillStyle, "bg-[rgba(161,98,7,0.6)]")
               : nlpState.parsedData.partialCurrency
-                ? "border border-yellow-500/60 border-dashed bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)]"
-                : emptyPillStyle
+              ? "border border-yellow-500/60 border-dashed bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)]"
+              : emptyPillStyle
           )}
         >
           {nlpState.parsedData.currency || "Currency"}
@@ -162,20 +162,23 @@ export function SkillsSelector({
               nlpState.parsedData.walletAddress
                 ? cn(filledPillStyle, "bg-[rgba(30,64,175,0.6)]")
                 : nlpState.parsedData.partialRecipient
-                  ? "border border-blue-500/60 border-dashed bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)]"
-                  : emptyPillStyle
+                ? "border border-blue-500/60 border-dashed bg-[rgba(38,38,38,0.5)] shadow-[0px_4px_8px_0px_rgba(0,0,0,0.04),0px_4px_24px_0px_rgba(0,0,0,0.08)]"
+                : emptyPillStyle
             )}
             title={nlpState.parsedData.walletAddress || undefined}
           >
             {nlpState.parsedData.walletAddress
               ? nlpState.parsedData.walletAddress.length > 12
-                ? `${nlpState.parsedData.walletAddress.slice(0, 6)}...${nlpState.parsedData.walletAddress.slice(-4)}`
+                ? `${nlpState.parsedData.walletAddress.slice(
+                    0,
+                    6
+                  )}...${nlpState.parsedData.walletAddress.slice(-4)}`
                 : nlpState.parsedData.walletAddress
               : nlpState.parsedData.partialRecipient
-                ? nlpState.parsedData.recipientHintType === "telegram"
-                  ? "TG username"
-                  : "Wallet"
-                : "Recipient"}
+              ? nlpState.parsedData.recipientHintType === "telegram"
+                ? "TG handle"
+                : "Wallet"
+              : "To (Wallet / TG handle)"}
           </span>
         )}
 
