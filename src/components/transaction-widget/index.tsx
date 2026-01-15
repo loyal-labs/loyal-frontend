@@ -431,23 +431,11 @@ export function TransactionWidget({
 
             {/* Expanded card - absolutely positioned, animates in/out */}
             <AnimatePresence>
-              {state.expandedZone && (
+              {state.expandedZone && state.droppedToken && (
                 <motion.div
-                  animate={{
-                    opacity: 1,
-                    scale: [0.75, 1.08, 1], // Keyframes: start small → overshoot "closer" → settle
-                    y: 0,
-                  }}
-                  exit={{
-                    opacity: 0,
-                    scale: 0.8,
-                    y: 8,
-                  }}
-                  initial={{
-                    opacity: 0.5,
-                    scale: 0.75,
-                    y: 5,
-                  }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  initial={{ opacity: 0, scale: 0.85 }}
                   key={state.expandedZone}
                   style={{
                     position: "absolute",
@@ -457,16 +445,7 @@ export function TransactionWidget({
                     zIndex: 10,
                     transformOrigin: "center top",
                   }}
-                  transition={{
-                    scale: {
-                      type: "spring",
-                      stiffness: 200,
-                      damping: 20,
-                      duration: 0.5,
-                    },
-                    opacity: { duration: 0.15 },
-                    y: { type: "spring", stiffness: 300, damping: 25 },
-                  }}
+                  transition={zoomSpring}
                 >
                   <DropZone
                     droppedToken={state.droppedToken}
@@ -477,46 +456,39 @@ export function TransactionWidget({
                     onDrop={handleDrop(state.expandedZone)}
                     type={state.expandedZone}
                   >
-                    {/* Form content with delayed appearance */}
-                    <motion.div
-                      animate={{ opacity: 1, y: 0 }}
-                      initial={{ opacity: 0, y: 8 }}
-                      transition={{ delay: 0.15, duration: 0.2 }}
-                    >
-                      {state.expandedZone === "telegram" && state.droppedToken && (
-                        <SendForm
-                          destinationType="telegram"
-                          isLoading={state.isExecuting}
-                          onCancel={cancelForm}
-                          onSend={handleSend}
-                          result={state.transactionResult}
-                          status={state.transactionStatus}
-                          token={state.droppedToken}
-                        />
-                      )}
-                      {state.expandedZone === "wallet" && state.droppedToken && (
-                        <SendForm
-                          destinationType="wallet"
-                          isLoading={state.isExecuting}
-                          onCancel={cancelForm}
-                          onSend={handleSend}
-                          result={state.transactionResult}
-                          status={state.transactionStatus}
-                          token={state.droppedToken}
-                        />
-                      )}
-                      {state.expandedZone === "swap" && state.droppedToken && (
-                        <SwapForm
-                          isLoading={state.isExecuting}
-                          onCancel={cancelForm}
-                          onGetQuote={handleGetQuote}
-                          onSwap={handleSwap}
-                          result={state.transactionResult}
-                          status={state.transactionStatus}
-                          token={state.droppedToken}
-                        />
-                      )}
-                    </motion.div>
+                    {state.expandedZone === "telegram" && (
+                      <SendForm
+                        destinationType="telegram"
+                        isLoading={state.isExecuting}
+                        onCancel={cancelForm}
+                        onSend={handleSend}
+                        result={state.transactionResult}
+                        status={state.transactionStatus}
+                        token={state.droppedToken}
+                      />
+                    )}
+                    {state.expandedZone === "wallet" && (
+                      <SendForm
+                        destinationType="wallet"
+                        isLoading={state.isExecuting}
+                        onCancel={cancelForm}
+                        onSend={handleSend}
+                        result={state.transactionResult}
+                        status={state.transactionStatus}
+                        token={state.droppedToken}
+                      />
+                    )}
+                    {state.expandedZone === "swap" && (
+                      <SwapForm
+                        isLoading={state.isExecuting}
+                        onCancel={cancelForm}
+                        onGetQuote={handleGetQuote}
+                        onSwap={handleSwap}
+                        result={state.transactionResult}
+                        status={state.transactionStatus}
+                        token={state.droppedToken}
+                      />
+                    )}
                   </DropZone>
                 </motion.div>
               )}
