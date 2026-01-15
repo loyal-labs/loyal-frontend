@@ -287,7 +287,7 @@ export function TransactionWidget({
   return (
     <motion.div
       animate={{
-        scale: isAnyZoneExpanded ? 1.15 : 1, // Scene zooms in
+        scale: isAnyZoneExpanded ? 1.05 : 1, // Subtle scene zoom
       }}
       className={className}
       style={{
@@ -404,7 +404,7 @@ export function TransactionWidget({
               return (
                 <motion.div
                   animate={{
-                    scale: isSelected ? 1.1 : isOther ? 0.85 : 1,
+                    scale: isSelected ? 1 : isOther ? 0.85 : 1,
                     opacity: isOther ? 0 : 1,
                     filter: isOther ? "blur(4px)" : "blur(0px)",
                     zIndex: isSelected ? 10 : 1,
