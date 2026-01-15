@@ -25,6 +25,7 @@ import { SendTransactionWidget } from "@/components/send-transaction-widget";
 import { SkillsInput, type SkillsInputRef } from "@/components/skills-input";
 import { SkillsSelector } from "@/components/skills-selector";
 import { SwapTransactionWidget } from "@/components/swap-transaction-widget";
+import { TransactionWidget } from "@/components/transaction-widget";
 import { CopyIcon, type CopyIconHandle } from "@/components/ui/copy";
 import { MenuIcon, type MenuIconHandle } from "@/components/ui/menu";
 import { PlusIcon, type PlusIconHandle } from "@/components/ui/plus";
@@ -735,6 +736,37 @@ export default function LandingPage() {
     pendingSendDataRef.current = sendData;
     // Also store in state for UI updates
     setPendingSendData(sendData);
+  };
+
+  // Handler for new TransactionWidget completions
+  const handleTransactionWidgetComplete = (
+    type: "send" | "swap",
+    result: { signature?: string }
+  ) => {
+    // Add a message to show the transaction completed
+    const timestamp = Date.now();
+    const messageText =
+      type === "send"
+        ? "Transaction completed successfully"
+        : "Swap completed successfully";
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `widget-${type}-${timestamp}`,
+        role: "assistant",
+        createdAt: timestamp,
+        parts: [
+          {
+            type: "text",
+            text: messageText,
+          },
+        ],
+      },
+    ]);
+
+    // Enter chat mode to show the message
+    setIsChatModeLocal(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -2463,64 +2495,11 @@ export default function LandingPage() {
                 />
               )}
 
-              {/* Skills selector buttons - above input when scrolled */}
+              {/* Transaction widget - drag & drop tokens above input when scrolled */}
               {skillsEnabled && !isChatMode && isInputStuckToBottom && (
                 <div style={{ pointerEvents: "auto", marginBottom: "12px" }}>
-                  <SkillsSelector
-                    hintSkillId={showSendHint ? "send" : undefined}
-                    nlpState={nlpState}
-                    onClose={() => {
-                      if (inputRef.current && "clear" in inputRef.current) {
-                        (
-                          inputRef.current as HTMLTextAreaElement & {
-                            clear: () => void;
-                          }
-                        ).clear();
-                        setInput([]);
-                        setPendingText("");
-                      }
-                    }}
-                    onSkillSelect={(skill) => {
-                      const currentActiveSkill = input.find(
-                        (s) => s.category === "action"
-                      );
-
-                      if (
-                        !skill ||
-                        (currentActiveSkill &&
-                          currentActiveSkill.id === skill.id)
-                      ) {
-                        if (inputRef.current && "clear" in inputRef.current) {
-                          (
-                            inputRef.current as HTMLTextAreaElement & {
-                              clear: () => void;
-                            }
-                          ).clear();
-                          setInput([]);
-                        }
-                      } else if (skill.id === "send" || skill.id === "swap") {
-                        if (
-                          inputRef.current &&
-                          "activateNlpMode" in inputRef.current
-                        ) {
-                          (inputRef.current as any).activateNlpMode(
-                            `${skill.id} `
-                          );
-                        }
-                      } else if (
-                        inputRef.current &&
-                        "resetAndAddSkill" in inputRef.current
-                      ) {
-                        (
-                          inputRef.current as HTMLTextAreaElement & {
-                            resetAndAddSkill: (skill: LoyalSkill) => void;
-                          }
-                        ).resetAndAddSkill(skill);
-                      }
-                    }}
-                    selectedSkillId={
-                      input.find((skill) => skill.category === "action")?.id
-                    }
+                  <TransactionWidget
+                    onTransactionComplete={handleTransactionWidgetComplete}
                   />
                 </div>
               )}
@@ -2763,71 +2742,11 @@ export default function LandingPage() {
                 </div>
               </form>
 
-              {/* Skills selector buttons - below input when not scrolled */}
+              {/* Transaction widget - drag & drop tokens below input when not scrolled */}
               {skillsEnabled && !isChatMode && !isInputStuckToBottom && (
-                <div style={{ pointerEvents: "auto" }}>
-                  <SkillsSelector
-                    className="mt-4"
-                    hintSkillId={showSendHint ? "send" : undefined}
-                    nlpState={nlpState}
-                    onClose={() => {
-                      if (inputRef.current && "clear" in inputRef.current) {
-                        (
-                          inputRef.current as HTMLTextAreaElement & {
-                            clear: () => void;
-                          }
-                        ).clear();
-                        setInput([]);
-                        setPendingText("");
-                      }
-                    }}
-                    onSkillSelect={(skill) => {
-                      const currentActiveSkill = input.find(
-                        (s) => s.category === "action"
-                      );
-
-                      // If null or deselecting the same skill - clear everything
-                      if (
-                        !skill ||
-                        (currentActiveSkill &&
-                          currentActiveSkill.id === skill.id)
-                      ) {
-                        if (inputRef.current && "clear" in inputRef.current) {
-                          (
-                            inputRef.current as HTMLTextAreaElement & {
-                              clear: () => void;
-                            }
-                          ).clear();
-                          setInput([]);
-                        }
-                      } else if (skill.id === "send" || skill.id === "swap") {
-                        // For "send" and "swap" skills, activate NLP mode instead of adding the skill object
-                        if (
-                          inputRef.current &&
-                          "activateNlpMode" in inputRef.current
-                        ) {
-                          (inputRef.current as any).activateNlpMode(
-                            `${skill.id} `
-                          );
-                        }
-                      } else {
-                        // For other skills, use the old flow
-                        // Reset all state and add the selected skill
-                        if (
-                          inputRef.current &&
-                          "resetAndAddSkill" in inputRef.current
-                        ) {
-                          (
-                            inputRef.current as HTMLTextAreaElement & {
-                              resetAndAddSkill: (skill: LoyalSkill) => void;
-                            }
-                          ).resetAndAddSkill(skill);
-                        }
-                      }
-                    }}
-                    selectedSkillId={
-                      input.find((skill) => skill.category === "action")?.id
-                    }
+                <div className="mt-4" style={{ pointerEvents: "auto" }}>
+                  <TransactionWidget
+                    onTransactionComplete={handleTransactionWidgetComplete}
                   />
                 </div>
               )}

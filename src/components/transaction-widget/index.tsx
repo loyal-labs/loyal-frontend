@@ -1,0 +1,344 @@
+"use client";
+
+import { AnimatePresence, motion } from "motion/react";
+import type { DragEvent } from "react";
+import { useCallback } from "react";
+import { useDragDrop } from "@/hooks/use-drag-drop";
+import { useSend } from "@/hooks/use-send";
+import { useSwap } from "@/hooks/use-swap";
+import type { TokenBalance } from "@/hooks/use-wallet-balances";
+import { useWalletBalances } from "@/hooks/use-wallet-balances";
+import { cn } from "@/lib/utils";
+import { DropZone, type DropZoneType } from "./DropZone";
+import { SendForm } from "./SendForm";
+import { SwapForm } from "./SwapForm";
+import { TokenCard } from "./TokenCard";
+
+type TransactionWidgetProps = {
+  className?: string;
+  onTransactionComplete?: (
+    type: "send" | "swap",
+    result: { signature?: string }
+  ) => void;
+};
+
+export function TransactionWidget({
+  className,
+  onTransactionComplete,
+}: TransactionWidgetProps) {
+  const { balances, loading: balancesLoading, refetch } = useWalletBalances();
+  const { executeSend } = useSend();
+  const { getQuote, executeSwap } = useSwap();
+  const {
+    state,
+    startDrag,
+    endDrag,
+    dragOverZone,
+    dragLeaveZone,
+    dropOnZone,
+    cancelForm,
+    setExecuting,
+    setTransactionResult,
+  } = useDragDrop();
+
+  // Handle drag start
+  const handleDragStart = useCallback(
+    (_e: DragEvent<HTMLDivElement>, token: TokenBalance) => {
+      startDrag(token);
+    },
+    [startDrag]
+  );
+
+  // Handle drag end
+  const handleDragEnd = useCallback(() => {
+    endDrag();
+  }, [endDrag]);
+
+  // Handle drag over zone
+  const handleDragOver = useCallback(
+    (zone: DropZoneType) => (_e: DragEvent<HTMLDivElement>) => {
+      if (state.isDragging) {
+        dragOverZone(zone);
+      }
+    },
+    [state.isDragging, dragOverZone]
+  );
+
+  // Handle drag leave zone
+  const handleDragLeave = useCallback(
+    () => (_e: DragEvent<HTMLDivElement>) => {
+      dragLeaveZone();
+    },
+    [dragLeaveZone]
+  );
+
+  // Handle drop on zone
+  const handleDrop = useCallback(
+    (zone: DropZoneType) => (e: DragEvent<HTMLDivElement>) => {
+      try {
+        const data = e.dataTransfer.getData("application/json");
+        const token = JSON.parse(data) as TokenBalance;
+        dropOnZone(zone, token);
+      } catch {
+        endDrag();
+      }
+    },
+    [dropOnZone, endDrag]
+  );
+
+  // Handle send transaction
+  const handleSend = useCallback(
+    async (data: {
+      currency: string;
+      currencyMint: string;
+      currencyDecimals: number;
+      amount: string;
+      walletAddress: string;
+      destinationType: "wallet" | "telegram";
+    }) => {
+      setExecuting(true);
+      try {
+        const result = await executeSend(
+          data.currency,
+          data.amount,
+          data.walletAddress,
+          data.destinationType,
+          data.currencyMint,
+          data.currencyDecimals
+        );
+
+        if (result.success) {
+          setTransactionResult("success", { signature: result.signature });
+          onTransactionComplete?.("send", { signature: result.signature });
+          refetch(); // Refresh balances
+        } else {
+          setTransactionResult("error", { error: result.error });
+        }
+      } catch (err) {
+        setTransactionResult("error", {
+          error: err instanceof Error ? err.message : "Transaction failed",
+        });
+      }
+    },
+    [
+      executeSend,
+      setExecuting,
+      setTransactionResult,
+      onTransactionComplete,
+      refetch,
+    ]
+  );
+
+  // Handle swap quote
+  const handleGetQuote = useCallback(
+    async (
+      fromToken: string,
+      toToken: string,
+      amount: string,
+      fromMint?: string,
+      fromDecimals?: number,
+      toDecimals?: number
+    ) => {
+      const quote = await getQuote(
+        fromToken,
+        toToken,
+        amount,
+        fromMint,
+        fromDecimals,
+        toDecimals
+      );
+      if (quote) {
+        return {
+          outputAmount: quote.outputAmount,
+          priceImpact: quote.priceImpact,
+        };
+      }
+      return null;
+    },
+    [getQuote]
+  );
+
+  // Handle swap transaction
+  const handleSwap = useCallback(
+    async (data: {
+      fromCurrency: string;
+      fromCurrencyMint: string;
+      fromCurrencyDecimals: number;
+      amount: string;
+      toCurrency: string;
+      toCurrencyMint: string;
+      toCurrencyDecimals: number;
+    }) => {
+      setExecuting(true);
+      try {
+        // First get the quote to ensure we have it
+        await getQuote(
+          data.fromCurrency,
+          data.toCurrency,
+          data.amount,
+          data.fromCurrencyMint,
+          data.fromCurrencyDecimals,
+          data.toCurrencyDecimals
+        );
+
+        // Then execute the swap
+        const result = await executeSwap();
+
+        if (result.success) {
+          setTransactionResult("success", { signature: result.signature });
+          onTransactionComplete?.("swap", { signature: result.signature });
+          refetch(); // Refresh balances
+        } else {
+          setTransactionResult("error", { error: result.error });
+        }
+      } catch (err) {
+        setTransactionResult("error", {
+          error: err instanceof Error ? err.message : "Swap failed",
+        });
+      }
+    },
+    [
+      getQuote,
+      executeSwap,
+      setExecuting,
+      setTransactionResult,
+      onTransactionComplete,
+      refetch,
+    ]
+  );
+
+  // Empty state
+  if (balances.length === 0 && !balancesLoading) {
+    return (
+      <div
+        className={cn(
+          "flex flex-col items-center justify-center py-8",
+          className
+        )}
+      >
+        <p className="text-sm text-white/60">No tokens in wallet</p>
+        <p className="mt-1 text-white/40 text-xs">
+          Connect wallet or get some tokens
+        </p>
+      </div>
+    );
+  }
+
+  // Loading state
+  if (balancesLoading && balances.length === 0) {
+    return (
+      <div className={cn("flex items-center justify-center py-8", className)}>
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
+      </div>
+    );
+  }
+
+  const isAnyZoneExpanded = state.expandedZone !== null;
+
+  return (
+    <div className={cn("flex flex-col gap-4", className)}>
+      {/* Token cards row */}
+      <AnimatePresence>
+        {!isAnyZoneExpanded && (
+          <motion.div
+            animate={{ opacity: 1, height: "auto" }}
+            className="scrollbar-hide flex gap-2 overflow-x-auto pb-2"
+            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0, height: 0 }}
+          >
+            {balances.map((token) => (
+              <TokenCard
+                isDragging={state.draggedToken?.mint === token.mint}
+                isOtherDragging={
+                  state.isDragging && state.draggedToken?.mint !== token.mint
+                }
+                key={token.mint}
+                onDragEnd={handleDragEnd}
+                onDragStart={handleDragStart}
+                token={token}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Drop zones row */}
+      <div className="flex gap-2">
+        {/* Telegram zone */}
+        <DropZone
+          droppedToken={state.droppedToken}
+          isDragOver={state.dragOverZone === "telegram"}
+          isExpanded={state.expandedZone === "telegram"}
+          onDragLeave={handleDragLeave()}
+          onDragOver={handleDragOver("telegram")}
+          onDrop={handleDrop("telegram")}
+          type="telegram"
+        >
+          {state.expandedZone === "telegram" && state.droppedToken && (
+            <SendForm
+              destinationType="telegram"
+              isLoading={state.isExecuting}
+              onCancel={cancelForm}
+              onSend={handleSend}
+              result={state.transactionResult}
+              status={state.transactionStatus}
+              token={state.droppedToken}
+            />
+          )}
+        </DropZone>
+
+        {/* Wallet zone */}
+        <DropZone
+          droppedToken={state.droppedToken}
+          isDragOver={state.dragOverZone === "wallet"}
+          isExpanded={state.expandedZone === "wallet"}
+          onDragLeave={handleDragLeave()}
+          onDragOver={handleDragOver("wallet")}
+          onDrop={handleDrop("wallet")}
+          type="wallet"
+        >
+          {state.expandedZone === "wallet" && state.droppedToken && (
+            <SendForm
+              destinationType="wallet"
+              isLoading={state.isExecuting}
+              onCancel={cancelForm}
+              onSend={handleSend}
+              result={state.transactionResult}
+              status={state.transactionStatus}
+              token={state.droppedToken}
+            />
+          )}
+        </DropZone>
+
+        {/* Swap zone */}
+        <DropZone
+          droppedToken={state.droppedToken}
+          isDragOver={state.dragOverZone === "swap"}
+          isExpanded={state.expandedZone === "swap"}
+          onDragLeave={handleDragLeave()}
+          onDragOver={handleDragOver("swap")}
+          onDrop={handleDrop("swap")}
+          type="swap"
+        >
+          {state.expandedZone === "swap" && state.droppedToken && (
+            <SwapForm
+              isLoading={state.isExecuting}
+              onCancel={cancelForm}
+              onGetQuote={handleGetQuote}
+              onSwap={handleSwap}
+              result={state.transactionResult}
+              status={state.transactionStatus}
+              token={state.droppedToken}
+            />
+          )}
+        </DropZone>
+      </div>
+    </div>
+  );
+}
+
+export { DropZone } from "./DropZone";
+export { SendForm } from "./SendForm";
+export { SwapForm } from "./SwapForm";
+// Re-export components for potential individual use
+export { TokenCard } from "./TokenCard";
