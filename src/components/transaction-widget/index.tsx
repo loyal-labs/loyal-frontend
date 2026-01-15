@@ -8,7 +8,6 @@ import { useSend } from "@/hooks/use-send";
 import { useSwap } from "@/hooks/use-swap";
 import type { TokenBalance } from "@/hooks/use-wallet-balances";
 import { useWalletBalances } from "@/hooks/use-wallet-balances";
-import { cn } from "@/lib/utils";
 import { DropZone, type DropZoneType } from "./DropZone";
 import { SendForm } from "./SendForm";
 import { SwapForm } from "./SwapForm";
@@ -211,13 +210,32 @@ export function TransactionWidget({
   if (balances.length === 0 && !balancesLoading) {
     return (
       <div
-        className={cn(
-          "flex flex-col items-center justify-center py-8",
-          className
-        )}
+        className={className}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "32px 16px",
+        }}
       >
-        <p className="text-sm text-white/60">No tokens in wallet</p>
-        <p className="mt-1 text-white/40 text-xs">
+        <p
+          style={{
+            fontFamily: "var(--font-geist-sans), sans-serif",
+            fontSize: "14px",
+            color: "rgba(255, 255, 255, 0.6)",
+          }}
+        >
+          No tokens in wallet
+        </p>
+        <p
+          style={{
+            marginTop: "4px",
+            fontFamily: "var(--font-geist-sans), sans-serif",
+            fontSize: "12px",
+            color: "rgba(255, 255, 255, 0.4)",
+          }}
+        >
           Connect wallet or get some tokens
         </p>
       </div>
@@ -227,8 +245,25 @@ export function TransactionWidget({
   // Loading state
   if (balancesLoading && balances.length === 0) {
     return (
-      <div className={cn("flex items-center justify-center py-8", className)}>
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
+      <div
+        className={className}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "32px",
+        }}
+      >
+        <div
+          style={{
+            width: "24px",
+            height: "24px",
+            borderRadius: "50%",
+            border: "2px solid rgba(255, 255, 255, 0.2)",
+            borderTopColor: "rgba(255, 255, 255, 0.6)",
+            animation: "spin 1s linear infinite",
+          }}
+        />
       </div>
     );
   }
@@ -236,15 +271,29 @@ export function TransactionWidget({
   const isAnyZoneExpanded = state.expandedZone !== null;
 
   return (
-    <div className={cn("flex flex-col gap-4", className)}>
+    <div
+      className={className}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "12px",
+      }}
+    >
       {/* Token cards row */}
       <AnimatePresence>
         {!isAnyZoneExpanded && (
           <motion.div
             animate={{ opacity: 1, height: "auto" }}
-            className="scrollbar-hide flex gap-2 overflow-x-auto pb-2"
             exit={{ opacity: 0, height: 0 }}
             initial={{ opacity: 0, height: 0 }}
+            style={{
+              display: "flex",
+              gap: "10px",
+              overflowX: "auto",
+              paddingBottom: "4px",
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}
           >
             {balances.map((token) => (
               <TokenCard
@@ -263,7 +312,7 @@ export function TransactionWidget({
       </AnimatePresence>
 
       {/* Drop zones row */}
-      <div className="flex gap-2">
+      <div style={{ display: "flex", gap: "10px" }}>
         {/* Telegram zone */}
         <DropZone
           droppedToken={state.droppedToken}

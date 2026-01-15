@@ -5,13 +5,28 @@ import type { DragEvent } from "react";
 import type { TokenBalance } from "@/hooks/use-wallet-balances";
 import { cn } from "@/lib/utils";
 
-// Token icon mapping - simple colored circles with symbols
-const TOKEN_ICONS: Record<string, { bg: string; symbol: string }> = {
-  SOL: { bg: "bg-gradient-to-br from-purple-500 to-purple-700", symbol: "◉" },
-  USDC: { bg: "bg-gradient-to-br from-blue-400 to-blue-600", symbol: "◎" },
-  USDT: { bg: "bg-gradient-to-br from-green-500 to-green-700", symbol: "₮" },
-  BONK: { bg: "bg-gradient-to-br from-orange-400 to-orange-600", symbol: "🐕" },
-  LOYAL: { bg: "bg-gradient-to-br from-red-500 to-red-700", symbol: "♦" },
+// Token icon mapping - gradient backgrounds with symbols
+const TOKEN_ICONS: Record<string, { gradient: string; symbol: string }> = {
+  SOL: {
+    gradient: "linear-gradient(135deg, #9945FF 0%, #7B3FE4 100%)",
+    symbol: "◉",
+  },
+  USDC: {
+    gradient: "linear-gradient(135deg, #2775CA 0%, #1D5FA8 100%)",
+    symbol: "$",
+  },
+  USDT: {
+    gradient: "linear-gradient(135deg, #26A17B 0%, #1E8A68 100%)",
+    symbol: "₮",
+  },
+  BONK: {
+    gradient: "linear-gradient(135deg, #F7931A 0%, #E07D0A 100%)",
+    symbol: "🐕",
+  },
+  LOYAL: {
+    gradient: "linear-gradient(135deg, #FF4B4B 0%, #D93636 100%)",
+    symbol: "♦",
+  },
 };
 
 type TokenCardProps = {
@@ -67,7 +82,7 @@ export function TokenCard({
   onDragEnd,
 }: TokenCardProps) {
   const iconConfig = TOKEN_ICONS[token.symbol] ?? {
-    bg: "bg-gradient-to-br from-gray-500 to-gray-700",
+    gradient: "linear-gradient(135deg, #6B7280 0%, #4B5563 100%)",
     symbol: "●",
   };
 
@@ -85,7 +100,7 @@ export function TokenCard({
   return (
     <div
       className="shrink-0"
-      draggable
+      draggable={Boolean(onDragStart)}
       onDragEnd={handleDragEnd}
       onDragStart={handleDragStart}
     >
@@ -96,37 +111,88 @@ export function TokenCard({
           y: isDragging ? -4 : 0,
         }}
         className={cn(
-          "flex min-w-[80px] flex-col items-center gap-1 rounded-xl p-3",
-          "border border-white/10 bg-white/5 backdrop-blur-md",
-          "cursor-grab active:cursor-grabbing",
-          "select-none transition-colors",
-          isDragging && "border-white/20 shadow-lg shadow-white/10",
-          !(isDragging || isOtherDragging) &&
-            "hover:border-white/15 hover:bg-white/10"
+          "flex min-w-[90px] flex-col items-center gap-1.5 p-4",
+          "select-none",
+          onDragStart && "cursor-grab active:cursor-grabbing"
         )}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        whileHover={{ scale: isOtherDragging ? 1 : 1.02 }}
+        style={{
+          background: isDragging
+            ? "rgba(255, 255, 255, 0.12)"
+            : "rgba(38, 38, 38, 0.5)",
+          backdropFilter: "blur(24px) saturate(180%)",
+          WebkitBackdropFilter: "blur(24px) saturate(180%)",
+          borderRadius: "20px",
+          border: isDragging
+            ? "1px solid rgba(255, 255, 255, 0.25)"
+            : "1px solid rgba(255, 255, 255, 0.1)",
+          boxShadow: isDragging
+            ? "0 12px 40px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.15)"
+            : "0px 4px 8px rgba(0, 0, 0, 0.08), 0px 2px 4px rgba(0, 0, 0, 0.04)",
+          transition: "border 0.2s ease, box-shadow 0.2s ease",
+        }}
+        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+        whileHover={
+          isOtherDragging
+            ? {}
+            : {
+                scale: 1.03,
+                y: -2,
+              }
+        }
       >
         {/* Token icon */}
         <div
-          className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-full text-sm text-white",
-            iconConfig.bg
-          )}
+          style={{
+            width: "36px",
+            height: "36px",
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: iconConfig.gradient,
+            fontSize: "16px",
+            color: "#fff",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+          }}
         >
           {iconConfig.symbol}
         </div>
 
         {/* Token symbol */}
-        <span className="font-medium text-sm text-white">{token.symbol}</span>
+        <span
+          style={{
+            fontFamily: "var(--font-geist-sans), sans-serif",
+            fontWeight: 600,
+            fontSize: "14px",
+            color: "#fff",
+            letterSpacing: "0.01em",
+          }}
+        >
+          {token.symbol}
+        </span>
 
         {/* Balance */}
-        <span className="text-white/80 text-xs tabular-nums">
+        <span
+          style={{
+            fontFamily: "var(--font-geist-sans), sans-serif",
+            fontWeight: 500,
+            fontSize: "13px",
+            color: "rgba(255, 255, 255, 0.85)",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
           {formatBalance(token.balance)}
         </span>
 
         {/* USD value */}
-        <span className="text-white/50 text-xs">
+        <span
+          style={{
+            fontFamily: "var(--font-geist-sans), sans-serif",
+            fontWeight: 400,
+            fontSize: "12px",
+            color: "rgba(255, 255, 255, 0.5)",
+          }}
+        >
           {formatUsdValue(token.balance, token.symbol)}
         </span>
       </motion.div>

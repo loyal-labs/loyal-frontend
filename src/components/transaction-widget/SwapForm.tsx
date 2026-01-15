@@ -3,7 +3,6 @@
 import { ArrowRight, Check, Loader2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { TokenBalance } from "@/hooks/use-wallet-balances";
-import { cn } from "@/lib/utils";
 import { TokenCard } from "./TokenCard";
 
 // Available swap targets
@@ -66,6 +65,81 @@ const AMOUNT_PRESETS = [
   { label: "75%", value: 0.75 },
   { label: "Max", value: 1 },
 ];
+
+// Shared styles
+const inputStyle = {
+  width: "100%",
+  padding: "12px 16px",
+  background: "rgba(0, 0, 0, 0.3)",
+  backdropFilter: "blur(10px)",
+  border: "1px solid rgba(255, 255, 255, 0.1)",
+  borderRadius: "16px",
+  color: "#fff",
+  fontSize: "14px",
+  fontFamily: "var(--font-geist-sans), sans-serif",
+  lineHeight: "20px",
+  outline: "none",
+  transition: "border 0.2s ease, box-shadow 0.2s ease",
+};
+
+const presetButtonStyle = (isActive: boolean) => ({
+  padding: "8px 14px",
+  background: isActive ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.2)",
+  border: isActive
+    ? "1px solid rgba(255, 255, 255, 0.25)"
+    : "1px solid rgba(255, 255, 255, 0.08)",
+  borderRadius: "12px",
+  color: isActive ? "#fff" : "rgba(255, 255, 255, 0.7)",
+  fontSize: "13px",
+  fontFamily: "var(--font-geist-sans), sans-serif",
+  fontWeight: 500,
+  cursor: "pointer",
+  transition: "all 0.2s ease",
+});
+
+const tokenChipStyle = (isSelected: boolean) => ({
+  padding: "8px 14px",
+  background: isSelected ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.2)",
+  border: isSelected
+    ? "1px solid rgba(255, 255, 255, 0.25)"
+    : "1px solid rgba(255, 255, 255, 0.08)",
+  borderRadius: "12px",
+  color: isSelected ? "#fff" : "rgba(255, 255, 255, 0.7)",
+  fontSize: "13px",
+  fontFamily: "var(--font-geist-sans), sans-serif",
+  fontWeight: 600,
+  cursor: "pointer",
+  transition: "all 0.2s ease",
+});
+
+function getButtonBackground(isPrimary: boolean, isDisabled: boolean): string {
+  if (!isPrimary) return "transparent";
+  return isDisabled ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.95)";
+}
+
+function getButtonColor(isPrimary: boolean, isDisabled: boolean): string {
+  if (!isPrimary) return "rgba(255, 255, 255, 0.7)";
+  return isDisabled ? "rgba(255, 255, 255, 0.4)" : "#000";
+}
+
+const actionButtonStyle = (isPrimary: boolean, isDisabled: boolean) => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "8px",
+  padding: isPrimary ? "12px 24px" : "12px 16px",
+  background: getButtonBackground(isPrimary, isDisabled),
+  border: isPrimary ? "none" : "1px solid rgba(255, 255, 255, 0.1)",
+  borderRadius: "14px",
+  color: getButtonColor(isPrimary, isDisabled),
+  fontSize: "14px",
+  fontFamily: "var(--font-geist-sans), sans-serif",
+  fontWeight: 600,
+  cursor: isDisabled ? "not-allowed" : "pointer",
+  transition: "all 0.2s ease",
+  boxShadow:
+    isPrimary && !isDisabled ? "0 4px 12px rgba(255, 255, 255, 0.15)" : "none",
+});
 
 export function SwapForm({
   token,
@@ -156,26 +230,61 @@ export function SwapForm({
   // Success state
   if (status === "success") {
     return (
-      <div className="flex flex-col items-center gap-4 py-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/20">
-          <Check className="h-6 w-6 text-green-500" />
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "16px",
+          padding: "24px 0",
+        }}
+      >
+        <div
+          style={{
+            width: "56px",
+            height: "56px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: "50%",
+            background: "rgba(34, 197, 94, 0.15)",
+            border: "1px solid rgba(34, 197, 94, 0.3)",
+          }}
+        >
+          <Check style={{ width: "28px", height: "28px", color: "#22c55e" }} />
         </div>
-        <p className="font-medium text-white">
+        <p
+          style={{
+            fontFamily: "var(--font-geist-sans), sans-serif",
+            fontWeight: 600,
+            fontSize: "16px",
+            color: "#fff",
+          }}
+        >
           Swapped {amount} {token.symbol} → {toToken?.symbol}
         </p>
         {result?.signature && (
           <a
-            className="text-blue-400 text-sm hover:underline"
             href={`https://solscan.io/tx/${result.signature}`}
             rel="noopener noreferrer"
+            style={{
+              fontFamily: "var(--font-geist-sans), sans-serif",
+              fontSize: "14px",
+              color: "rgba(96, 165, 250, 1)",
+              textDecoration: "none",
+              transition: "opacity 0.2s ease",
+            }}
             target="_blank"
           >
             View on Solscan →
           </a>
         )}
         <button
-          className="px-4 py-2 text-sm text-white/70 hover:text-white"
           onClick={onCancel}
+          style={{
+            ...actionButtonStyle(false, false),
+            marginTop: "8px",
+          }}
           type="button"
         >
           Done
@@ -187,15 +296,55 @@ export function SwapForm({
   // Error state
   if (status === "error") {
     return (
-      <div className="flex flex-col items-center gap-4 py-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500/20">
-          <X className="h-6 w-6 text-red-500" />
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "16px",
+          padding: "24px 0",
+        }}
+      >
+        <div
+          style={{
+            width: "56px",
+            height: "56px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: "50%",
+            background: "rgba(239, 68, 68, 0.15)",
+            border: "1px solid rgba(239, 68, 68, 0.3)",
+          }}
+        >
+          <X style={{ width: "28px", height: "28px", color: "#ef4444" }} />
         </div>
-        <p className="font-medium text-white">Swap failed</p>
-        <p className="text-center text-red-400 text-sm">{result?.error}</p>
+        <p
+          style={{
+            fontFamily: "var(--font-geist-sans), sans-serif",
+            fontWeight: 600,
+            fontSize: "16px",
+            color: "#fff",
+          }}
+        >
+          Swap failed
+        </p>
+        <p
+          style={{
+            fontFamily: "var(--font-geist-sans), sans-serif",
+            fontSize: "14px",
+            color: "rgba(248, 113, 113, 1)",
+            textAlign: "center",
+          }}
+        >
+          {result?.error}
+        </p>
         <button
-          className="px-4 py-2 text-sm text-white/70 hover:text-white"
           onClick={onCancel}
+          style={{
+            ...actionButtonStyle(false, false),
+            marginTop: "8px",
+          }}
           type="button"
         >
           Try again
@@ -205,62 +354,137 @@ export function SwapForm({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       {/* Token cards row: from → to */}
-      <div className="flex items-center gap-3">
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
         <TokenCard token={token} />
 
-        <ArrowRight className="h-5 w-5 shrink-0 text-white/50" />
+        <ArrowRight
+          style={{
+            width: "20px",
+            height: "20px",
+            flexShrink: 0,
+            color: "rgba(255, 255, 255, 0.4)",
+          }}
+        />
 
         {/* To token selector */}
         <div
-          className={cn(
-            "flex min-w-[80px] flex-col items-center gap-1 rounded-xl p-3",
-            "border border-dashed bg-white/5 backdrop-blur-md",
-            toToken ? "border-white/20" : "border-white/30"
-          )}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "6px",
+            minWidth: "90px",
+            padding: "16px",
+            background: "rgba(0, 0, 0, 0.2)",
+            backdropFilter: "blur(10px)",
+            borderRadius: "20px",
+            border: toToken
+              ? "1px solid rgba(255, 255, 255, 0.15)"
+              : "2px dashed rgba(255, 255, 255, 0.2)",
+          }}
         >
           {toToken ? (
             <>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-gray-500 to-gray-700 text-sm text-white">
-                ?
+              <div
+                style={{
+                  width: "36px",
+                  height: "36px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "50%",
+                  background:
+                    "linear-gradient(135deg, #6B7280 0%, #4B5563 100%)",
+                  fontSize: "16px",
+                  color: "#fff",
+                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+                }}
+              >
+                {toToken.symbol.charAt(0)}
               </div>
-              <span className="font-medium text-sm text-white">
+              <span
+                style={{
+                  fontFamily: "var(--font-geist-sans), sans-serif",
+                  fontWeight: 600,
+                  fontSize: "14px",
+                  color: "#fff",
+                }}
+              >
                 {toToken.symbol}
               </span>
               {quoteLoading ? (
-                <Loader2 className="h-3 w-3 animate-spin text-white/50" />
+                <Loader2
+                  style={{
+                    width: "14px",
+                    height: "14px",
+                    color: "rgba(255, 255, 255, 0.5)",
+                    animation: "spin 1s linear infinite",
+                  }}
+                />
               ) : quote ? (
-                <span className="text-white/80 text-xs tabular-nums">
+                <span
+                  style={{
+                    fontFamily: "var(--font-geist-sans), sans-serif",
+                    fontSize: "13px",
+                    color: "rgba(255, 255, 255, 0.85)",
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
                   ≈ {Number.parseFloat(quote.outputAmount).toFixed(4)}
                 </span>
               ) : (
-                <span className="text-white/50 text-xs">-</span>
+                <span
+                  style={{
+                    fontFamily: "var(--font-geist-sans), sans-serif",
+                    fontSize: "12px",
+                    color: "rgba(255, 255, 255, 0.5)",
+                  }}
+                >
+                  -
+                </span>
               )}
             </>
           ) : (
             <>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-sm text-white/50">
+              <div
+                style={{
+                  width: "36px",
+                  height: "36px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "50%",
+                  background: "rgba(255, 255, 255, 0.1)",
+                  fontSize: "16px",
+                  color: "rgba(255, 255, 255, 0.5)",
+                }}
+              >
                 ?
               </div>
-              <span className="font-medium text-sm text-white/50">Select</span>
+              <span
+                style={{
+                  fontFamily: "var(--font-geist-sans), sans-serif",
+                  fontWeight: 500,
+                  fontSize: "13px",
+                  color: "rgba(255, 255, 255, 0.5)",
+                }}
+              >
+                Select
+              </span>
             </>
           )}
         </div>
       </div>
 
       {/* Target token chips */}
-      <div className="flex flex-wrap gap-2">
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
         {availableTargets.map((target) => (
           <button
-            className={cn(
-              "rounded-lg px-3 py-1.5 font-medium text-sm transition-colors",
-              toToken?.symbol === target.symbol
-                ? "bg-white/20 text-white"
-                : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
-            )}
             key={target.symbol}
             onClick={() => setToToken(target)}
+            style={tokenChipStyle(toToken?.symbol === target.symbol)}
             type="button"
           >
             {target.symbol}
@@ -269,84 +493,131 @@ export function SwapForm({
       </div>
 
       {/* Amount presets and input */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          gap: "8px",
+        }}
+      >
         {AMOUNT_PRESETS.map((preset) => (
           <button
-            className={cn(
-              "rounded-lg px-3 py-1.5 font-medium text-sm transition-colors",
-              activePreset === preset.value
-                ? "bg-white/20 text-white"
-                : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
-            )}
             key={preset.label}
             onClick={() => handlePresetClick(preset)}
+            style={presetButtonStyle(activePreset === preset.value)}
             type="button"
           >
             {preset.label}
           </button>
         ))}
 
-        <div className="ml-auto flex flex-1 items-center gap-2">
+        <div
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            flex: 1,
+            alignItems: "center",
+            gap: "10px",
+            justifyContent: "flex-end",
+          }}
+        >
           <input
-            className={cn(
-              "w-24 rounded-lg border bg-white/5 px-3 py-1.5 text-right text-white tabular-nums",
-              "focus:outline-none focus:ring-2 focus:ring-white/20",
-              amount && !isAmountValid ? "border-red-500/50" : "border-white/10"
-            )}
             onChange={(e) => handleAmountChange(e.target.value)}
             placeholder="0.00"
+            style={{
+              ...inputStyle,
+              width: "100px",
+              textAlign: "right",
+              fontVariantNumeric: "tabular-nums",
+              borderColor:
+                amount && !isAmountValid
+                  ? "rgba(239, 68, 68, 0.5)"
+                  : "rgba(255, 255, 255, 0.1)",
+            }}
             type="text"
             value={amount}
           />
-          <span className="text-sm text-white/70">{token.symbol}</span>
+          <span
+            style={{
+              fontFamily: "var(--font-geist-sans), sans-serif",
+              fontSize: "14px",
+              color: "rgba(255, 255, 255, 0.6)",
+              fontWeight: 500,
+            }}
+          >
+            {token.symbol}
+          </span>
         </div>
       </div>
 
       {/* Quote display */}
       {quote && toToken && (
-        <div className="text-right text-sm text-white/50">
+        <p
+          style={{
+            textAlign: "right",
+            fontFamily: "var(--font-geist-sans), sans-serif",
+            fontSize: "13px",
+            color: "rgba(255, 255, 255, 0.5)",
+          }}
+        >
           ≈ {Number.parseFloat(quote.outputAmount).toFixed(4)} {toToken.symbol}
           {quote.priceImpact && (
-            <span className="ml-2 text-xs">
+            <span style={{ marginLeft: "8px", fontSize: "12px" }}>
               ({Number.parseFloat(quote.priceImpact).toFixed(2)}% impact)
             </span>
           )}
-        </div>
+        </p>
       )}
 
       {/* Amount error */}
       {amount && amountNum > token.balance && (
-        <p className="text-red-400 text-xs">
+        <p
+          style={{
+            fontFamily: "var(--font-geist-sans), sans-serif",
+            fontSize: "12px",
+            color: "rgba(248, 113, 113, 1)",
+          }}
+        >
           Exceeds balance ({token.balance.toFixed(4)} {token.symbol} available)
         </p>
       )}
 
       {/* Action buttons */}
-      <div className="flex items-center justify-between pt-2">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingTop: "8px",
+          borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+        }}
+      >
         <button
-          className="flex items-center gap-1.5 px-3 py-2 text-white/60 transition-colors hover:text-white"
           disabled={isLoading}
           onClick={onCancel}
+          style={actionButtonStyle(false, false)}
           type="button"
         >
-          <X className="h-4 w-4" />
+          <X style={{ width: "16px", height: "16px" }} />
           Cancel
         </button>
 
         <button
-          className={cn(
-            "flex items-center gap-2 rounded-lg px-5 py-2.5 font-medium transition-all",
-            canSubmit
-              ? "bg-white text-black hover:bg-white/90"
-              : "cursor-not-allowed bg-white/20 text-white/50"
-          )}
           disabled={!canSubmit}
           onClick={handleSubmit}
+          style={actionButtonStyle(true, !canSubmit)}
           type="button"
         >
           {isLoading ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2
+                style={{
+                  width: "16px",
+                  height: "16px",
+                  animation: "spin 1s linear infinite",
+                }}
+              />
               Swapping...
             </>
           ) : (
