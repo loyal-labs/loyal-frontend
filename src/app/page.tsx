@@ -1789,7 +1789,14 @@ export default function LandingPage() {
 
               {/* Transaction widget - drag & drop tokens above input when scrolled */}
               {skillsEnabled && !isChatMode && isInputStuckToBottom && (
-                <div style={{ pointerEvents: "auto", marginBottom: "12px" }}>
+                <div
+                  style={{
+                    pointerEvents: "auto",
+                    marginBottom: "12px",
+                    width: "100%",
+                    maxWidth: "500px",
+                  }}
+                >
                   <TransactionWidget
                     onTransactionComplete={handleTransactionWidgetComplete}
                   />
@@ -1973,7 +1980,14 @@ export default function LandingPage() {
 
               {/* Transaction widget - drag & drop tokens below input when not scrolled */}
               {skillsEnabled && !isChatMode && !isInputStuckToBottom && (
-                <div className="mt-4" style={{ pointerEvents: "auto" }}>
+                <div
+                  className="mt-4"
+                  style={{
+                    pointerEvents: "auto",
+                    width: "100%",
+                    maxWidth: "768px",
+                  }}
+                >
                   <TransactionWidget
                     onTransactionComplete={handleTransactionWidgetComplete}
                   />

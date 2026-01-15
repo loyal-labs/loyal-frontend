@@ -360,6 +360,8 @@ export function TransactionWidget({
         display: "flex",
         justifyContent: "space-between",
         alignItems: "flex-start",
+        width: "100%",
+        gap: "48px",
       }}
     >
       {/* Left side: Tokens */}
