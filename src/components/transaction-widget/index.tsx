@@ -358,7 +358,7 @@ export function TransactionWidget({
       className={className}
       style={{
         display: "flex",
-        gap: "24px",
+        gap: "32px",
         alignItems: "flex-start",
       }}
     >
@@ -367,7 +367,7 @@ export function TransactionWidget({
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: "8px",
+          gap: "12px",
         }}
       >
         {/* Section label */}
@@ -385,20 +385,17 @@ export function TransactionWidget({
           Your Tokens
         </span>
 
-        {/* Token cards - horizontal scroll with overflow visible for hover effects */}
+        {/* Token cards - 2 column grid */}
         <AnimatePresence>
           <motion.div
             animate={{ opacity: 1 }}
             initial={{ opacity: 0 }}
             style={{
-              display: "flex",
+              display: "grid",
+              gridTemplateColumns: "repeat(2, 1fr)",
               gap: "10px",
-              padding: "8px", // Padding to allow for scale overflow
-              margin: "-8px", // Negative margin to compensate
-              overflowX: "auto",
-              overflowY: "visible",
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
+              padding: "8px",
+              margin: "-8px",
             }}
           >
             {balances.map((token) => (
@@ -422,7 +419,7 @@ export function TransactionWidget({
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: "8px",
+          gap: "12px",
         }}
       >
         {/* Section label */}
@@ -440,10 +437,11 @@ export function TransactionWidget({
           Actions
         </span>
 
-        {/* Drop zones - vertical stack */}
+        {/* Drop zones - 2 column grid */}
         <div
           style={{
-            display: "flex",
+            display: "grid",
+            gridTemplateColumns: "repeat(2, 1fr)",
             gap: "10px",
             padding: "8px",
             margin: "-8px",

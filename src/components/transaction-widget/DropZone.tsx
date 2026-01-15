@@ -243,9 +243,10 @@ export function DropZone({
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              gap: "10px",
-              padding: "20px 24px",
-              minWidth: "100px",
+              gap: "8px",
+              padding: "16px 20px",
+              minWidth: "110px",
+              minHeight: "120px",
             }}
             transition={{ duration: 0.2 }}
           >
@@ -256,9 +257,9 @@ export function DropZone({
                 rotate: isDragOver ? 10 : 0,
               }}
               style={{
-                width: "44px",
-                height: "44px",
-                borderRadius: "14px",
+                width: "40px",
+                height: "40px",
+                borderRadius: "12px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -268,7 +269,7 @@ export function DropZone({
                 boxShadow: isDragOver
                   ? `0 4px 16px ${config.glow}`
                   : "0 2px 8px rgba(0, 0, 0, 0.1)",
-                fontSize: "20px",
+                fontSize: "18px",
                 transition: "background 0.3s ease, box-shadow 0.3s ease",
               }}
               transition={{ type: "spring", stiffness: 500, damping: 25 }}

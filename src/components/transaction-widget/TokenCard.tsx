@@ -107,49 +107,51 @@ export function TokenCard({
 
   return (
     <div
-      className="shrink-0"
       draggable={Boolean(onDragStart)}
       onDragEnd={handleDragEnd}
       onDragStart={handleDragStart}
+      style={{ width: "100%" }}
     >
       <motion.div
         animate={{
-          scale: isDragging ? 1.08 : 1,
+          scale: isDragging ? 1.05 : 1,
           opacity: isOtherDragging ? 0.35 : 1,
-          y: isDragging ? -8 : 0,
+          y: isDragging ? -4 : 0,
         }}
         style={{
           position: "relative",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "8px",
-          padding: "16px 20px",
-          minWidth: "100px",
+          gap: "6px",
+          padding: "14px 16px",
+          width: "100%",
+          minWidth: "110px",
           background: isDragging
             ? "rgba(255, 255, 255, 0.08)"
             : "rgba(26, 26, 26, 0.4)",
           backdropFilter: "blur(24px) saturate(150%)",
           WebkitBackdropFilter: "blur(24px) saturate(150%)",
-          borderRadius: "20px",
+          borderRadius: "16px",
           border: isDragging
             ? "1px solid rgba(255, 255, 255, 0.2)"
             : "1px solid rgba(255, 255, 255, 0.06)",
           boxShadow: isDragging
-            ? `0 20px 40px rgba(0, 0, 0, 0.4), 0 0 30px ${config.glow}`
-            : "0 4px 16px rgba(0, 0, 0, 0.2)",
+            ? `0 16px 32px rgba(0, 0, 0, 0.4), 0 0 24px ${config.glow}`
+            : "0 4px 12px rgba(0, 0, 0, 0.2)",
           cursor: onDragStart ? "grab" : "default",
           userSelect: "none",
           overflow: "hidden",
+          boxSizing: "border-box",
         }}
         transition={{ type: "spring", stiffness: 500, damping: 30 }}
         whileHover={
           isOtherDragging
             ? {}
             : {
-                scale: 1.04,
-                y: -4,
-                boxShadow: `0 12px 32px rgba(0, 0, 0, 0.3), 0 0 20px ${config.glow}`,
+                scale: 1.03,
+                y: -2,
+                boxShadow: `0 10px 24px rgba(0, 0, 0, 0.3), 0 0 16px ${config.glow}`,
               }
         }
       >
@@ -177,9 +179,9 @@ export function TokenCard({
         <div
           style={{
             position: "relative",
-            width: "44px",
-            height: "44px",
-            borderRadius: "14px",
+            width: "40px",
+            height: "40px",
+            borderRadius: "12px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -190,7 +192,7 @@ export function TokenCard({
           <span
             style={{
               fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontSize: "18px",
+              fontSize: "16px",
               fontWeight: 700,
               color: "#fff",
               textShadow: "0 1px 2px rgba(0, 0, 0, 0.3)",
