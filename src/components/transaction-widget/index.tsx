@@ -358,7 +358,7 @@ export function TransactionWidget({
       className={className}
       style={{
         display: "flex",
-        gap: "32px",
+        justifyContent: "space-between",
         alignItems: "flex-start",
       }}
     >
