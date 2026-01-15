@@ -8,8 +8,6 @@ import {
   ArrowUpToLine,
   MoreHorizontal,
   RefreshCw,
-  Repeat2,
-  Send,
   ShieldQuestionMark,
   X,
 } from "lucide-react";
@@ -21,21 +19,12 @@ import { BentoGridSection } from "@/components/bento-grid-section";
 import { Footer } from "@/components/footer";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { RoadmapSection } from "@/components/roadmap-section";
-import { SendTransactionWidget } from "@/components/send-transaction-widget";
-import { SkillsInput, type SkillsInputRef } from "@/components/skills-input";
-import { SkillsSelector } from "@/components/skills-selector";
-import { SwapTransactionWidget } from "@/components/swap-transaction-widget";
 import { TransactionWidget } from "@/components/transaction-widget";
 import { CopyIcon, type CopyIconHandle } from "@/components/ui/copy";
 import { MenuIcon, type MenuIconHandle } from "@/components/ui/menu";
 import { PlusIcon, type PlusIconHandle } from "@/components/ui/plus";
 import { useChatMode } from "@/contexts/chat-mode-context";
 import { isSkillsEnabled } from "@/flags";
-import { useSend } from "@/hooks/use-send";
-import { useSwap } from "@/hooks/use-swap";
-import type { LoyalSkill } from "@/types/skills";
-
-// import { detectSwapSkill, stripSkillMarkers } from "@/lib/skills-text";
 
 const instrumentSerif = localFont({
   src: [
@@ -72,9 +61,6 @@ const dirtyline = localFont({
 
 type TimestampedMessage = UIMessage & { createdAt?: number };
 
-// Pattern to detect partial "send" typing for skill hint (s, se, sen, send)
-const SEND_HINT_PATTERN = /^s(e(n(d)?)?)?$/i;
-
 export default function LandingPage() {
   const { messages, sendMessage, status, setMessages } =
     useChat<TimestampedMessage>({
@@ -85,26 +71,7 @@ export default function LandingPage() {
   const [messageTimestamps, setMessageTimestamps] = useState<
     Record<string, number>
   >({});
-  const [input, setInput] = useState<LoyalSkill[]>([]);
   const [pendingText, setPendingText] = useState("");
-  const [swapFlowState, setSwapFlowState] = useState<{
-    isActive: boolean;
-    isComplete: boolean;
-    swapData: {
-      fromCurrency: string | null;
-      amount: string | null;
-      toCurrency: string | null;
-    };
-  } | null>(null);
-  const [sendFlowState, setSendFlowState] = useState<{
-    isActive: boolean;
-    isComplete: boolean;
-    sendData: {
-      currency: string | null;
-      amount: string | null;
-      walletAddress: string | null;
-    };
-  } | null>(null);
   const [isChatModeLocal, setIsChatModeLocal] = useState(false);
   const [parallaxOffset, setParallaxOffset] = useState(0);
   const [isInputStuckToBottom, setIsInputStuckToBottom] = useState(false);
@@ -119,13 +86,13 @@ export default function LandingPage() {
     setIsChatMode(isChatModeLocal);
   }, [isChatModeLocal, setIsChatMode]);
 
-  // Auto-resize textarea when skills are disabled
+  // Auto-resize textarea
   useEffect(() => {
-    if (!skillsEnabled && inputRef.current) {
+    if (inputRef.current) {
       inputRef.current.style.height = "auto";
       inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
     }
-  }, [skillsEnabled, pendingText]);
+  }, [pendingText]);
 
   // Use local state for component logic
   const isChatMode = isChatModeLocal;
@@ -136,7 +103,7 @@ export default function LandingPage() {
   const [hoveredNavIndex, setHoveredNavIndex] = useState<number | null>(null);
   const menuIconRef = useRef<MenuIconHandle>(null);
   const plusIconRef = useRef<PlusIconHandle>(null);
-  const inputRef = useRef<SkillsInputRef>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const copyIconRefs = useRef<Map<string, CopyIconHandle>>(new Map());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -157,7 +124,7 @@ export default function LandingPage() {
   // Track if we've already prompted auth on first input
   const [hasPromptedAuth, setHasPromptedAuth] = useState(false);
 
-  // Prompt auth on first character typed (works for both SkillsInput and textarea)
+  // Prompt auth on first character typed
   // Wait until wallet loading is complete to avoid false triggers during initialization
   useEffect(() => {
     if (
@@ -190,32 +157,8 @@ export default function LandingPage() {
   const prevScrolledToRoadmap = useRef(false);
   const prevScrolledToLinks = useRef(false);
 
-  // Smart input validation: enable send when:
-  // 1. There's regular text OR skills (but not in the middle of a skill flow)
-  // 2. OR swap/send flow is complete
-  const hasUsableInput =
-    (pendingText.trim().length > 0 || input.length > 0) &&
-    (!swapFlowState?.isActive || swapFlowState?.isComplete) &&
-    (!sendFlowState?.isActive || sendFlowState?.isComplete);
-
-  // Detect partial "send" typing for skill hint (s, se, sen, send)
-  const showSendHint =
-    input.length === 0 &&
-    pendingText.length > 0 &&
-    pendingText.length <= 4 &&
-    SEND_HINT_PATTERN.test(pendingText);
-
-  // Auto-activate Send skill when user types "send" fully (simulate typing space)
-  useEffect(() => {
-    if (
-      input.length === 0 &&
-      pendingText.toLowerCase() === "send" &&
-      inputRef.current &&
-      "activateNlpMode" in inputRef.current
-    ) {
-      (inputRef.current as SkillsInputRef).activateNlpMode("send ");
-    }
-  }, [pendingText, input.length]);
+  // Enable send when there's text input
+  const hasUsableInput = pendingText.trim().length > 0;
 
   // Track timestamps for messages that arrive without metadata
   useEffect(() => {
@@ -237,105 +180,8 @@ export default function LandingPage() {
     });
   }, [messages]);
 
-  // Swap functionality
-  const {
-    getQuote,
-    executeSwap,
-    quote,
-    loading: swapLoading,
-    error: swapError,
-  } = useSwap();
-  const [showSwapWidget, setShowSwapWidget] = useState(false);
-  const [swapStatus, setSwapStatus] = useState<
-    "pending" | "success" | "error" | null
-  >(null);
-  const [swapResult, setSwapResult] = useState<{
-    signature?: string;
-    error?: string;
-  } | null>(null);
-  const [pendingSwapData, setPendingSwapData] = useState<{
-    amount: string;
-    fromCurrency: string;
-    fromCurrencyMint: string | null;
-    fromCurrencyDecimals: number | null;
-    toCurrency: string;
-    toCurrencyMint: string | null;
-    toCurrencyDecimals: number | null;
-  } | null>(null);
-  const pendingSwapDataRef = useRef<{
-    amount: string;
-    fromCurrency: string;
-    fromCurrencyMint: string | null;
-    fromCurrencyDecimals: number | null;
-    toCurrency: string;
-    toCurrencyMint: string | null;
-    toCurrencyDecimals: number | null;
-  } | null>(null);
-
-  // Send functionality
-  const { executeSend, loading: sendLoading, error: sendError } = useSend();
-  const [showSendWidget, setShowSendWidget] = useState(false);
-  const [sendStatus, setSendStatus] = useState<
-    "pending" | "success" | "error" | null
-  >(null);
-  const [sendResult, setSendResult] = useState<{
-    signature?: string;
-    error?: string;
-  } | null>(null);
-  const [pendingSendData, setPendingSendData] = useState<{
-    currency: string;
-    currencyMint: string | null;
-    currencyDecimals: number | null;
-    amount: string;
-    walletAddress: string;
-    destinationType: "wallet" | "telegram";
-  } | null>(null);
-  const pendingSendDataRef = useRef<{
-    currency: string;
-    currencyMint: string | null;
-    currencyDecimals: number | null;
-    amount: string;
-    walletAddress: string;
-    destinationType: "wallet" | "telegram";
-  } | null>(null);
-
-  // NLP State
-  const [nlpState, setNlpState] = useState<{
-    isActive: boolean;
-    intent: "send" | "swap" | null;
-    parsedData: {
-      amount: string | null;
-      currency: string | null;
-      currencyMint: string | null;
-      currencyDecimals: number | null;
-      walletAddress: string | null;
-      destinationType: "wallet" | "telegram" | null;
-      toCurrency: string | null;
-      toCurrencyMint: string | null;
-      toCurrencyDecimals: number | null;
-    };
-  }>({
-    isActive: false,
-    intent: null,
-    parsedData: {
-      amount: null,
-      currency: null,
-      currencyMint: null,
-      currencyDecimals: null,
-      walletAddress: null,
-      destinationType: null,
-      toCurrency: null,
-      toCurrencyMint: null,
-      toCurrencyDecimals: null,
-    },
-  });
-
-  // Check if any transaction or chat operation is in progress
-  const isLoading =
-    swapLoading ||
-    sendLoading ||
-    status === "streaming" ||
-    status === "submitted";
+  // Check if a chat operation is in progress
+  const isLoading = status === "streaming" || status === "submitted";
 
   // Network status monitoring and recovery
   useEffect(() => {
@@ -387,34 +233,12 @@ export default function LandingPage() {
     }
   }, [isChatMode, isConnected, isWalletLoading, open]);
 
-  // Pre-fill input from URL query parameter (e.g., ?req=swap%20100%20sol%20to%20usdc)
+  // Pre-fill input from URL query parameter (e.g., ?req=hello)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const reqParam = params.get("req");
     if (reqParam) {
-      // Update parent state immediately for form submission logic
       setPendingText(reqParam);
-
-      // Try to set the input text, with retry if ref not ready
-      const setInputText = () => {
-        if (inputRef.current?.setText) {
-          inputRef.current.setText(reqParam);
-          return true;
-        }
-        return false;
-      };
-
-      // Try immediately, then retry after short delays if needed
-      if (!setInputText()) {
-        const timer1 = setTimeout(setInputText, 100);
-        const timer2 = setTimeout(setInputText, 300);
-        const timer3 = setTimeout(setInputText, 500);
-        return () => {
-          clearTimeout(timer1);
-          clearTimeout(timer2);
-          clearTimeout(timer3);
-        };
-      }
     }
   }, []);
 
@@ -709,35 +533,6 @@ export default function LandingPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isScrolledToAbout, isScrolledToRoadmap, isScrolledToLinks]);
 
-  const handleSwapComplete = (swapData: {
-    amount: string;
-    fromCurrency: string;
-    fromCurrencyMint: string | null;
-    fromCurrencyDecimals: number | null;
-    toCurrency: string;
-    toCurrencyMint: string | null;
-    toCurrencyDecimals: number | null;
-  }) => {
-    // Store in ref immediately (synchronous) for Enter key handling
-    pendingSwapDataRef.current = swapData;
-    // Also store in state for UI updates
-    setPendingSwapData(swapData);
-  };
-
-  const handleSendComplete = (sendData: {
-    currency: string;
-    currencyMint: string | null;
-    currencyDecimals: number | null;
-    amount: string;
-    walletAddress: string;
-    destinationType: "wallet" | "telegram";
-  }) => {
-    // Store in ref immediately (synchronous) for Enter key handling
-    pendingSendDataRef.current = sendData;
-    // Also store in state for UI updates
-    setPendingSendData(sendData);
-  };
-
   // Handler for new TransactionWidget completions
   const handleTransactionWidgetComplete = (
     type: "send" | "swap",
@@ -772,7 +567,7 @@ export default function LandingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Prevent submission if a transaction or chat operation is in progress
+    // Prevent submission if a chat operation is in progress
     if (isLoading) {
       return;
     }
@@ -789,276 +584,11 @@ export default function LandingPage() {
 
     setIsChatModeLocal(true);
 
-    // Check if this is a completed swap
-    // Use ref for immediate access (avoids race condition with Enter key)
-    const hasSwapSkill = input.some((skill) => skill.id === "swap");
-    const swapData = pendingSwapDataRef.current;
-
-    // Check for NLP swap command
-    const isNlpSwap = nlpState?.isActive && nlpState?.intent === "swap";
-    const hasNlpSwapData =
-      isNlpSwap &&
-      nlpState?.parsedData.amount &&
-      nlpState?.parsedData.currency &&
-      nlpState?.parsedData.toCurrency;
-
-    if ((hasSwapSkill || isNlpSwap) && (swapData || hasNlpSwapData)) {
-      // If NLP swap, construct the swap data
-      const dataToUse = hasNlpSwapData
-        ? {
-            fromCurrency: nlpState.parsedData.currency!,
-            fromCurrencyMint: nlpState.parsedData.currencyMint,
-            fromCurrencyDecimals: nlpState.parsedData.currencyDecimals,
-            amount: nlpState.parsedData.amount!,
-            toCurrency: nlpState.parsedData.toCurrency!,
-            toCurrencyMint: nlpState.parsedData.toCurrencyMint,
-            toCurrencyDecimals: nlpState.parsedData.toCurrencyDecimals,
-          }
-        : swapData!;
-
-      const swapMessage = `Swap ${dataToUse.amount} ${dataToUse.fromCurrency} to ${dataToUse.toCurrency}`;
-      const timestamp = Date.now();
-      const userMessageId = `user-swap-${timestamp}`;
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: userMessageId,
-          role: "user",
-          createdAt: timestamp,
-          parts: [
-            {
-              type: "text",
-              text: swapMessage,
-            },
-          ],
-        },
-        {
-          id: `assistant-swap-${timestamp}`,
-          role: "assistant",
-          createdAt: timestamp,
-          parts: [
-            {
-              type: "text",
-              text: "I'll help you swap those tokens. Please review the details below.",
-            },
-          ],
-          toolCalls: [
-            {
-              id: `call-swap-${timestamp}`,
-              name: "swap_tokens",
-              args: {
-                amount: dataToUse.amount,
-                fromToken: dataToUse.fromCurrency,
-                toToken: dataToUse.toCurrency,
-              },
-            },
-          ],
-        },
-      ]);
-
-      // Get quote from Jupiter
-      try {
-        const quoteResult = await getQuote(
-          dataToUse.fromCurrency,
-          dataToUse.toCurrency,
-          dataToUse.amount,
-          dataToUse.fromCurrencyMint || undefined,
-          dataToUse.fromCurrencyDecimals || undefined,
-          dataToUse.toCurrencyDecimals || undefined
-        );
-        if (quoteResult) {
-          setShowSwapWidget(true);
-          // Ensure pendingSwapData is set for the widget to use
-          setPendingSwapData(dataToUse);
-          pendingSwapDataRef.current = dataToUse;
-        } else {
-          // Add error message while preserving user's message
-          const errorTimestamp = Date.now();
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: `error-${errorTimestamp}`,
-              role: "assistant",
-              createdAt: errorTimestamp,
-              parts: [
-                {
-                  type: "text",
-                  text: "I couldn't find a valid quote for this swap. Please try a different amount or pair.",
-                },
-              ],
-            },
-          ]);
-        }
-      } catch (error) {
-        console.error("Error getting quote:", error);
-        const errorTimestamp = Date.now();
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `error-${errorTimestamp}`,
-            role: "assistant",
-            createdAt: errorTimestamp,
-            parts: [
-              {
-                type: "text",
-                text: "Sorry, there was an error fetching the quote. Please try again later.",
-              },
-            ],
-          },
-        ]);
-      }
-
-      // Clear input (but keep swap data for approval)
-      // For NLP swap, we need to clear the NLP state too
-      if (isNlpSwap) {
-        inputRef.current?.clear();
-      } else {
-        setInput([]);
-        setPendingText("");
-      }
-
-      // Note: Don't clear pendingSwapData here - it's needed for approval
-      // It will be cleared in handleSwapApprove or handleSwapCancel
-    } else {
-      // Check if this is a completed send
-      const hasSendSkill = input.some((skill) => skill.id === "send");
-      let sendData = pendingSendDataRef.current;
-
-      // Check for NLP send command
-      // We allow send if:
-      // 1. The "Send" skill is explicitly active (hasSendSkill) AND we have data
-      // 2. OR we are in NLP mode with "send" intent AND we have valid data
-      const isNlpSend = nlpState?.isActive && nlpState?.intent === "send";
-
-      if (
-        isNlpSend &&
-        nlpState?.parsedData.amount &&
-        nlpState?.parsedData.currency &&
-        nlpState?.parsedData.walletAddress &&
-        nlpState?.parsedData.destinationType
-      ) {
-        // Validate SOL-only for telegram destinations
-        if (
-          nlpState.parsedData.destinationType === "telegram" &&
-          nlpState.parsedData.currency.toUpperCase() !== "SOL"
-        ) {
-          // Block the transaction - only SOL can be sent to Telegram usernames
-          // Clear input and show error via chat
-          inputRef.current?.clear();
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: `error-${Date.now()}`,
-              role: "assistant",
-              createdAt: Date.now(),
-              parts: [
-                {
-                  type: "text",
-                  text: "Only SOL can be sent to Telegram usernames. Please use a wallet address for other tokens.",
-                },
-              ],
-            },
-          ]);
-          return;
-        }
-
-        // Construct sendData from nlpState
-        sendData = {
-          amount: nlpState.parsedData.amount,
-          currency: nlpState.parsedData.currency,
-          currencyMint: nlpState.parsedData.currencyMint,
-          currencyDecimals: nlpState.parsedData.currencyDecimals,
-          walletAddress: nlpState.parsedData.walletAddress,
-          destinationType: nlpState.parsedData.destinationType,
-        };
-        // Update ref just in case
-        pendingSendDataRef.current = sendData;
-      }
-
-      if ((hasSendSkill || isNlpSend) && sendData) {
-        // Format recipient for display
-        const displayRecipient =
-          sendData.destinationType === "telegram"
-            ? `@${sendData.walletAddress}`
-            : sendData.walletAddress.length > 12
-              ? `${sendData.walletAddress.slice(
-                  0,
-                  6
-                )}...${sendData.walletAddress.slice(-4)}`
-              : sendData.walletAddress;
-        const sendMessage = `Send ${sendData.amount} ${sendData.currency} to ${displayRecipient}`;
-        const timestamp = Date.now();
-
-        // Add user's send message to chat
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `user-send-${timestamp}`,
-            role: "user",
-            createdAt: timestamp,
-            parts: [
-              {
-                type: "text",
-                text: sendMessage,
-              },
-            ],
-          },
-          {
-            id: `assistant-send-${timestamp}`,
-            role: "assistant",
-            createdAt: timestamp,
-            parts: [
-              {
-                type: "text",
-                text: "I'll help you send those tokens. Please confirm the transaction in your wallet.",
-              },
-            ],
-            toolCalls: [
-              {
-                id: `call-send-${timestamp}`,
-                name: "send_tokens",
-                args: {
-                  amount: sendData.amount,
-                  currency: sendData.currency,
-                  walletAddress: sendData.walletAddress,
-                },
-              },
-            ],
-          },
-        ]);
-
-        // Show send widget for approval
-        setShowSendWidget(true);
-
-        // Clear input (but keep send data for approval)
-        if (isNlpSend) {
-          inputRef.current?.clear();
-        } else {
-          setInput([]);
-          setPendingText("");
-          // Note: Don't clear pendingSendDataRef here - it's needed for approval
-          // It will be cleared in handleSendApprove or handleSendCancel
-        }
-      } else {
-        // Regular message - send to LLM
-        const messageText = skillsEnabled
-          ? [...input.map((skill) => skill.label), pendingText.trim()]
-              .filter(Boolean)
-              .join(" ")
-          : pendingText.trim();
-
-        if (messageText) {
-          sendMessage({ text: messageText });
-          setInput([]);
-          setPendingText("");
-        }
-      }
-    }
-
-    // Clear the input component's internal state
-    if (inputRef.current && "clear" in inputRef.current) {
-      (inputRef.current as HTMLTextAreaElement & { clear: () => void }).clear();
+    // Send message to LLM
+    const messageText = pendingText.trim();
+    if (messageText) {
+      sendMessage({ text: messageText });
+      setPendingText("");
     }
 
     // Ensure focus
@@ -1155,81 +685,6 @@ export default function LandingPage() {
       // Update URL hash
       window.history.pushState(null, "", "#links");
     }
-  };
-
-  const handleSwapApprove = async () => {
-    if (!pendingSwapData) return;
-
-    setSwapStatus("pending");
-
-    try {
-      const result = await executeSwap();
-
-      if (result.success) {
-        setSwapStatus("success");
-        setSwapResult({ signature: result.signature });
-      } else {
-        setSwapStatus("error");
-        setSwapResult({
-          error: result.error || "Transaction failed. Please try again.",
-        });
-      }
-    } catch (error) {
-      setSwapStatus("error");
-      setSwapResult({
-        error:
-          error instanceof Error ? error.message : "Unexpected error occurred",
-      });
-    }
-  };
-
-  const handleSwapCancel = () => {
-    setShowSwapWidget(false);
-    setPendingSwapData(null);
-    pendingSwapDataRef.current = null;
-    setSwapStatus(null);
-    setSwapResult(null);
-  };
-
-  const handleSendApprove = async () => {
-    if (!pendingSendData) return;
-
-    setSendStatus("pending");
-
-    try {
-      const result = await executeSend(
-        pendingSendData.currency,
-        pendingSendData.amount,
-        pendingSendData.walletAddress,
-        pendingSendData.destinationType,
-        pendingSendData.currencyMint || undefined,
-        pendingSendData.currencyDecimals || undefined
-      );
-
-      if (result.success) {
-        setSendStatus("success");
-        setSendResult({ signature: result.signature });
-      } else {
-        setSendStatus("error");
-        setSendResult({
-          error: result.error || "Transaction failed. Please try again.",
-        });
-      }
-    } catch (error) {
-      setSendStatus("error");
-      setSendResult({
-        error:
-          error instanceof Error ? error.message : "Unexpected error occurred",
-      });
-    }
-  };
-
-  const handleSendCancel = () => {
-    setShowSendWidget(false);
-    setPendingSendData(null);
-    pendingSendDataRef.current = null;
-    setSendStatus(null);
-    setSendResult(null);
   };
 
   // Mock data for previous chats - replace with real data later
@@ -1554,17 +1009,8 @@ export default function LandingPage() {
                   className="sidebar-icon-btn"
                   onClick={() => {
                     setIsChatModeLocal(false);
-                    setInput([]);
                     setPendingText("");
                     setMessages([]);
-                    setShowSwapWidget(false);
-                    setShowSendWidget(false);
-                    setPendingSwapData(null);
-                    setPendingSendData(null);
-                    setSwapStatus(null);
-                    setSendStatus(null);
-                    setSwapResult(null);
-                    setSendResult(null);
                     setTimeout(() => {
                       inputRef.current?.focus();
                     }, 100);
@@ -1723,17 +1169,8 @@ export default function LandingPage() {
                   className="sidebar-icon-btn"
                   onClick={() => {
                     setIsChatModeLocal(false);
-                    setInput([]);
                     setPendingText("");
                     setMessages([]);
-                    setShowSwapWidget(false);
-                    setShowSendWidget(false);
-                    setPendingSwapData(null);
-                    setPendingSendData(null);
-                    setSwapStatus(null);
-                    setSendStatus(null);
-                    setSwapResult(null);
-                    setSendResult(null);
                     setTimeout(() => {
                       inputRef.current?.focus();
                     }, 100);
@@ -1771,106 +1208,6 @@ export default function LandingPage() {
                     New Chat
                   </span>
                 </button>
-              </div>
-
-              {/* Services Group */}
-              <div
-                style={{
-                  padding: "12px 8px 0",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                {[
-                  {
-                    id: "send",
-                    title: "Send",
-                    subtitle: "Transfer Solana tokens",
-                    icon: Send,
-                  },
-                  {
-                    id: "swap",
-                    title: "Swap",
-                    subtitle: "Swap tokens on Solana",
-                    icon: Repeat2,
-                  },
-                ].map((service) => (
-                  <div
-                    key={service.id}
-                    onClick={() => {
-                      setIsSidebarOpen(false);
-                      if (
-                        inputRef.current &&
-                        "activateNlpMode" in inputRef.current
-                      ) {
-                        (inputRef.current as SkillsInputRef).activateNlpMode(
-                          `${service.id} `
-                        );
-                      }
-                    }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      padding: "0 8px",
-                      borderRadius: "16px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <div
-                      style={{
-                        padding: "4px 12px 4px 0",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: "40px",
-                          height: "40px",
-                          background: "rgba(255, 255, 255, 0.06)",
-                          mixBlendMode: "lighten",
-                          borderRadius: "8px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <service.icon
-                          size={20}
-                          style={{ color: "rgba(255, 255, 255, 0.6)" }}
-                        />
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        flex: 1,
-                        padding: "10px 0",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "2px",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "16px",
-                          fontWeight: 400,
-                          lineHeight: "20px",
-                          color: "#fff",
-                        }}
-                      >
-                        {service.title}
-                      </span>
-                      <span
-                        style={{
-                          fontSize: "13px",
-                          fontWeight: 400,
-                          lineHeight: "16px",
-                          color: "rgba(255, 255, 255, 0.6)",
-                        }}
-                      >
-                        {service.subtitle}
-                      </span>
-                    </div>
-                  </div>
-                ))}
               </div>
 
               {/* History Section */}
@@ -2307,51 +1644,6 @@ export default function LandingPage() {
                 })}
 
                 {/* Swap Transaction Widget */}
-                {showSwapWidget && quote && (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "flex-start",
-                      gap: "0.5rem",
-                      animation: "slideInUp 0.3s ease-out",
-                      animationFillMode: "both",
-                    }}
-                  >
-                    <SwapTransactionWidget
-                      loading={swapLoading}
-                      onApprove={handleSwapApprove}
-                      onCancel={handleSwapCancel}
-                      quote={quote}
-                      result={swapResult}
-                      status={swapStatus}
-                    />
-                  </div>
-                )}
-
-                {/* Send Transaction Widget */}
-                {showSendWidget && pendingSendData && (
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "flex-start",
-                      gap: "0.5rem",
-                      animation: "slideInUp 0.3s ease-out",
-                      animationFillMode: "both",
-                    }}
-                  >
-                    <SendTransactionWidget
-                      loading={sendLoading}
-                      onApprove={handleSendApprove}
-                      onCancel={handleSendCancel}
-                      result={sendResult}
-                      sendData={pendingSendData}
-                      status={sendStatus}
-                    />
-                  </div>
-                )}
-
                 {/* Thinking indicator */}
                 {status === "submitted" && (
                   <div
@@ -2551,74 +1843,57 @@ export default function LandingPage() {
                         paddingBottom: "16px",
                       }}
                     >
-                      {skillsEnabled ? (
-                        <SkillsInput
-                          className="min-h-[24px] w-full text-base"
-                          onChange={setInput}
-                          onNlpStateChange={setNlpState}
-                          onPendingTextChange={setPendingText}
-                          onSendComplete={handleSendComplete}
-                          onSendFlowChange={setSendFlowState}
-                          onSwapComplete={handleSwapComplete}
-                          onSwapFlowChange={setSwapFlowState}
-                          placeholder="Ask anything"
-                          ref={inputRef}
-                          value={input}
-                        />
-                      ) : (
-                        <textarea
-                          onChange={(e) => {
-                            setPendingText(e.target.value);
+                      <textarea
+                        onChange={(e) => {
+                          setPendingText(e.target.value);
 
-                            // Auto-resize textarea based on content
-                            if (inputRef.current) {
-                              inputRef.current.style.height = "auto";
-                              const scrollHeight =
-                                inputRef.current.scrollHeight;
-                              const maxHeight = 336; // 368 - 32 (padding)
-                              if (scrollHeight > maxHeight) {
-                                inputRef.current.style.height = `${maxHeight}px`;
-                                inputRef.current.style.overflowY = "auto";
-                              } else {
-                                inputRef.current.style.height = `${scrollHeight}px`;
-                                inputRef.current.style.overflowY = "hidden";
-                              }
+                          // Auto-resize textarea based on content
+                          if (inputRef.current) {
+                            inputRef.current.style.height = "auto";
+                            const scrollHeight = inputRef.current.scrollHeight;
+                            const maxHeight = 336; // 368 - 32 (padding)
+                            if (scrollHeight > maxHeight) {
+                              inputRef.current.style.height = `${maxHeight}px`;
+                              inputRef.current.style.overflowY = "auto";
+                            } else {
+                              inputRef.current.style.height = `${scrollHeight}px`;
+                              inputRef.current.style.overflowY = "hidden";
                             }
-                          }}
-                          onKeyDown={(e) => {
-                            // Allow Shift+Enter to create new lines
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault();
-                              if (hasUsableInput && !isLoading) {
-                                handleSubmit(e as unknown as React.FormEvent);
-                              }
-                            }
-                          }}
-                          placeholder={
-                            isOnline
-                              ? isChatMode && !isConnected
-                                ? "Please reconnect wallet to continue..."
-                                : "Ask anything"
-                              : "No internet connection..."
                           }
-                          ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-                          rows={1}
-                          style={{
-                            width: "100%",
-                            padding: "2px 0",
-                            background: "transparent",
-                            border: "none",
-                            color: "white",
-                            fontSize: "16px",
-                            fontFamily: "var(--font-geist-sans), sans-serif",
-                            lineHeight: "24px",
-                            resize: "none",
-                            outline: "none",
-                            overflowY: "hidden",
-                          }}
-                          value={pendingText}
-                        />
-                      )}
+                        }}
+                        onKeyDown={(e) => {
+                          // Allow Shift+Enter to create new lines
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            if (hasUsableInput && !isLoading) {
+                              handleSubmit(e as unknown as React.FormEvent);
+                            }
+                          }
+                        }}
+                        placeholder={
+                          isOnline
+                            ? isChatMode && !isConnected
+                              ? "Please reconnect wallet to continue..."
+                              : "Ask anything"
+                            : "No internet connection..."
+                        }
+                        ref={inputRef}
+                        rows={1}
+                        style={{
+                          width: "100%",
+                          padding: "2px 0",
+                          background: "transparent",
+                          border: "none",
+                          color: "white",
+                          fontSize: "16px",
+                          fontFamily: "var(--font-geist-sans), sans-serif",
+                          lineHeight: "24px",
+                          resize: "none",
+                          outline: "none",
+                          overflowY: "hidden",
+                        }}
+                        value={pendingText}
+                      />
                     </div>
 
                     {/* Submit button wrapper */}
@@ -2638,52 +1913,6 @@ export default function LandingPage() {
                           if (isLoading) {
                             // TODO: Implement stop functionality
                           } else if (hasUsableInput) {
-                            // For NLP mode, ensure completion data is set before submitting
-                            // (same as what Enter key does in SkillsInput)
-                            if (
-                              nlpState?.isActive &&
-                              nlpState?.intent === "send"
-                            ) {
-                              if (
-                                nlpState.parsedData.amount &&
-                                nlpState.parsedData.currency &&
-                                nlpState.parsedData.walletAddress &&
-                                nlpState.parsedData.destinationType
-                              ) {
-                                handleSendComplete({
-                                  currency: nlpState.parsedData.currency,
-                                  currencyMint:
-                                    nlpState.parsedData.currencyMint,
-                                  currencyDecimals:
-                                    nlpState.parsedData.currencyDecimals,
-                                  amount: nlpState.parsedData.amount,
-                                  walletAddress:
-                                    nlpState.parsedData.walletAddress,
-                                  destinationType:
-                                    nlpState.parsedData.destinationType,
-                                });
-                              }
-                            } else if (
-                              nlpState?.isActive &&
-                              nlpState?.intent === "swap" &&
-                              nlpState.parsedData.amount &&
-                              nlpState.parsedData.currency &&
-                              nlpState.parsedData.toCurrency
-                            ) {
-                              handleSwapComplete({
-                                fromCurrency: nlpState.parsedData.currency,
-                                fromCurrencyMint:
-                                  nlpState.parsedData.currencyMint,
-                                fromCurrencyDecimals:
-                                  nlpState.parsedData.currencyDecimals,
-                                amount: nlpState.parsedData.amount,
-                                toCurrency: nlpState.parsedData.toCurrency,
-                                toCurrencyMint:
-                                  nlpState.parsedData.toCurrencyMint,
-                                toCurrencyDecimals:
-                                  nlpState.parsedData.toCurrencyDecimals,
-                              });
-                            }
                             handleSubmit(e as unknown as React.FormEvent);
                           }
                         }}
