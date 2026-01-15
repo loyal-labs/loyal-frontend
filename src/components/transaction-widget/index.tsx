@@ -270,20 +270,33 @@ export function TransactionWidget({
 
   const isAnyZoneExpanded = state.expandedZone !== null;
 
-  // Smooth spring for card zoom
-  const zoomSpring = { type: "spring", stiffness: 250, damping: 28 };
+  // Smooth spring for zoom
+  const zoomSpring = { type: "spring", stiffness: 280, damping: 30 };
 
-  // SINGLE PLANE - all cards laid out, one zooms forward and opens
+  // Transform origin based on which zone is expanded (zoom centers on that zone)
+  const getSceneOrigin = () => {
+    if (!state.expandedZone) return "center center";
+    // Actions are on the right side
+    if (state.expandedZone === "telegram") return "100% 0%"; // top-right area
+    if (state.expandedZone === "wallet") return "100% 0%";
+    if (state.expandedZone === "swap") return "100% 50%"; // right-center
+    return "center center";
+  };
+
+  // ZOOM INTO SCENE - everything scales, centered on selected action
   return (
-    <div
+    <motion.div
+      animate={{
+        scale: isAnyZoneExpanded ? 1.15 : 1, // Scene zooms in
+      }}
       className={className}
       style={{
-        position: "relative",
         width: "100%",
-        minHeight: isAnyZoneExpanded ? "400px" : "auto",
+        transformOrigin: getSceneOrigin(),
+        overflow: "visible",
       }}
+      transition={zoomSpring}
     >
-      {/* THE PLANE - all cards live here */}
       <div
         style={{
           display: "flex",
@@ -293,18 +306,16 @@ export function TransactionWidget({
           gap: "48px",
         }}
       >
-        {/* Tokens section */}
+        {/* Tokens - blur when zoomed (out of focus) */}
         <motion.div
           animate={{
-            opacity: isAnyZoneExpanded ? 0.4 : 1,
-            filter: isAnyZoneExpanded ? "blur(3px)" : "blur(0px)",
-            scale: isAnyZoneExpanded ? 0.95 : 1,
+            opacity: isAnyZoneExpanded ? 0.35 : 1,
+            filter: isAnyZoneExpanded ? "blur(4px)" : "blur(0px)",
           }}
           style={{
             display: "flex",
             flexDirection: "column",
             gap: "12px",
-            transformOrigin: "left top",
             pointerEvents: isAnyZoneExpanded ? "none" : "auto",
           }}
           transition={zoomSpring}
@@ -348,22 +359,18 @@ export function TransactionWidget({
         </motion.div>
 
         {/* Actions section */}
-        <motion.div
-          animate={{
-            opacity: isAnyZoneExpanded ? 0.4 : 1,
-            filter: isAnyZoneExpanded ? "blur(3px)" : "blur(0px)",
-            scale: isAnyZoneExpanded ? 0.95 : 1,
-          }}
+        <div
           style={{
             display: "flex",
             flexDirection: "column",
             gap: "12px",
-            transformOrigin: "right top",
-            pointerEvents: isAnyZoneExpanded ? "none" : "auto",
           }}
-          transition={zoomSpring}
         >
-          <span
+          {/* Label - fades when zoomed */}
+          <motion.span
+            animate={{
+              opacity: isAnyZoneExpanded ? 0 : 1,
+            }}
             style={{
               fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
               fontSize: "11px",
@@ -373,111 +380,95 @@ export function TransactionWidget({
               letterSpacing: "0.05em",
               paddingLeft: "4px",
             }}
+            transition={zoomSpring}
           >
             Actions
-          </span>
+          </motion.span>
 
+          {/* Action cards - the selected one TRANSFORMS in place */}
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(2, 1fr)",
+              gridTemplateColumns: isAnyZoneExpanded ? "1fr" : "repeat(2, 1fr)",
               gap: "10px",
               padding: "12px",
               margin: "-12px",
             }}
           >
-            {(["telegram", "wallet", "swap"] as const).map((zone) => (
-              <DropZone
-                droppedToken={state.droppedToken}
-                isDragOver={state.dragOverZone === zone}
-                isExpanded={false}
-                key={zone}
-                onDragLeave={handleDragLeave()}
-                onDragOver={handleDragOver(zone)}
-                onDrop={handleDrop(zone)}
-                type={zone}
-              />
-            ))}
-          </div>
-        </motion.div>
-      </div>
+            {(["telegram", "wallet", "swap"] as const).map((zone) => {
+              const isSelected = state.expandedZone === zone;
+              const isOther = isAnyZoneExpanded && !isSelected;
 
-      {/* THE ZOOMED CARD - floats above the plane when activated */}
-      {state.expandedZone && (
-        <motion.div
-          animate={{
-            opacity: 1,
-            scale: 1,
-            y: 0,
-          }}
-          initial={{
-            opacity: 0,
-            scale: 0.6,
-            y: 20,
-          }}
-          exit={{
-            opacity: 0,
-            scale: 0.6,
-            y: 20,
-          }}
-          style={{
-            position: "absolute",
-            top: 0,
-            left: "50%",
-            x: "-50%",
-            width: "100%",
-            maxWidth: "500px",
-            zIndex: 10,
-            transformOrigin: "center top",
-          }}
-          transition={zoomSpring}
-        >
-          <DropZone
-            droppedToken={state.droppedToken}
-            isDragOver={false}
-            isExpanded={true}
-            onDragLeave={handleDragLeave()}
-            onDragOver={handleDragOver(state.expandedZone)}
-            onDrop={handleDrop(state.expandedZone)}
-            type={state.expandedZone}
-          >
-            {state.expandedZone === "telegram" && state.droppedToken && (
-              <SendForm
-                destinationType="telegram"
-                isLoading={state.isExecuting}
-                onCancel={cancelForm}
-                onSend={handleSend}
-                result={state.transactionResult}
-                status={state.transactionStatus}
-                token={state.droppedToken}
-              />
-            )}
-            {state.expandedZone === "wallet" && state.droppedToken && (
-              <SendForm
-                destinationType="wallet"
-                isLoading={state.isExecuting}
-                onCancel={cancelForm}
-                onSend={handleSend}
-                result={state.transactionResult}
-                status={state.transactionStatus}
-                token={state.droppedToken}
-              />
-            )}
-            {state.expandedZone === "swap" && state.droppedToken && (
-              <SwapForm
-                isLoading={state.isExecuting}
-                onCancel={cancelForm}
-                onGetQuote={handleGetQuote}
-                onSwap={handleSwap}
-                result={state.transactionResult}
-                status={state.transactionStatus}
-                token={state.droppedToken}
-              />
-            )}
-          </DropZone>
-        </motion.div>
-      )}
-    </div>
+              // Don't render other zones when one is expanded
+              if (isOther) return null;
+
+              return (
+                <motion.div
+                  animate={{
+                    scale: isSelected ? 1.1 : 1, // Selected gets even bigger
+                    zIndex: isSelected ? 10 : 1,
+                  }}
+                  key={zone}
+                  layout
+                  style={{
+                    transformOrigin: "center top",
+                  }}
+                  transition={zoomSpring}
+                >
+                  <DropZone
+                    droppedToken={state.droppedToken}
+                    isDragOver={state.dragOverZone === zone}
+                    isExpanded={isSelected}
+                    onDragLeave={handleDragLeave()}
+                    onDragOver={handleDragOver(zone)}
+                    onDrop={handleDrop(zone)}
+                    type={zone}
+                  >
+                    {isSelected && state.droppedToken && (
+                      <>
+                        {zone === "telegram" && (
+                          <SendForm
+                            destinationType="telegram"
+                            isLoading={state.isExecuting}
+                            onCancel={cancelForm}
+                            onSend={handleSend}
+                            result={state.transactionResult}
+                            status={state.transactionStatus}
+                            token={state.droppedToken}
+                          />
+                        )}
+                        {zone === "wallet" && (
+                          <SendForm
+                            destinationType="wallet"
+                            isLoading={state.isExecuting}
+                            onCancel={cancelForm}
+                            onSend={handleSend}
+                            result={state.transactionResult}
+                            status={state.transactionStatus}
+                            token={state.droppedToken}
+                          />
+                        )}
+                        {zone === "swap" && (
+                          <SwapForm
+                            isLoading={state.isExecuting}
+                            onCancel={cancelForm}
+                            onGetQuote={handleGetQuote}
+                            onSwap={handleSwap}
+                            result={state.transactionResult}
+                            status={state.transactionStatus}
+                            token={state.droppedToken}
+                          />
+                        )}
+                      </>
+                    )}
+                  </DropZone>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
