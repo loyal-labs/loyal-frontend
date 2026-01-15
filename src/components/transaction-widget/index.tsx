@@ -385,33 +385,36 @@ export function TransactionWidget({
             Actions
           </motion.span>
 
-          {/* Action cards - the selected one TRANSFORMS in place */}
-          <div
+          {/* Action cards - all always rendered, animated in/out */}
+          <motion.div
+            layout
             style={{
               display: "grid",
-              gridTemplateColumns: isAnyZoneExpanded ? "1fr" : "repeat(2, 1fr)",
+              gridTemplateColumns: "repeat(2, 1fr)",
               gap: "10px",
               padding: "12px",
               margin: "-12px",
             }}
+            transition={zoomSpring}
           >
             {(["telegram", "wallet", "swap"] as const).map((zone) => {
               const isSelected = state.expandedZone === zone;
               const isOther = isAnyZoneExpanded && !isSelected;
 
-              // Don't render other zones when one is expanded
-              if (isOther) return null;
-
               return (
                 <motion.div
                   animate={{
-                    scale: isSelected ? 1.1 : 1, // Selected gets even bigger
+                    scale: isSelected ? 1.1 : isOther ? 0.85 : 1,
+                    opacity: isOther ? 0 : 1,
+                    filter: isOther ? "blur(4px)" : "blur(0px)",
                     zIndex: isSelected ? 10 : 1,
+                    gridColumn: isSelected ? "1 / -1" : "auto", // Span full width when selected
                   }}
                   key={zone}
                   layout
                   style={{
                     transformOrigin: "center top",
+                    pointerEvents: isOther ? "none" : "auto",
                   }}
                   transition={zoomSpring}
                 >
@@ -465,7 +468,7 @@ export function TransactionWidget({
                 </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         </div>
       </div>
     </motion.div>
