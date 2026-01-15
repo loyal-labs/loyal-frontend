@@ -283,25 +283,24 @@ export function TransactionWidget({
     >
       <AnimatePresence mode="wait">
         {isAnyZoneExpanded ? (
-          // DEEP LAYER: Expanded action form - zoomed in view
+          // DEEPER LAYER: Expanded action form - we've zoomed INTO this
           <motion.div
             animate={{
               scale: 1,
               opacity: 1,
-              z: 0,
               filter: "blur(0px)",
             }}
             exit={{
+              // Zooming OUT: form shrinks back into the distance
               scale: 0.85,
               opacity: 0,
-              z: -100,
-              filter: "blur(8px)",
+              filter: "blur(6px)",
             }}
             initial={{
-              scale: 1.15,
+              // Zooming IN: form starts small/far, grows towards us
+              scale: 0.8,
               opacity: 0,
-              z: 50,
-              filter: "blur(4px)",
+              filter: "blur(8px)",
             }}
             key="expanded-layer"
             style={{
@@ -310,8 +309,8 @@ export function TransactionWidget({
             }}
             transition={{
               type: "spring",
-              stiffness: 300,
-              damping: 30,
+              stiffness: 350,
+              damping: 32,
               mass: 0.8,
             }}
           >
@@ -361,24 +360,23 @@ export function TransactionWidget({
             </DropZone>
           </motion.div>
         ) : (
-          // SURFACE LAYER: Default tokens + actions view
+          // SURFACE LAYER: Default tokens + actions view - we're at this level
           <motion.div
             animate={{
               scale: 1,
               opacity: 1,
-              z: 0,
               filter: "blur(0px)",
             }}
             exit={{
-              scale: 0.75,
+              // Zooming IN to action: surface zooms PAST us (scales up, blurs out)
+              scale: 1.15,
               opacity: 0,
-              z: -150,
-              filter: "blur(12px)",
+              filter: "blur(10px)",
             }}
             initial={{
-              scale: 0.85,
+              // Coming BACK from deeper: surface was behind us, comes back
+              scale: 1.1,
               opacity: 0,
-              z: -100,
               filter: "blur(8px)",
             }}
             key="surface-layer"
@@ -392,8 +390,8 @@ export function TransactionWidget({
             }}
             transition={{
               type: "spring",
-              stiffness: 300,
-              damping: 30,
+              stiffness: 350,
+              damping: 32,
               mass: 0.8,
             }}
           >
