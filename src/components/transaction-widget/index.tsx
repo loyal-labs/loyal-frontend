@@ -270,219 +270,253 @@ export function TransactionWidget({
 
   const isAnyZoneExpanded = state.expandedZone !== null;
 
-  // When a zone is expanded, show the full-width form
-  if (isAnyZoneExpanded) {
-    return (
-      <div
-        className={className}
-        style={{
-          display: "flex",
-          gap: "12px",
-        }}
-      >
-        {/* Telegram zone */}
-        <DropZone
-          droppedToken={state.droppedToken}
-          isDragOver={state.dragOverZone === "telegram"}
-          isExpanded={state.expandedZone === "telegram"}
-          onDragLeave={handleDragLeave()}
-          onDragOver={handleDragOver("telegram")}
-          onDrop={handleDrop("telegram")}
-          type="telegram"
-        >
-          {state.expandedZone === "telegram" && state.droppedToken && (
-            <SendForm
-              destinationType="telegram"
-              isLoading={state.isExecuting}
-              onCancel={cancelForm}
-              onSend={handleSend}
-              result={state.transactionResult}
-              status={state.transactionStatus}
-              token={state.droppedToken}
-            />
-          )}
-        </DropZone>
-
-        {/* Wallet zone */}
-        <DropZone
-          droppedToken={state.droppedToken}
-          isDragOver={state.dragOverZone === "wallet"}
-          isExpanded={state.expandedZone === "wallet"}
-          onDragLeave={handleDragLeave()}
-          onDragOver={handleDragOver("wallet")}
-          onDrop={handleDrop("wallet")}
-          type="wallet"
-        >
-          {state.expandedZone === "wallet" && state.droppedToken && (
-            <SendForm
-              destinationType="wallet"
-              isLoading={state.isExecuting}
-              onCancel={cancelForm}
-              onSend={handleSend}
-              result={state.transactionResult}
-              status={state.transactionStatus}
-              token={state.droppedToken}
-            />
-          )}
-        </DropZone>
-
-        {/* Swap zone */}
-        <DropZone
-          droppedToken={state.droppedToken}
-          isDragOver={state.dragOverZone === "swap"}
-          isExpanded={state.expandedZone === "swap"}
-          onDragLeave={handleDragLeave()}
-          onDragOver={handleDragOver("swap")}
-          onDrop={handleDrop("swap")}
-          type="swap"
-        >
-          {state.expandedZone === "swap" && state.droppedToken && (
-            <SwapForm
-              isLoading={state.isExecuting}
-              onCancel={cancelForm}
-              onGetQuote={handleGetQuote}
-              onSwap={handleSwap}
-              result={state.transactionResult}
-              status={state.transactionStatus}
-              token={state.droppedToken}
-            />
-          )}
-        </DropZone>
-      </div>
-    );
-  }
-
-  // Default state: Tokens on left, Actions on right
+  // Shared container with perspective for 3D depth effect
   return (
     <div
       className={className}
       style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
+        position: "relative",
         width: "100%",
-        gap: "48px",
+        perspective: "1200px",
+        perspectiveOrigin: "center center",
       }}
     >
-      {/* Left side: Tokens */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "12px",
-        }}
-      >
-        {/* Section label */}
-        <span
-          style={{
-            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-            fontSize: "11px",
-            fontWeight: 500,
-            color: "rgba(255, 255, 255, 0.4)",
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-            paddingLeft: "4px",
-          }}
-        >
-          Your Tokens
-        </span>
-
-        {/* Token cards - 2 column grid */}
-        <AnimatePresence>
+      <AnimatePresence mode="wait">
+        {isAnyZoneExpanded ? (
+          // DEEP LAYER: Expanded action form - zoomed in view
           <motion.div
-            animate={{ opacity: 1 }}
-            initial={{ opacity: 0 }}
+            animate={{
+              scale: 1,
+              opacity: 1,
+              z: 0,
+              filter: "blur(0px)",
+            }}
+            exit={{
+              scale: 0.85,
+              opacity: 0,
+              z: -100,
+              filter: "blur(8px)",
+            }}
+            initial={{
+              scale: 1.15,
+              opacity: 0,
+              z: 50,
+              filter: "blur(4px)",
+            }}
+            key="expanded-layer"
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, 1fr)",
-              gap: "10px",
-              padding: "8px",
-              margin: "-8px",
+              transformStyle: "preserve-3d",
+              width: "100%",
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 30,
+              mass: 0.8,
             }}
           >
-            {balances.map((token) => (
-              <TokenCard
-                isDragging={state.draggedToken?.mint === token.mint}
-                isOtherDragging={
-                  state.isDragging && state.draggedToken?.mint !== token.mint
-                }
-                key={token.mint}
-                onDragEnd={handleDragEnd}
-                onDragStart={handleDragStart}
-                token={token}
-              />
-            ))}
+            {/* Expanded zone takes full width */}
+            <DropZone
+              droppedToken={state.droppedToken}
+              isDragOver={false}
+              isExpanded={true}
+              onDragLeave={handleDragLeave()}
+              onDragOver={handleDragOver(state.expandedZone as DropZoneType)}
+              onDrop={handleDrop(state.expandedZone as DropZoneType)}
+              type={state.expandedZone as DropZoneType}
+            >
+              {state.expandedZone === "telegram" && state.droppedToken && (
+                <SendForm
+                  destinationType="telegram"
+                  isLoading={state.isExecuting}
+                  onCancel={cancelForm}
+                  onSend={handleSend}
+                  result={state.transactionResult}
+                  status={state.transactionStatus}
+                  token={state.droppedToken}
+                />
+              )}
+              {state.expandedZone === "wallet" && state.droppedToken && (
+                <SendForm
+                  destinationType="wallet"
+                  isLoading={state.isExecuting}
+                  onCancel={cancelForm}
+                  onSend={handleSend}
+                  result={state.transactionResult}
+                  status={state.transactionStatus}
+                  token={state.droppedToken}
+                />
+              )}
+              {state.expandedZone === "swap" && state.droppedToken && (
+                <SwapForm
+                  isLoading={state.isExecuting}
+                  onCancel={cancelForm}
+                  onGetQuote={handleGetQuote}
+                  onSwap={handleSwap}
+                  result={state.transactionResult}
+                  status={state.transactionStatus}
+                  token={state.droppedToken}
+                />
+              )}
+            </DropZone>
           </motion.div>
-        </AnimatePresence>
-      </div>
+        ) : (
+          // SURFACE LAYER: Default tokens + actions view
+          <motion.div
+            animate={{
+              scale: 1,
+              opacity: 1,
+              z: 0,
+              filter: "blur(0px)",
+            }}
+            exit={{
+              scale: 0.75,
+              opacity: 0,
+              z: -150,
+              filter: "blur(12px)",
+            }}
+            initial={{
+              scale: 0.85,
+              opacity: 0,
+              z: -100,
+              filter: "blur(8px)",
+            }}
+            key="surface-layer"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              width: "100%",
+              gap: "48px",
+              transformStyle: "preserve-3d",
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 300,
+              damping: 30,
+              mass: 0.8,
+            }}
+          >
+            {/* Left side: Tokens */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              {/* Section label */}
+              <span
+                style={{
+                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                  fontSize: "11px",
+                  fontWeight: 500,
+                  color: "rgba(255, 255, 255, 0.4)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  paddingLeft: "4px",
+                }}
+              >
+                Your Tokens
+              </span>
 
-      {/* Right side: Actions */}
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "12px",
-        }}
-      >
-        {/* Section label */}
-        <span
-          style={{
-            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-            fontSize: "11px",
-            fontWeight: 500,
-            color: "rgba(255, 255, 255, 0.4)",
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-            paddingLeft: "4px",
-          }}
-        >
-          Actions
-        </span>
+              {/* Token cards - 2 column grid */}
+              <motion.div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, 1fr)",
+                  gap: "10px",
+                  padding: "8px",
+                  margin: "-8px",
+                }}
+              >
+                {balances.map((token, index) => (
+                  <motion.div
+                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    key={token.mint}
+                    transition={{
+                      delay: index * 0.05,
+                      type: "spring",
+                      stiffness: 400,
+                      damping: 25,
+                    }}
+                  >
+                    <TokenCard
+                      isDragging={state.draggedToken?.mint === token.mint}
+                      isOtherDragging={
+                        state.isDragging && state.draggedToken?.mint !== token.mint
+                      }
+                      onDragEnd={handleDragEnd}
+                      onDragStart={handleDragStart}
+                      token={token}
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
 
-        {/* Drop zones - 2 column grid */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(2, 1fr)",
-            gap: "10px",
-            padding: "8px",
-            margin: "-8px",
-          }}
-        >
-          {/* Telegram zone */}
-          <DropZone
-            droppedToken={state.droppedToken}
-            isDragOver={state.dragOverZone === "telegram"}
-            isExpanded={false}
-            onDragLeave={handleDragLeave()}
-            onDragOver={handleDragOver("telegram")}
-            onDrop={handleDrop("telegram")}
-            type="telegram"
-          />
+            {/* Right side: Actions */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              {/* Section label */}
+              <span
+                style={{
+                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                  fontSize: "11px",
+                  fontWeight: 500,
+                  color: "rgba(255, 255, 255, 0.4)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  paddingLeft: "4px",
+                }}
+              >
+                Actions
+              </span>
 
-          {/* Wallet zone */}
-          <DropZone
-            droppedToken={state.droppedToken}
-            isDragOver={state.dragOverZone === "wallet"}
-            isExpanded={false}
-            onDragLeave={handleDragLeave()}
-            onDragOver={handleDragOver("wallet")}
-            onDrop={handleDrop("wallet")}
-            type="wallet"
-          />
-
-          {/* Swap zone */}
-          <DropZone
-            droppedToken={state.droppedToken}
-            isDragOver={state.dragOverZone === "swap"}
-            isExpanded={false}
-            onDragLeave={handleDragLeave()}
-            onDragOver={handleDragOver("swap")}
-            onDrop={handleDrop("swap")}
-            type="swap"
-          />
-        </div>
-      </div>
+              {/* Drop zones - 2 column grid */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, 1fr)",
+                  gap: "10px",
+                  padding: "8px",
+                  margin: "-8px",
+                }}
+              >
+                {(["telegram", "wallet", "swap"] as const).map((zone, index) => (
+                  <motion.div
+                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    key={zone}
+                    transition={{
+                      delay: 0.1 + index * 0.05,
+                      type: "spring",
+                      stiffness: 400,
+                      damping: 25,
+                    }}
+                  >
+                    <DropZone
+                      droppedToken={state.droppedToken}
+                      isDragOver={state.dragOverZone === zone}
+                      isExpanded={false}
+                      onDragLeave={handleDragLeave()}
+                      onDragOver={handleDragOver(zone)}
+                      onDrop={handleDrop(zone)}
+                      type={zone}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
