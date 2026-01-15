@@ -270,43 +270,44 @@ export function TransactionWidget({
 
   const isAnyZoneExpanded = state.expandedZone !== null;
 
-  // Simpler spring for smoother feel
-  const smoothSpring = { type: "spring", stiffness: 300, damping: 30 };
+  // Smooth spring for card zoom
+  const zoomSpring = { type: "spring", stiffness: 250, damping: 28 };
 
-  // SINGLE CONTINUOUS SCENE
+  // SINGLE PLANE - all cards laid out, one zooms forward and opens
   return (
     <div
       className={className}
       style={{
         position: "relative",
         width: "100%",
-        overflow: "visible",
+        minHeight: isAnyZoneExpanded ? "400px" : "auto",
       }}
     >
-      {/* Surface layer: Tokens + Actions grid */}
-      <motion.div
-        animate={{
-          opacity: isAnyZoneExpanded ? 0 : 1,
-          scale: isAnyZoneExpanded ? 0.95 : 1,
-          pointerEvents: isAnyZoneExpanded ? "none" : "auto",
-        }}
+      {/* THE PLANE - all cards live here */}
+      <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
           width: "100%",
           gap: "48px",
-          transformOrigin: "center top",
         }}
-        transition={smoothSpring}
       >
-        {/* Left side: Tokens */}
-        <div
+        {/* Tokens section */}
+        <motion.div
+          animate={{
+            opacity: isAnyZoneExpanded ? 0.4 : 1,
+            filter: isAnyZoneExpanded ? "blur(3px)" : "blur(0px)",
+            scale: isAnyZoneExpanded ? 0.95 : 1,
+          }}
           style={{
             display: "flex",
             flexDirection: "column",
             gap: "12px",
+            transformOrigin: "left top",
+            pointerEvents: isAnyZoneExpanded ? "none" : "auto",
           }}
+          transition={zoomSpring}
         >
           <span
             style={{
@@ -344,15 +345,23 @@ export function TransactionWidget({
               />
             ))}
           </div>
-        </div>
+        </motion.div>
 
-        {/* Right side: Actions */}
-        <div
+        {/* Actions section */}
+        <motion.div
+          animate={{
+            opacity: isAnyZoneExpanded ? 0.4 : 1,
+            filter: isAnyZoneExpanded ? "blur(3px)" : "blur(0px)",
+            scale: isAnyZoneExpanded ? 0.95 : 1,
+          }}
           style={{
             display: "flex",
             flexDirection: "column",
             gap: "12px",
+            transformOrigin: "right top",
+            pointerEvents: isAnyZoneExpanded ? "none" : "auto",
           }}
+          transition={zoomSpring}
         >
           <span
             style={{
@@ -390,26 +399,39 @@ export function TransactionWidget({
               />
             ))}
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
 
-      {/* Deep layer: Expanded action form - overlays on top */}
-      <motion.div
-        animate={{
-          opacity: isAnyZoneExpanded ? 1 : 0,
-          scale: isAnyZoneExpanded ? 1 : 0.9,
-          pointerEvents: isAnyZoneExpanded ? "auto" : "none",
-        }}
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          transformOrigin: "center top",
-        }}
-        transition={smoothSpring}
-      >
-        {state.expandedZone && (
+      {/* THE ZOOMED CARD - floats above the plane when activated */}
+      {state.expandedZone && (
+        <motion.div
+          animate={{
+            opacity: 1,
+            scale: 1,
+            y: 0,
+          }}
+          initial={{
+            opacity: 0,
+            scale: 0.6,
+            y: 20,
+          }}
+          exit={{
+            opacity: 0,
+            scale: 0.6,
+            y: 20,
+          }}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: "50%",
+            x: "-50%",
+            width: "100%",
+            maxWidth: "500px",
+            zIndex: 10,
+            transformOrigin: "center top",
+          }}
+          transition={zoomSpring}
+        >
           <DropZone
             droppedToken={state.droppedToken}
             isDragOver={false}
@@ -453,8 +475,8 @@ export function TransactionWidget({
               />
             )}
           </DropZone>
-        )}
-      </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 }
