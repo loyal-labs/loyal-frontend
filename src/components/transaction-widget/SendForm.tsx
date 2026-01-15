@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Loader2, X } from "lucide-react";
+import { motion } from "motion/react";
 import { useState } from "react";
 import type { TokenBalance } from "@/hooks/use-wallet-balances";
 import { TokenCard } from "./TokenCard";
@@ -29,7 +29,6 @@ const AMOUNT_PRESETS = [
   { label: "Max", value: 1 },
 ];
 
-// Rough USD prices - in production these would come from a price API
 const TOKEN_PRICES: Record<string, number> = {
   SOL: 145,
   USDC: 1,
@@ -43,75 +42,25 @@ function isValidSolanaAddress(address: string): boolean {
 }
 
 function isValidTelegramUsername(username: string): boolean {
-  // Remove @ prefix if present
   const clean = username.startsWith("@") ? username.slice(1) : username;
   return /^[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(clean);
 }
 
-// Shared styles
-const inputStyle = {
+// Shared glass input style
+const glassInputStyle = {
   width: "100%",
-  padding: "12px 16px",
-  background: "rgba(0, 0, 0, 0.3)",
+  padding: "14px 18px",
+  background: "rgba(0, 0, 0, 0.25)",
   backdropFilter: "blur(10px)",
-  border: "1px solid rgba(255, 255, 255, 0.1)",
-  borderRadius: "16px",
-  color: "#fff",
-  fontSize: "14px",
-  fontFamily: "var(--font-geist-sans), sans-serif",
-  lineHeight: "20px",
-  outline: "none",
-  transition: "border 0.2s ease, box-shadow 0.2s ease",
-};
-
-const presetButtonStyle = (isActive: boolean) => ({
-  padding: "8px 14px",
-  background: isActive ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.2)",
-  border: isActive
-    ? "1px solid rgba(255, 255, 255, 0.25)"
-    : "1px solid rgba(255, 255, 255, 0.08)",
-  borderRadius: "12px",
-  color: isActive ? "#fff" : "rgba(255, 255, 255, 0.7)",
-  fontSize: "13px",
-  fontFamily: "var(--font-geist-sans), sans-serif",
-  fontWeight: 500,
-  cursor: "pointer",
-  transition: "all 0.2s ease",
-});
-
-function getButtonBackground(isPrimary: boolean, isDisabled: boolean): string {
-  if (!isPrimary) return "transparent";
-  return isDisabled ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.95)";
-}
-
-function getButtonColor(isPrimary: boolean, isDisabled: boolean): string {
-  if (!isPrimary) return "rgba(255, 255, 255, 0.7)";
-  return isDisabled ? "rgba(255, 255, 255, 0.4)" : "#000";
-}
-
-function getInputBorderColor(hasValue: boolean, isValid: boolean): string {
-  if (!hasValue) return "rgba(255, 255, 255, 0.1)";
-  return isValid ? "rgba(34, 197, 94, 0.5)" : "rgba(239, 68, 68, 0.5)";
-}
-
-const actionButtonStyle = (isPrimary: boolean, isDisabled: boolean) => ({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: "8px",
-  padding: isPrimary ? "12px 24px" : "12px 16px",
-  background: getButtonBackground(isPrimary, isDisabled),
-  border: isPrimary ? "none" : "1px solid rgba(255, 255, 255, 0.1)",
+  border: "1px solid rgba(255, 255, 255, 0.08)",
   borderRadius: "14px",
-  color: getButtonColor(isPrimary, isDisabled),
-  fontSize: "14px",
-  fontFamily: "var(--font-geist-sans), sans-serif",
-  fontWeight: 600,
-  cursor: isDisabled ? "not-allowed" : "pointer",
-  transition: "all 0.2s ease",
-  boxShadow:
-    isPrimary && !isDisabled ? "0 4px 12px rgba(255, 255, 255, 0.15)" : "none",
-});
+  color: "#fff",
+  fontSize: "15px",
+  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+  lineHeight: "22px",
+  outline: "none",
+  transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+};
 
 export function SendForm({
   token,
@@ -140,10 +89,9 @@ export function SendForm({
 
   const handlePresetClick = (preset: { label: string; value: number }) => {
     const presetAmount = token.balance * preset.value;
-    // For small amounts, show more decimals
     const formatted =
       presetAmount < 1 ? presetAmount.toFixed(6) : presetAmount.toFixed(4);
-    setAmount(formatted.replace(/\.?0+$/, "")); // Remove trailing zeros
+    setAmount(formatted.replace(/\.?0+$/, ""));
     setActivePreset(preset.value);
   };
 
@@ -170,153 +118,237 @@ export function SendForm({
     });
   };
 
+  // Get input border color based on validation
+  const getInputBorder = (hasValue: boolean, isValid: boolean): string => {
+    if (!hasValue) return "rgba(255, 255, 255, 0.08)";
+    return isValid ? "rgba(34, 197, 94, 0.5)" : "rgba(239, 68, 68, 0.5)";
+  };
+
   // Success state
   if (status === "success") {
     return (
-      <div
+      <motion.div
+        animate={{ opacity: 1, scale: 1 }}
+        initial={{ opacity: 0, scale: 0.95 }}
         style={{
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "16px",
-          padding: "24px 0",
+          gap: "20px",
+          padding: "32px 0",
         }}
       >
-        <div
+        <motion.div
+          animate={{ scale: [0, 1.2, 1] }}
           style={{
-            width: "56px",
-            height: "56px",
+            width: "64px",
+            height: "64px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            borderRadius: "50%",
-            background: "rgba(34, 197, 94, 0.15)",
-            border: "1px solid rgba(34, 197, 94, 0.3)",
+            borderRadius: "20px",
+            background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+            boxShadow: "0 8px 24px rgba(34, 197, 94, 0.4)",
           }}
+          transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
         >
-          <Check style={{ width: "28px", height: "28px", color: "#22c55e" }} />
+          <svg
+            fill="none"
+            height="32"
+            stroke="#fff"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="3"
+            viewBox="0 0 24 24"
+            width="32"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </motion.div>
+        <div style={{ textAlign: "center" }}>
+          <p
+            style={{
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+              fontWeight: 600,
+              fontSize: "18px",
+              color: "#fff",
+              marginBottom: "4px",
+            }}
+          >
+            Sent {amount} {token.symbol}
+          </p>
+          <p
+            style={{
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+              fontSize: "14px",
+              color: "rgba(255, 255, 255, 0.5)",
+            }}
+          >
+            Transaction successful
+          </p>
         </div>
-        <p
-          style={{
-            fontFamily: "var(--font-geist-sans), sans-serif",
-            fontWeight: 600,
-            fontSize: "16px",
-            color: "#fff",
-          }}
-        >
-          Sent {amount} {token.symbol}
-        </p>
         {result?.signature && (
           <a
             href={`https://solscan.io/tx/${result.signature}`}
             rel="noopener noreferrer"
             style={{
-              fontFamily: "var(--font-geist-sans), sans-serif",
-              fontSize: "14px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "10px 16px",
+              background: "rgba(255, 255, 255, 0.06)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              borderRadius: "10px",
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+              fontSize: "13px",
               color: "rgba(96, 165, 250, 1)",
               textDecoration: "none",
-              transition: "opacity 0.2s ease",
+              transition: "background 0.2s ease",
             }}
             target="_blank"
           >
-            View on Solscan →
+            View on Solscan
+            <span style={{ fontSize: "12px" }}>↗</span>
           </a>
         )}
         <button
           onClick={onCancel}
           style={{
-            ...actionButtonStyle(false, false),
-            marginTop: "8px",
+            padding: "12px 24px",
+            background: "rgba(255, 255, 255, 0.08)",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            borderRadius: "12px",
+            color: "#fff",
+            fontSize: "14px",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            fontWeight: 500,
+            cursor: "pointer",
+            transition: "background 0.2s ease",
           }}
           type="button"
         >
           Done
         </button>
-      </div>
+      </motion.div>
     );
   }
 
   // Error state
   if (status === "error") {
     return (
-      <div
+      <motion.div
+        animate={{ opacity: 1, scale: 1 }}
+        initial={{ opacity: 0, scale: 0.95 }}
         style={{
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "16px",
-          padding: "24px 0",
+          gap: "20px",
+          padding: "32px 0",
         }}
       >
-        <div
+        <motion.div
+          animate={{ scale: [0, 1.2, 1] }}
           style={{
-            width: "56px",
-            height: "56px",
+            width: "64px",
+            height: "64px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            borderRadius: "50%",
-            background: "rgba(239, 68, 68, 0.15)",
-            border: "1px solid rgba(239, 68, 68, 0.3)",
+            borderRadius: "20px",
+            background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+            boxShadow: "0 8px 24px rgba(239, 68, 68, 0.4)",
           }}
+          transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
         >
-          <X style={{ width: "28px", height: "28px", color: "#ef4444" }} />
+          <svg
+            fill="none"
+            height="32"
+            stroke="#fff"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="3"
+            viewBox="0 0 24 24"
+            width="32"
+          >
+            <line x1="18" x2="6" y1="6" y2="18" />
+            <line x1="6" x2="18" y1="6" y2="18" />
+          </svg>
+        </motion.div>
+        <div style={{ textAlign: "center" }}>
+          <p
+            style={{
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+              fontWeight: 600,
+              fontSize: "18px",
+              color: "#fff",
+              marginBottom: "8px",
+            }}
+          >
+            Transaction Failed
+          </p>
+          <p
+            style={{
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+              fontSize: "14px",
+              color: "rgba(248, 113, 113, 1)",
+              maxWidth: "280px",
+            }}
+          >
+            {result?.error}
+          </p>
         </div>
-        <p
-          style={{
-            fontFamily: "var(--font-geist-sans), sans-serif",
-            fontWeight: 600,
-            fontSize: "16px",
-            color: "#fff",
-          }}
-        >
-          Transaction failed
-        </p>
-        <p
-          style={{
-            fontFamily: "var(--font-geist-sans), sans-serif",
-            fontSize: "14px",
-            color: "rgba(248, 113, 113, 1)",
-            textAlign: "center",
-          }}
-        >
-          {result?.error}
-        </p>
         <button
           onClick={onCancel}
           style={{
-            ...actionButtonStyle(false, false),
-            marginTop: "8px",
+            padding: "12px 24px",
+            background: "rgba(255, 255, 255, 0.08)",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            borderRadius: "12px",
+            color: "#fff",
+            fontSize: "14px",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            fontWeight: 500,
+            cursor: "pointer",
+            transition: "background 0.2s ease",
           }}
           type="button"
         >
-          Try again
+          Try Again
         </button>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
       {/* Token card + recipient input row */}
       <div style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
         <TokenCard token={token} />
 
-        <div style={{ flex: 1 }}>
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+          }}
+        >
           <input
             autoFocus
             onChange={(e) => setRecipient(e.target.value)}
             placeholder={
-              destinationType === "telegram"
-                ? "Enter @username"
-                : "Paste Solana address"
+              destinationType === "telegram" ? "@username" : "Solana address"
             }
             style={{
-              ...inputStyle,
-              borderColor: getInputBorderColor(
-                Boolean(recipient),
-                isRecipientValid
-              ),
+              ...glassInputStyle,
+              borderColor: getInputBorder(Boolean(recipient), isRecipientValid),
+              boxShadow:
+                recipient && isRecipientValid
+                  ? "0 0 0 3px rgba(34, 197, 94, 0.15)"
+                  : recipient && !isRecipientValid
+                    ? "0 0 0 3px rgba(239, 68, 68, 0.15)"
+                    : "none",
             }}
             type="text"
             value={recipient}
@@ -324,77 +356,105 @@ export function SendForm({
           {recipient && !isRecipientValid && (
             <p
               style={{
-                marginTop: "8px",
-                fontFamily: "var(--font-geist-sans), sans-serif",
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                 fontSize: "12px",
                 color: "rgba(248, 113, 113, 1)",
+                paddingLeft: "4px",
               }}
             >
               {destinationType === "telegram"
-                ? "Invalid username (5-32 chars, letters/numbers/_)"
+                ? "Invalid username format"
                 : "Invalid Solana address"}
             </p>
           )}
         </div>
       </div>
 
-      {/* Amount presets and input */}
+      {/* Amount presets with pill container */}
       <div
         style={{
           display: "flex",
-          flexWrap: "wrap",
           alignItems: "center",
-          gap: "8px",
+          gap: "6px",
+          padding: "6px",
+          background: "rgba(255, 255, 255, 0.04)",
+          border: "1px solid rgba(255, 255, 255, 0.06)",
+          borderRadius: "16px",
         }}
       >
         {AMOUNT_PRESETS.map((preset) => (
           <button
             key={preset.label}
             onClick={() => handlePresetClick(preset)}
-            style={presetButtonStyle(activePreset === preset.value)}
+            style={{
+              flex: 1,
+              padding: "10px 0",
+              background:
+                activePreset === preset.value
+                  ? "rgba(255, 255, 255, 0.12)"
+                  : "transparent",
+              border: "none",
+              borderRadius: "12px",
+              color:
+                activePreset === preset.value
+                  ? "#fff"
+                  : "rgba(255, 255, 255, 0.6)",
+              fontSize: "13px",
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+              fontWeight: 500,
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
             type="button"
           >
             {preset.label}
           </button>
         ))}
+      </div>
 
-        <div
-          style={{
-            marginLeft: "auto",
-            display: "flex",
-            flex: 1,
-            alignItems: "center",
-            gap: "10px",
-            justifyContent: "flex-end",
-          }}
-        >
+      {/* Amount input row */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+        }}
+      >
+        <div style={{ flex: 1 }}>
           <input
             onChange={(e) => handleAmountChange(e.target.value)}
             placeholder="0.00"
             style={{
-              ...inputStyle,
-              width: "100px",
+              ...glassInputStyle,
               textAlign: "right",
+              fontFamily: "var(--font-geist-mono), monospace",
               fontVariantNumeric: "tabular-nums",
+              fontSize: "20px",
+              fontWeight: 500,
               borderColor:
                 amount && !isAmountValid
                   ? "rgba(239, 68, 68, 0.5)"
-                  : "rgba(255, 255, 255, 0.1)",
+                  : "rgba(255, 255, 255, 0.08)",
+              boxShadow:
+                amount && !isAmountValid
+                  ? "0 0 0 3px rgba(239, 68, 68, 0.15)"
+                  : "none",
             }}
             type="text"
             value={amount}
           />
-          <span
-            style={{
-              fontFamily: "var(--font-geist-sans), sans-serif",
-              fontSize: "14px",
-              color: "rgba(255, 255, 255, 0.6)",
-              fontWeight: 500,
-            }}
-          >
-            {token.symbol}
-          </span>
         </div>
+        <span
+          style={{
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            fontSize: "16px",
+            color: "rgba(255, 255, 255, 0.6)",
+            fontWeight: 500,
+            minWidth: "50px",
+          }}
+        >
+          {token.symbol}
+        </span>
       </div>
 
       {/* USD estimate */}
@@ -402,12 +462,14 @@ export function SendForm({
         <p
           style={{
             textAlign: "right",
-            fontFamily: "var(--font-geist-sans), sans-serif",
-            fontSize: "13px",
-            color: "rgba(255, 255, 255, 0.5)",
+            fontFamily: "var(--font-geist-mono), monospace",
+            fontSize: "14px",
+            color: "rgba(255, 255, 255, 0.4)",
+            marginTop: "-16px",
+            paddingRight: "70px",
           }}
         >
-          ~${usdValue >= 0.01 ? usdValue.toFixed(2) : "< 0.01"}
+          ≈ ${usdValue >= 0.01 ? usdValue.toFixed(2) : "< 0.01"}
         </p>
       )}
 
@@ -415,8 +477,8 @@ export function SendForm({
       {amount && amountNum > token.balance && (
         <p
           style={{
-            fontFamily: "var(--font-geist-sans), sans-serif",
-            fontSize: "12px",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            fontSize: "13px",
             color: "rgba(248, 113, 113, 1)",
           }}
         >
@@ -430,41 +492,78 @@ export function SendForm({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          paddingTop: "8px",
+          paddingTop: "16px",
           borderTop: "1px solid rgba(255, 255, 255, 0.06)",
         }}
       >
         <button
           disabled={isLoading}
           onClick={onCancel}
-          style={actionButtonStyle(false, false)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "12px 20px",
+            background: "transparent",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            borderRadius: "12px",
+            color: "rgba(255, 255, 255, 0.7)",
+            fontSize: "14px",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            fontWeight: 500,
+            cursor: "pointer",
+            transition: "all 0.2s ease",
+          }}
           type="button"
         >
-          <X style={{ width: "16px", height: "16px" }} />
           Cancel
         </button>
 
         <button
           disabled={!canSubmit}
           onClick={handleSubmit}
-          style={actionButtonStyle(true, !canSubmit)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            padding: "14px 28px",
+            background: canSubmit
+              ? "linear-gradient(135deg, #fff 0%, #e5e5e5 100%)"
+              : "rgba(255, 255, 255, 0.1)",
+            border: "none",
+            borderRadius: "12px",
+            color: canSubmit ? "#000" : "rgba(255, 255, 255, 0.4)",
+            fontSize: "15px",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            fontWeight: 600,
+            cursor: canSubmit ? "pointer" : "not-allowed",
+            transition: "all 0.2s ease",
+            boxShadow: canSubmit
+              ? "0 4px 16px rgba(255, 255, 255, 0.2)"
+              : "none",
+          }}
           type="button"
         >
           {isLoading ? (
             <>
-              <Loader2
-                style={{
-                  width: "16px",
-                  height: "16px",
-                  animation: "spin 1s linear infinite",
+              <motion.span
+                animate={{ rotate: 360 }}
+                style={{ display: "inline-flex" }}
+                transition={{
+                  duration: 1,
+                  repeat: Number.POSITIVE_INFINITY,
+                  ease: "linear",
                 }}
-              />
+              >
+                ◌
+              </motion.span>
               Sending...
             </>
           ) : (
             <>
               Send
-              <span>→</span>
+              <span style={{ fontSize: "16px" }}>→</span>
             </>
           )}
         </button>
