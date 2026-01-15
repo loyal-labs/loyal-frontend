@@ -1,7 +1,9 @@
 "use client";
 
-import { motion } from "motion/react";
+import { NotebookPen } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
+import type { Recipe } from "@/hooks/use-recipes";
 import type { TokenBalance } from "@/hooks/use-wallet-balances";
 
 type SendFormProps = {
@@ -16,6 +18,7 @@ type SendFormProps = {
     destinationType: "wallet" | "telegram";
   }) => void;
   onCancel: () => void;
+  onCreateRecipe?: (recipe: Omit<Recipe, "id" | "createdAt">) => void;
   isLoading?: boolean;
   status?: "pending" | "success" | "error" | null;
   result?: { signature?: string; error?: string } | null;
@@ -66,6 +69,7 @@ export function SendForm({
   destinationType,
   onSend,
   onCancel,
+  onCreateRecipe,
   isLoading = false,
   status = null,
   result = null,
@@ -73,6 +77,8 @@ export function SendForm({
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [activePreset, setActivePreset] = useState<number | null>(null);
+  const [recipeFlow, setRecipeFlow] = useState<"prompt" | "naming" | null>(null);
+  const [recipeName, setRecipeName] = useState("");
 
   const price = TOKEN_PRICES[token.symbol] ?? 0;
   const amountNum = Number.parseFloat(amount) || 0;
@@ -123,6 +129,37 @@ export function SendForm({
     return isValid ? "rgba(34, 197, 94, 0.5)" : "rgba(239, 68, 68, 0.5)";
   };
 
+  // Handle recipe generation
+  const handleGenerateRecipe = () => {
+    // Demo: always generate "Send 0.0001 SOL to Vlad"
+    const generatedName = "Send 0.0001 SOL to Vlad";
+    handleSaveRecipe(generatedName);
+  };
+
+  // Handle recipe save
+  const handleSaveRecipe = (name: string) => {
+    if (!onCreateRecipe) return;
+
+    const cleanRecipient =
+      destinationType === "telegram" && recipient.startsWith("@")
+        ? recipient.slice(1)
+        : recipient;
+
+    onCreateRecipe({
+      name,
+      type: destinationType,
+      tokenSymbol: token.symbol,
+      tokenMint: token.mint,
+      tokenDecimals: token.decimals,
+      amount,
+      recipient: cleanRecipient,
+      photoUrl: destinationType === "telegram" ? "/vlad.jpg" : undefined,
+    });
+
+    setRecipeFlow(null);
+    setRecipeName("");
+  };
+
   // Success state
   if (status === "success") {
     return (
@@ -130,104 +167,293 @@ export function SendForm({
         animate={{ opacity: 1, scale: 1 }}
         initial={{ opacity: 0, scale: 0.95 }}
         style={{
+          position: "relative",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "20px",
-          padding: "32px 0",
+          gap: "16px",
+          padding: "24px 0 8px",
         }}
       >
+        {/* Recipe creation overlay */}
+        <AnimatePresence>
+          {recipeFlow && (
+            <motion.div
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: -10 }}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "16px",
+                background: "rgba(0, 0, 0, 0.85)",
+                backdropFilter: "blur(8px)",
+                borderRadius: "16px",
+                zIndex: 10,
+                padding: "24px",
+              }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            >
+              {recipeFlow === "prompt" ? (
+                <>
+                  <p
+                    style={{
+                      fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                      fontSize: "16px",
+                      fontWeight: 600,
+                      color: "#fff",
+                      textAlign: "center",
+                    }}
+                  >
+                    Create a Recipe?
+                  </p>
+                  <p
+                    style={{
+                      fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                      fontSize: "13px",
+                      color: "rgba(255, 255, 255, 0.5)",
+                      textAlign: "center",
+                      maxWidth: "220px",
+                    }}
+                  >
+                    Save this transaction as a preset for quick access later
+                  </p>
+                  <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+                    <button
+                      onClick={() => setRecipeFlow(null)}
+                      style={{
+                        padding: "10px 20px",
+                        background: "transparent",
+                        border: "1px solid rgba(255, 255, 255, 0.15)",
+                        borderRadius: "10px",
+                        color: "rgba(255, 255, 255, 0.7)",
+                        fontSize: "14px",
+                        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                        fontWeight: 500,
+                        cursor: "pointer",
+                      }}
+                      type="button"
+                    >
+                      No thanks
+                    </button>
+                    <button
+                      onClick={() => setRecipeFlow("naming")}
+                      style={{
+                        padding: "10px 20px",
+                        background: "linear-gradient(135deg, #fff 0%, #e5e5e5 100%)",
+                        border: "none",
+                        borderRadius: "10px",
+                        color: "#000",
+                        fontSize: "14px",
+                        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                      type="button"
+                    >
+                      Yes!
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p
+                    style={{
+                      fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                      fontSize: "16px",
+                      fontWeight: 600,
+                      color: "#fff",
+                      textAlign: "center",
+                    }}
+                  >
+                    Name your Recipe
+                  </p>
+                  <input
+                    onChange={(e) => setRecipeName(e.target.value)}
+                    placeholder="e.g., Send to Vlad"
+                    style={{
+                      width: "100%",
+                      maxWidth: "240px",
+                      padding: "12px 14px",
+                      background: "rgba(255, 255, 255, 0.08)",
+                      border: "1px solid rgba(255, 255, 255, 0.15)",
+                      borderRadius: "10px",
+                      color: "#fff",
+                      fontSize: "14px",
+                      fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                      outline: "none",
+                    }}
+                    type="text"
+                    value={recipeName}
+                  />
+                  <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
+                    <button
+                      onClick={() => setRecipeFlow("prompt")}
+                      style={{
+                        padding: "10px 16px",
+                        background: "transparent",
+                        border: "1px solid rgba(255, 255, 255, 0.15)",
+                        borderRadius: "10px",
+                        color: "rgba(255, 255, 255, 0.7)",
+                        fontSize: "13px",
+                        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                        fontWeight: 500,
+                        cursor: "pointer",
+                      }}
+                      type="button"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={handleGenerateRecipe}
+                      style={{
+                        padding: "10px 16px",
+                        background: "rgba(255, 255, 255, 0.1)",
+                        border: "1px solid rgba(255, 255, 255, 0.15)",
+                        borderRadius: "10px",
+                        color: "#fff",
+                        fontSize: "13px",
+                        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                        fontWeight: 500,
+                        cursor: "pointer",
+                      }}
+                      type="button"
+                    >
+                      Generate
+                    </button>
+                    <button
+                      disabled={!recipeName.trim()}
+                      onClick={() => handleSaveRecipe(recipeName.trim())}
+                      style={{
+                        padding: "10px 16px",
+                        background: recipeName.trim()
+                          ? "linear-gradient(135deg, #fff 0%, #e5e5e5 100%)"
+                          : "rgba(255, 255, 255, 0.08)",
+                        border: "none",
+                        borderRadius: "10px",
+                        color: recipeName.trim() ? "#000" : "rgba(255, 255, 255, 0.3)",
+                        fontSize: "13px",
+                        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                        fontWeight: 600,
+                        cursor: recipeName.trim() ? "pointer" : "not-allowed",
+                      }}
+                      type="button"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Minimal success indicator */}
         <motion.div
-          animate={{ scale: [0, 1.2, 1] }}
+          animate={{ scale: 1, opacity: 1 }}
+          initial={{ scale: 0.5, opacity: 0 }}
           style={{
-            width: "64px",
-            height: "64px",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            borderRadius: "20px",
-            background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-            boxShadow: "0 8px 24px rgba(34, 197, 94, 0.4)",
+            gap: "10px",
           }}
-          transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
+          transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
         >
-          <svg
-            fill="none"
-            height="32"
-            stroke="#fff"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="3"
-            viewBox="0 0 24 24"
-            width="32"
-          >
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-        </motion.div>
-        <div style={{ textAlign: "center" }}>
-          <p
+          <div
             style={{
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontWeight: 600,
-              fontSize: "18px",
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              background: "#22c55e",
+              boxShadow: "0 0 12px rgba(34, 197, 94, 0.6)",
+            }}
+          />
+          <span
+            style={{
+              fontFamily: "var(--font-geist-mono), monospace",
+              fontSize: "15px",
+              fontWeight: 500,
               color: "#fff",
-              marginBottom: "4px",
+              letterSpacing: "-0.02em",
             }}
           >
-            Sent {amount} {token.symbol}
-          </p>
-          <p
-            style={{
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontSize: "14px",
-              color: "rgba(255, 255, 255, 0.5)",
-            }}
-          >
-            Transaction successful
-          </p>
-        </div>
-        {result?.signature && (
-          <a
-            href={`https://solscan.io/tx/${result.signature}`}
-            rel="noopener noreferrer"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "10px 16px",
-              background: "rgba(255, 255, 255, 0.06)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              borderRadius: "10px",
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontSize: "13px",
-              color: "rgba(96, 165, 250, 1)",
-              textDecoration: "none",
-              transition: "background 0.2s ease",
-            }}
-            target="_blank"
-          >
-            View on Solscan
-            <span style={{ fontSize: "12px" }}>↗</span>
-          </a>
-        )}
-        <button
-          onClick={onCancel}
+            {amount} {token.symbol} sent
+          </span>
+        </motion.div>
+
+        {/* Action buttons */}
+        <div
           style={{
-            padding: "12px 24px",
-            background: "rgba(255, 255, 255, 0.08)",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            borderRadius: "12px",
-            color: "#fff",
-            fontSize: "14px",
-            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-            fontWeight: 500,
-            cursor: "pointer",
-            transition: "background 0.2s ease",
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+            width: "100%",
+            marginTop: "8px",
           }}
-          type="button"
         >
-          Done
-        </button>
+          {onCreateRecipe && (
+            <motion.button
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              onClick={() => {
+                handleGenerateRecipe();
+                onCancel();
+              }}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                padding: "14px 20px",
+                background: "linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%)",
+                border: "1px solid rgba(255, 255, 255, 0.15)",
+                borderRadius: "12px",
+                color: "#fff",
+                fontSize: "14px",
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+              type="button"
+              whileHover={{
+                background: "linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.1) 100%)",
+                borderColor: "rgba(255, 255, 255, 0.25)",
+              }}
+            >
+              <NotebookPen size={16} />
+              Save as Recipe
+            </motion.button>
+          )}
+          <button
+            onClick={onCancel}
+            style={{
+              width: "100%",
+              padding: "12px 20px",
+              background: "transparent",
+              border: "none",
+              borderRadius: "10px",
+              color: "rgba(255, 255, 255, 0.5)",
+              fontSize: "13px",
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+              fontWeight: 500,
+              cursor: "pointer",
+              transition: "color 0.15s ease",
+            }}
+            type="button"
+          >
+            Done
+          </button>
+        </div>
       </motion.div>
     );
   }

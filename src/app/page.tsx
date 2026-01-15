@@ -534,34 +534,12 @@ export default function LandingPage() {
   }, [isScrolledToAbout, isScrolledToRoadmap, isScrolledToLinks]);
 
   // Handler for new TransactionWidget completions
+  // Success/error states are now shown within the widget itself
   const handleTransactionWidgetComplete = (
-    type: "send" | "swap",
-    result: { signature?: string }
+    _type: "send" | "swap",
+    _result: { signature?: string }
   ) => {
-    // Add a message to show the transaction completed
-    const timestamp = Date.now();
-    const messageText =
-      type === "send"
-        ? "Transaction completed successfully"
-        : "Swap completed successfully";
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `widget-${type}-${timestamp}`,
-        role: "assistant",
-        createdAt: timestamp,
-        parts: [
-          {
-            type: "text",
-            text: messageText,
-          },
-        ],
-      },
-    ]);
-
-    // Enter chat mode to show the message
-    setIsChatModeLocal(true);
+    // No-op: success is displayed within the TransactionWidget
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

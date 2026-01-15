@@ -4,11 +4,14 @@ import { AnimatePresence, motion } from "motion/react";
 import type { DragEvent } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { useDragDrop } from "@/hooks/use-drag-drop";
+import { type Recipe, useRecipes } from "@/hooks/use-recipes";
 import { useSend } from "@/hooks/use-send";
 import { useSwap } from "@/hooks/use-swap";
 import type { TokenBalance } from "@/hooks/use-wallet-balances";
 import { useWalletBalances } from "@/hooks/use-wallet-balances";
 import { DropZone, type DropZoneType } from "./DropZone";
+import { RecipeCard } from "./RecipeCard";
+import { RecipeSendForm } from "./RecipeSendForm";
 import { SendForm } from "./SendForm";
 import { SwapForm } from "./SwapForm";
 import { TokenCard } from "./TokenCard";
@@ -39,6 +42,10 @@ export function TransactionWidget({
     setExecuting,
     setTransactionResult,
   } = useDragDrop();
+  const { recipes, addRecipe, deleteRecipe } = useRecipes();
+
+  // Active recipe state - when a recipe card is clicked
+  const [activeRecipe, setActiveRecipe] = useState<Recipe | null>(null);
 
   // Animation phases:
   // Opening: "zooming" (card comes closer) -> "opened" (content visible)
@@ -56,12 +63,38 @@ export function TransactionWidget({
 
   // Handle cancel - go directly to returning phase
   const handleCancel = useCallback(() => {
+    // Close active recipe view if open
+    if (activeRecipe) {
+      setActiveRecipe(null);
+      return;
+    }
     if (animationPhase === "opened") {
       setAnimationPhase("returning");
     } else {
       cancelForm();
     }
-  }, [animationPhase, cancelForm]);
+  }, [animationPhase, cancelForm, activeRecipe]);
+
+  // Handle recipe click - opens pre-filled form
+  const handleRecipeClick = useCallback((recipe: Recipe) => {
+    setActiveRecipe(recipe);
+  }, []);
+
+  // Handle recipe creation
+  const handleCreateRecipe = useCallback(
+    (recipeData: Omit<Recipe, "id" | "createdAt">) => {
+      addRecipe(recipeData);
+    },
+    [addRecipe]
+  );
+
+  // Handle recipe delete
+  const handleDeleteRecipe = useCallback(
+    (id: string) => {
+      deleteRecipe(id);
+    },
+    [deleteRecipe]
+  );
 
   // Handle drag start
   const handleDragStart = useCallback(
@@ -291,7 +324,7 @@ export function TransactionWidget({
     );
   }
 
-  const isAnyZoneExpanded = state.expandedZone !== null;
+  const isAnyZoneExpanded = state.expandedZone !== null || activeRecipe !== null;
 
   // Smooth spring for zoom
   const zoomSpring = { type: "spring", stiffness: 280, damping: 30 } as const;
@@ -419,7 +452,7 @@ export function TransactionWidget({
             }}
           >
             {(["telegram", "wallet", "swap"] as const).map((zone) => {
-              const isSelected = state.expandedZone === zone;
+              const isSelected = state.expandedZone === zone && !activeRecipe;
               const isOther = isAnyZoneExpanded && !isSelected;
 
               // Collapsed card visibility:
@@ -487,6 +520,54 @@ export function TransactionWidget({
             })}
           </div>
 
+          {/* Recipes row - separate section below actions */}
+          {recipes.length > 0 && (
+            <motion.div
+              animate={{
+                opacity: isAnyZoneExpanded ? 0.25 : 1,
+                filter: isAnyZoneExpanded ? "blur(4px)" : "blur(0px)",
+              }}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
+                marginTop: "8px",
+                pointerEvents: isAnyZoneExpanded ? "none" : "auto",
+              }}
+              transition={zoomSpring}
+            >
+              <span
+                style={{
+                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                  fontSize: "10px",
+                  fontWeight: 500,
+                  color: "rgba(255, 255, 255, 0.3)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  paddingLeft: "4px",
+                }}
+              >
+                Recipes
+              </span>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  flexWrap: "wrap",
+                }}
+              >
+                {recipes.map((recipe) => (
+                  <RecipeCard
+                    key={recipe.id}
+                    onClick={() => handleRecipeClick(recipe)}
+                    onDelete={() => handleDeleteRecipe(recipe.id)}
+                    recipe={recipe}
+                  />
+                ))}
+              </div>
+            </motion.div>
+          )}
+
           {/* Expanded form - appears after zoom phase */}
           <AnimatePresence>
             {state.expandedZone && state.droppedToken && animationPhase === "opened" && (
@@ -519,6 +600,7 @@ export function TransactionWidget({
                       destinationType="telegram"
                       isLoading={state.isExecuting}
                       onCancel={handleCancel}
+                      onCreateRecipe={handleCreateRecipe}
                       onSend={handleSend}
                       result={state.transactionResult}
                       status={state.transactionStatus}
@@ -530,6 +612,7 @@ export function TransactionWidget({
                       destinationType="wallet"
                       isLoading={state.isExecuting}
                       onCancel={handleCancel}
+                      onCreateRecipe={handleCreateRecipe}
                       onSend={handleSend}
                       result={state.transactionResult}
                       status={state.transactionStatus}
@@ -547,6 +630,46 @@ export function TransactionWidget({
                       token={state.droppedToken}
                     />
                   )}
+                </DropZone>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Recipe form overlay - when recipe card is clicked */}
+          <AnimatePresence>
+            {activeRecipe && (
+              <motion.div
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, scale: 1.08 }}
+                key={`recipe-${activeRecipe.id}`}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  zIndex: 10,
+                  transformOrigin: "center top",
+                }}
+                transition={{ type: "spring", stiffness: 400, damping: 35 }}
+              >
+                <DropZone
+                  droppedToken={null}
+                  isDragOver={false}
+                  isExpanded={true}
+                  onDragLeave={handleDragLeave()}
+                  onDragOver={handleDragOver(activeRecipe.type)}
+                  onDrop={handleDrop(activeRecipe.type)}
+                  type={activeRecipe.type}
+                >
+                  <RecipeSendForm
+                    isLoading={state.isExecuting}
+                    onCancel={handleCancel}
+                    onSend={handleSend}
+                    recipe={activeRecipe}
+                    result={state.transactionResult}
+                    status={state.transactionStatus}
+                  />
                 </DropZone>
               </motion.div>
             )}
