@@ -77,7 +77,9 @@ export function SendForm({
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [activePreset, setActivePreset] = useState<number | null>(null);
-  const [recipeFlow, setRecipeFlow] = useState<"prompt" | "naming" | null>(null);
+  const [recipeFlow, setRecipeFlow] = useState<"prompt" | "naming" | null>(
+    null
+  );
   const [recipeName, setRecipeName] = useState("");
 
   const price = TOKEN_PRICES[token.symbol] ?? 0;
@@ -205,7 +207,8 @@ export function SendForm({
                 <>
                   <p
                     style={{
-                      fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                      fontFamily:
+                        "var(--font-geist-sans), system-ui, sans-serif",
                       fontSize: "16px",
                       fontWeight: 600,
                       color: "#fff",
@@ -216,7 +219,8 @@ export function SendForm({
                   </p>
                   <p
                     style={{
-                      fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                      fontFamily:
+                        "var(--font-geist-sans), system-ui, sans-serif",
                       fontSize: "13px",
                       color: "rgba(255, 255, 255, 0.5)",
                       textAlign: "center",
@@ -225,7 +229,9 @@ export function SendForm({
                   >
                     Save this transaction as a preset for quick access later
                   </p>
-                  <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+                  <div
+                    style={{ display: "flex", gap: "10px", marginTop: "8px" }}
+                  >
                     <button
                       onClick={() => setRecipeFlow(null)}
                       style={{
@@ -235,7 +241,8 @@ export function SendForm({
                         borderRadius: "10px",
                         color: "rgba(255, 255, 255, 0.7)",
                         fontSize: "14px",
-                        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                        fontFamily:
+                          "var(--font-geist-sans), system-ui, sans-serif",
                         fontWeight: 500,
                         cursor: "pointer",
                       }}
@@ -247,12 +254,14 @@ export function SendForm({
                       onClick={() => setRecipeFlow("naming")}
                       style={{
                         padding: "10px 20px",
-                        background: "linear-gradient(135deg, #fff 0%, #e5e5e5 100%)",
+                        background:
+                          "linear-gradient(135deg, #fff 0%, #e5e5e5 100%)",
                         border: "none",
                         borderRadius: "10px",
                         color: "#000",
                         fontSize: "14px",
-                        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                        fontFamily:
+                          "var(--font-geist-sans), system-ui, sans-serif",
                         fontWeight: 600,
                         cursor: "pointer",
                       }}
@@ -266,7 +275,8 @@ export function SendForm({
                 <>
                   <p
                     style={{
-                      fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                      fontFamily:
+                        "var(--font-geist-sans), system-ui, sans-serif",
                       fontSize: "16px",
                       fontWeight: 600,
                       color: "#fff",
@@ -287,13 +297,16 @@ export function SendForm({
                       borderRadius: "10px",
                       color: "#fff",
                       fontSize: "14px",
-                      fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                      fontFamily:
+                        "var(--font-geist-sans), system-ui, sans-serif",
                       outline: "none",
                     }}
                     type="text"
                     value={recipeName}
                   />
-                  <div style={{ display: "flex", gap: "10px", marginTop: "4px" }}>
+                  <div
+                    style={{ display: "flex", gap: "10px", marginTop: "4px" }}
+                  >
                     <button
                       onClick={() => setRecipeFlow("prompt")}
                       style={{
@@ -303,7 +316,8 @@ export function SendForm({
                         borderRadius: "10px",
                         color: "rgba(255, 255, 255, 0.7)",
                         fontSize: "13px",
-                        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                        fontFamily:
+                          "var(--font-geist-sans), system-ui, sans-serif",
                         fontWeight: 500,
                         cursor: "pointer",
                       }}
@@ -320,7 +334,8 @@ export function SendForm({
                         borderRadius: "10px",
                         color: "#fff",
                         fontSize: "13px",
-                        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                        fontFamily:
+                          "var(--font-geist-sans), system-ui, sans-serif",
                         fontWeight: 500,
                         cursor: "pointer",
                       }}
@@ -338,9 +353,12 @@ export function SendForm({
                           : "rgba(255, 255, 255, 0.08)",
                         border: "none",
                         borderRadius: "10px",
-                        color: recipeName.trim() ? "#000" : "rgba(255, 255, 255, 0.3)",
+                        color: recipeName.trim()
+                          ? "#000"
+                          : "rgba(255, 255, 255, 0.3)",
                         fontSize: "13px",
-                        fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                        fontFamily:
+                          "var(--font-geist-sans), system-ui, sans-serif",
                         fontWeight: 600,
                         cursor: recipeName.trim() ? "pointer" : "not-allowed",
                       }}
@@ -400,9 +418,8 @@ export function SendForm({
         >
           {onCreateRecipe && (
             <motion.button
-              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
+              initial={{ opacity: 0, y: 8 }}
               onClick={() => {
                 handleGenerateRecipe();
                 onCancel();
@@ -414,7 +431,8 @@ export function SendForm({
                 justifyContent: "center",
                 gap: "8px",
                 padding: "14px 20px",
-                background: "linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%)",
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%)",
                 border: "1px solid rgba(255, 255, 255, 0.15)",
                 borderRadius: "12px",
                 color: "#fff",
@@ -424,9 +442,11 @@ export function SendForm({
                 cursor: "pointer",
                 transition: "all 0.15s ease",
               }}
+              transition={{ delay: 0.2 }}
               type="button"
               whileHover={{
-                background: "linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.1) 100%)",
+                background:
+                  "linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.1) 100%)",
                 borderColor: "rgba(255, 255, 255, 0.25)",
               }}
             >
@@ -564,7 +584,9 @@ export function SendForm({
           autoFocus
           onChange={(e) => setRecipient(e.target.value)}
           placeholder={
-            destinationType === "telegram" ? "@username" : "Enter Solana address..."
+            destinationType === "telegram"
+              ? "@username"
+              : "Enter Solana address..."
           }
           style={{
             ...glassInputStyle,
@@ -636,9 +658,10 @@ export function SendForm({
             gap: "8px",
             padding: "4px",
             background: "rgba(0, 0, 0, 0.25)",
-            border: amount && !isAmountValid
-              ? "1px solid rgba(239, 68, 68, 0.5)"
-              : "1px solid rgba(255, 255, 255, 0.08)",
+            border:
+              amount && !isAmountValid
+                ? "1px solid rgba(239, 68, 68, 0.5)"
+                : "1px solid rgba(255, 255, 255, 0.08)",
             borderRadius: "14px",
           }}
         >

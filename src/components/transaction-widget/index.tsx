@@ -324,7 +324,8 @@ export function TransactionWidget({
     );
   }
 
-  const isAnyZoneExpanded = state.expandedZone !== null || activeRecipe !== null;
+  const isAnyZoneExpanded =
+    state.expandedZone !== null || activeRecipe !== null;
 
   // Smooth spring for zoom
   const zoomSpring = { type: "spring", stiffness: 280, damping: 30 } as const;
@@ -459,7 +460,8 @@ export function TransactionWidget({
               // - Show during "zooming" (opening phase 1)
               // - Hide during "opened" (expanded form visible)
               // - Show during "returning" (zoom back out)
-              const showCollapsed = !isSelected ||
+              const showCollapsed =
+                !isSelected ||
                 animationPhase === "zooming" ||
                 animationPhase === "returning";
 
@@ -478,11 +480,7 @@ export function TransactionWidget({
                 <motion.div
                   animate={{
                     opacity: isOther ? 0.25 : 1,
-                    scale: isSelected
-                      ? getSelectedScale()
-                      : isOther
-                        ? 0.85
-                        : 1,
+                    scale: isSelected ? getSelectedScale() : isOther ? 0.85 : 1,
                     filter: isOther ? "blur(4px)" : "blur(0px)",
                   }}
                   key={zone}
@@ -570,69 +568,71 @@ export function TransactionWidget({
 
           {/* Expanded form - appears after zoom phase */}
           <AnimatePresence>
-            {state.expandedZone && state.droppedToken && animationPhase === "opened" && (
-              <motion.div
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                initial={{ opacity: 0, scale: 1.08 }}
-                key={state.expandedZone}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  zIndex: 10,
-                  transformOrigin: "center top",
-                }}
-                transition={{ type: "spring", stiffness: 400, damping: 35 }}
-              >
-                <DropZone
-                  droppedToken={state.droppedToken}
-                  isDragOver={false}
-                  isExpanded={true}
-                  onDragLeave={handleDragLeave()}
-                  onDragOver={handleDragOver(state.expandedZone)}
-                  onDrop={handleDrop(state.expandedZone)}
-                  type={state.expandedZone}
+            {state.expandedZone &&
+              state.droppedToken &&
+              animationPhase === "opened" && (
+                <motion.div
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  initial={{ opacity: 0, scale: 1.08 }}
+                  key={state.expandedZone}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    zIndex: 10,
+                    transformOrigin: "center top",
+                  }}
+                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
                 >
-                  {state.expandedZone === "telegram" && (
-                    <SendForm
-                      destinationType="telegram"
-                      isLoading={state.isExecuting}
-                      onCancel={handleCancel}
-                      onCreateRecipe={handleCreateRecipe}
-                      onSend={handleSend}
-                      result={state.transactionResult}
-                      status={state.transactionStatus}
-                      token={state.droppedToken}
-                    />
-                  )}
-                  {state.expandedZone === "wallet" && (
-                    <SendForm
-                      destinationType="wallet"
-                      isLoading={state.isExecuting}
-                      onCancel={handleCancel}
-                      onCreateRecipe={handleCreateRecipe}
-                      onSend={handleSend}
-                      result={state.transactionResult}
-                      status={state.transactionStatus}
-                      token={state.droppedToken}
-                    />
-                  )}
-                  {state.expandedZone === "swap" && (
-                    <SwapForm
-                      isLoading={state.isExecuting}
-                      onCancel={handleCancel}
-                      onGetQuote={handleGetQuote}
-                      onSwap={handleSwap}
-                      result={state.transactionResult}
-                      status={state.transactionStatus}
-                      token={state.droppedToken}
-                    />
-                  )}
-                </DropZone>
-              </motion.div>
-            )}
+                  <DropZone
+                    droppedToken={state.droppedToken}
+                    isDragOver={false}
+                    isExpanded={true}
+                    onDragLeave={handleDragLeave()}
+                    onDragOver={handleDragOver(state.expandedZone)}
+                    onDrop={handleDrop(state.expandedZone)}
+                    type={state.expandedZone}
+                  >
+                    {state.expandedZone === "telegram" && (
+                      <SendForm
+                        destinationType="telegram"
+                        isLoading={state.isExecuting}
+                        onCancel={handleCancel}
+                        onCreateRecipe={handleCreateRecipe}
+                        onSend={handleSend}
+                        result={state.transactionResult}
+                        status={state.transactionStatus}
+                        token={state.droppedToken}
+                      />
+                    )}
+                    {state.expandedZone === "wallet" && (
+                      <SendForm
+                        destinationType="wallet"
+                        isLoading={state.isExecuting}
+                        onCancel={handleCancel}
+                        onCreateRecipe={handleCreateRecipe}
+                        onSend={handleSend}
+                        result={state.transactionResult}
+                        status={state.transactionStatus}
+                        token={state.droppedToken}
+                      />
+                    )}
+                    {state.expandedZone === "swap" && (
+                      <SwapForm
+                        isLoading={state.isExecuting}
+                        onCancel={handleCancel}
+                        onGetQuote={handleGetQuote}
+                        onSwap={handleSwap}
+                        result={state.transactionResult}
+                        status={state.transactionStatus}
+                        token={state.droppedToken}
+                      />
+                    )}
+                  </DropZone>
+                </motion.div>
+              )}
           </AnimatePresence>
 
           {/* Recipe form overlay - when recipe card is clicked */}

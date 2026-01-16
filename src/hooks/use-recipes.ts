@@ -32,7 +32,9 @@ const DEMO_RECIPE: Recipe = {
 };
 
 function loadRecipes(): Recipe[] {
-  if (typeof window === "undefined") { return []; }
+  if (typeof window === "undefined") {
+    return [];
+  }
   try {
     const stored = localStorage.getItem(RECIPES_STORAGE_KEY);
     return stored ? JSON.parse(stored) : [];
@@ -42,7 +44,9 @@ function loadRecipes(): Recipe[] {
 }
 
 function saveRecipes(recipes: Recipe[]): void {
-  if (typeof window === "undefined") { return; }
+  if (typeof window === "undefined") {
+    return;
+  }
   localStorage.setItem(RECIPES_STORAGE_KEY, JSON.stringify(recipes));
 }
 

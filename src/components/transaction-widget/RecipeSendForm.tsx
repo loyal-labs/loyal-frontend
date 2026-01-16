@@ -313,7 +313,9 @@ export function RecipeSendForm({
                 color: "#fff",
               }}
             >
-              {recipe.type === "telegram" ? `@${recipe.recipient}` : `${recipe.recipient.slice(0, 8)}...`}
+              {recipe.type === "telegram"
+                ? `@${recipe.recipient}`
+                : `${recipe.recipient.slice(0, 8)}...`}
             </span>
           </div>
           <div
@@ -537,7 +539,9 @@ export function RecipeSendForm({
               color: "#fff",
             }}
           >
-            {recipe.type === "telegram" ? `@${recipe.recipient}` : `${recipe.recipient.slice(0, 8)}...${recipe.recipient.slice(-4)}`}
+            {recipe.type === "telegram"
+              ? `@${recipe.recipient}`
+              : `${recipe.recipient.slice(0, 8)}...${recipe.recipient.slice(-4)}`}
           </span>
         </div>
         <div

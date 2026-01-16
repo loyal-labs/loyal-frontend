@@ -127,7 +127,8 @@ export function RecipeCard({ recipe, onClick, onDelete }: RecipeCardProps) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  background: "linear-gradient(135deg, #6B7280 0%, #9CA3AF 100%)",
+                  background:
+                    "linear-gradient(135deg, #6B7280 0%, #9CA3AF 100%)",
                 }}
               >
                 <span
