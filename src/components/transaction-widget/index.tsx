@@ -501,6 +501,7 @@ export function TransactionWidget({
                     }
                   }}
                   style={{
+                    flex: 1,
                     transformOrigin: "center center",
                     pointerEvents: isOther ? "none" : "auto",
                     visibility: showCollapsed ? "visible" : "hidden",
