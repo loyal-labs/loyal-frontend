@@ -127,16 +127,16 @@ export function TokenCard({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "4px",
-          padding: "10px 12px",
+          gap: "2px",
+          padding: "6px 10px",
           width: "100%",
-          minWidth: "80px",
+          minWidth: "60px",
           background: isDragging
             ? "rgba(255, 255, 255, 0.08)"
             : "rgba(26, 26, 26, 0.4)",
           backdropFilter: "blur(24px) saturate(150%)",
           WebkitBackdropFilter: "blur(24px) saturate(150%)",
-          borderRadius: "20px",
+          borderRadius: "14px",
           border: isDragging
             ? "1px solid rgba(255, 255, 255, 0.2)"
             : "1px solid rgba(255, 255, 255, 0.06)",
@@ -159,59 +159,12 @@ export function TokenCard({
               }
         }
       >
-        {/* Glow effect */}
-        <motion.div
-          animate={{
-            opacity: isDragging ? 0.6 : 0,
-          }}
-          style={{
-            position: "absolute",
-            top: "0",
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "70%",
-            height: "30px",
-            background: config.gradient,
-            filter: "blur(20px)",
-            borderRadius: "50%",
-            pointerEvents: "none",
-          }}
-          transition={{ duration: 0.3 }}
-        />
-
-        {/* Token icon */}
-        <div
-          style={{
-            position: "relative",
-            width: "32px",
-            height: "32px",
-            borderRadius: "50%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: config.gradient,
-            boxShadow: `0 3px 10px ${config.glow}`,
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontSize: "13px",
-              fontWeight: 700,
-              color: "#fff",
-              textShadow: "0 1px 2px rgba(0, 0, 0, 0.3)",
-            }}
-          >
-            {token.symbol.charAt(0)}
-          </span>
-        </div>
-
         {/* Token symbol */}
         <span
           style={{
             fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontWeight: 600,
-            fontSize: "12px",
+            fontSize: "11px",
             color: "#fff",
             letterSpacing: "0.02em",
           }}
@@ -219,29 +172,20 @@ export function TokenCard({
           {token.symbol}
         </span>
 
-        {/* Balance */}
+        {/* Balance + USD on one line */}
         <span
           style={{
             fontFamily: "var(--font-geist-mono), monospace",
             fontWeight: 500,
-            fontSize: "11px",
-            color: "rgba(255, 255, 255, 0.9)",
+            fontSize: "10px",
+            color: "rgba(255, 255, 255, 0.7)",
             fontVariantNumeric: "tabular-nums",
           }}
         >
-          {formatBalance(token.balance)}
-        </span>
-
-        {/* USD value */}
-        <span
-          style={{
-            fontFamily: "var(--font-geist-mono), monospace",
-            fontWeight: 400,
-            fontSize: "10px",
-            color: "rgba(255, 255, 255, 0.5)",
-          }}
-        >
-          {formatUsdValue(token.balance, token.symbol)}
+          {formatBalance(token.balance)}{" "}
+          <span style={{ color: "rgba(255, 255, 255, 0.4)" }}>
+            {formatUsdValue(token.balance, token.symbol)}
+          </span>
         </span>
       </motion.div>
     </div>
