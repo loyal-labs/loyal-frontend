@@ -1,5 +1,6 @@
 "use client";
 
+import { RefreshCcw, Send, Wallet } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import type { DragEvent, ReactNode } from "react";
 import { useState } from "react";
@@ -20,22 +21,22 @@ interface DropZoneProps {
 
 const ZONE_CONFIG: Record<
   DropZoneType,
-  { icon: string; label: string; gradient: string; glow: string }
+  { icon: ReactNode; label: string; gradient: string; glow: string }
 > = {
   telegram: {
-    icon: "✈",
-    label: "Telegram",
+    icon: <Send size={14} />,
+    label: "Send w Telegram",
     gradient: "linear-gradient(135deg, #0088cc 0%, #00a0dc 100%)",
     glow: "rgba(0, 136, 204, 0.4)",
   },
   wallet: {
-    icon: "↗",
-    label: "Wallet",
+    icon: <Wallet size={14} />,
+    label: "Send w address",
     gradient: "linear-gradient(135deg, #9945FF 0%, #14F195 100%)",
     glow: "rgba(153, 69, 255, 0.4)",
   },
   swap: {
-    icon: "⇄",
+    icon: <RefreshCcw size={14} />,
     label: "Swap",
     gradient: "linear-gradient(135deg, #ef4444 0%, #f97316 100%)",
     glow: "rgba(239, 68, 68, 0.4)",
@@ -121,7 +122,7 @@ export function DropZone({
       style={{
         position: "relative",
         overflow: "hidden",
-        borderRadius: isExpanded ? "24px" : "20px",
+        borderRadius: isExpanded ? "20px" : "14px",
         background: getBackground(),
         backdropFilter: "blur(24px) saturate(150%)",
         WebkitBackdropFilter: "blur(24px) saturate(150%)",
@@ -164,7 +165,7 @@ export function DropZone({
             style={{
               position: "relative",
               zIndex: 1,
-              padding: "24px",
+              padding: "16px",
             }}
             transition={{ duration: 0.25 }}
           >
@@ -173,61 +174,31 @@ export function DropZone({
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "12px",
-                marginBottom: "24px",
-                paddingBottom: "16px",
+                gap: "8px",
+                marginBottom: "16px",
+                paddingBottom: "12px",
                 borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
               }}
             >
-              {/* Icon container */}
-              <div
+              <span style={{ color: "#fff" }}>{config.icon}</span>
+              <span
                 style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "12px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: config.gradient,
-                  boxShadow: `0 4px 12px ${config.glow}`,
-                  fontSize: "18px",
+                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                  fontWeight: 600,
+                  fontSize: "13px",
+                  color: "#fff",
+                  letterSpacing: "-0.01em",
                 }}
               >
-                {config.icon}
-              </div>
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: "2px" }}
-              >
-                <span
-                  style={{
-                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                    fontWeight: 600,
-                    fontSize: "16px",
-                    color: "#fff",
-                    letterSpacing: "-0.01em",
-                  }}
-                >
-                  {type === "swap" ? "Swap" : "Send"} {droppedToken?.symbol}
-                </span>
-                <span
-                  style={{
-                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                    fontSize: "13px",
-                    color: "rgba(255, 255, 255, 0.5)",
-                  }}
-                >
-                  {type === "telegram" && "via Telegram"}
-                  {type === "wallet" && "to Wallet Address"}
-                  {type === "swap" && "for another token"}
-                </span>
-              </div>
+                {config.label} {droppedToken?.symbol}
+              </span>
             </div>
 
             {/* Form content (passed as children) */}
             {children}
           </motion.div>
         ) : (
-          // Collapsed state - just the drop target
+          // Collapsed state - compact card matching token cards
           <motion.div
             animate={{
               opacity: 1,
@@ -243,68 +214,35 @@ export function DropZone({
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              gap: "8px",
-              padding: "16px 20px",
-              minWidth: "110px",
-              minHeight: "120px",
+              gap: "2px",
+              padding: "6px 10px",
             }}
             transition={{ duration: 0.2 }}
           >
             {/* Icon */}
-            <motion.div
-              animate={{
-                scale: isDragOver ? 1.1 : 1,
-                rotate: isDragOver ? 10 : 0,
-              }}
+            <span
               style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "12px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: isDragOver
-                  ? config.gradient
-                  : "rgba(255, 255, 255, 0.06)",
-                boxShadow: isDragOver
-                  ? `0 4px 16px ${config.glow}`
-                  : "0 2px 8px rgba(0, 0, 0, 0.1)",
-                fontSize: "18px",
-                transition: "background 0.3s ease, box-shadow 0.3s ease",
+                color: isDragOver ? "#fff" : "rgba(255, 255, 255, 0.5)",
+                transition: "color 0.2s ease",
               }}
-              transition={{ type: "spring", stiffness: 500, damping: 25 }}
             >
               {config.icon}
-            </motion.div>
+            </span>
 
             {/* Label */}
             <span
               style={{
                 fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                 fontWeight: 500,
-                fontSize: "14px",
-                color: isDragOver ? "#fff" : "rgba(255, 255, 255, 0.6)",
+                fontSize: "10px",
+                color: isDragOver ? "#fff" : "rgba(255, 255, 255, 0.5)",
                 transition: "color 0.2s ease",
+                textAlign: "center",
+                lineHeight: 1.2,
               }}
             >
               {config.label}
             </span>
-
-            {/* Drag hint */}
-            <motion.span
-              animate={{
-                opacity: isDragOver ? 1 : 0,
-                y: isDragOver ? 0 : 5,
-              }}
-              style={{
-                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                fontSize: "11px",
-                color: "rgba(255, 255, 255, 0.4)",
-              }}
-              transition={{ duration: 0.2 }}
-            >
-              Drop here
-            </motion.span>
           </motion.div>
         )}
       </AnimatePresence>
