@@ -211,10 +211,9 @@ export function DropZone({
               position: "relative",
               zIndex: 1,
               display: "flex",
-              flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              gap: "2px",
+              gap: "4px",
               padding: "6px 10px",
             }}
             transition={{ duration: 0.2 }}
@@ -222,6 +221,7 @@ export function DropZone({
             {/* Icon */}
             <span
               style={{
+                display: "flex",
                 color: isDragOver ? "#fff" : "rgba(255, 255, 255, 0.5)",
                 transition: "color 0.2s ease",
               }}
@@ -237,8 +237,7 @@ export function DropZone({
                 fontSize: "10px",
                 color: isDragOver ? "#fff" : "rgba(255, 255, 255, 0.5)",
                 transition: "color 0.2s ease",
-                textAlign: "center",
-                lineHeight: 1.2,
+                whiteSpace: "nowrap",
               }}
             >
               {config.label}
