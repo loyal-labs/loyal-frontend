@@ -12,11 +12,13 @@ interface DropZoneProps {
   type: DropZoneType;
   isExpanded: boolean;
   isDragOver: boolean;
+  isHighlighted?: boolean;
   droppedToken: TokenBalance | null;
   children?: ReactNode;
   onDragOver: (e: DragEvent<HTMLDivElement>) => void;
   onDragLeave: (e: DragEvent<HTMLDivElement>) => void;
   onDrop: (e: DragEvent<HTMLDivElement>) => void;
+  onClick?: () => void;
 }
 
 const ZONE_CONFIG: Record<
@@ -47,11 +49,13 @@ export function DropZone({
   type,
   isExpanded,
   isDragOver,
+  isHighlighted = false,
   droppedToken,
   children,
   onDragOver,
   onDragLeave,
   onDrop,
+  onClick,
 }: DropZoneProps) {
   const config = ZONE_CONFIG[type];
   const [, setDragCounter] = useState(0);
@@ -84,17 +88,19 @@ export function DropZone({
     onDrop(e);
   };
 
+  const active = isDragOver || isHighlighted;
+
   // Compute background based on state
   const getBackground = () => {
     if (isExpanded) return "rgba(26, 26, 26, 0.5)";
-    if (isDragOver) return "rgba(255, 255, 255, 0.08)";
+    if (active) return "rgba(255, 255, 255, 0.08)";
     return "rgba(26, 26, 26, 0.3)";
   };
 
   // Compute border based on state
   const getBorder = () => {
     if (isExpanded) return "1px solid rgba(255, 255, 255, 0.1)";
-    if (isDragOver) return `2px solid ${config.glow}`;
+    if (active) return `1px solid ${config.glow}`;
     return "1px solid rgba(255, 255, 255, 0.06)";
   };
 
@@ -115,6 +121,7 @@ export function DropZone({
         flex: isExpanded ? 1 : "none",
       }}
       layout
+      onClick={onClick}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
@@ -128,6 +135,7 @@ export function DropZone({
         WebkitBackdropFilter: "blur(24px) saturate(150%)",
         border: getBorder(),
         boxShadow: getShadow(),
+        cursor: isHighlighted ? "pointer" : "default",
         transition:
           "background 0.3s ease, border 0.3s ease, box-shadow 0.3s ease, border-radius 0.3s ease",
       }}
@@ -195,7 +203,7 @@ export function DropZone({
             <span
               style={{
                 display: "flex",
-                color: isDragOver ? "#fff" : "rgba(255, 255, 255, 0.5)",
+                color: active ? "#fff" : "rgba(255, 255, 255, 0.5)",
                 transition: "color 0.2s ease",
               }}
             >
@@ -208,7 +216,7 @@ export function DropZone({
                 fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                 fontWeight: 500,
                 fontSize: "12px",
-                color: isDragOver ? "#fff" : "rgba(255, 255, 255, 0.5)",
+                color: active ? "#fff" : "rgba(255, 255, 255, 0.5)",
                 transition: "color 0.2s ease",
                 whiteSpace: "nowrap",
               }}

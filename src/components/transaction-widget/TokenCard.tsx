@@ -45,9 +45,11 @@ const DEFAULT_CONFIG = {
 type TokenCardProps = {
   token: TokenBalance;
   isDragging?: boolean;
+  isSelected?: boolean;
   isOtherDragging?: boolean;
   onDragStart?: (e: DragEvent<HTMLDivElement>, token: TokenBalance) => void;
   onDragEnd?: (e: DragEvent<HTMLDivElement>) => void;
+  onSelect?: () => void;
 };
 
 function formatBalance(balance: number): string {
@@ -93,11 +95,14 @@ function formatUsdValue(balance: number, symbol: string): string {
 export function TokenCard({
   token,
   isDragging = false,
+  isSelected = false,
   isOtherDragging = false,
   onDragStart,
   onDragEnd,
+  onSelect,
 }: TokenCardProps) {
   const config = TOKEN_CONFIGS[token.symbol] ?? DEFAULT_CONFIG;
+  const highlighted = isDragging || isSelected;
 
   const handleDragStart = (e: DragEvent<HTMLDivElement>) => {
     e.dataTransfer.setData("application/json", JSON.stringify(token));
@@ -112,15 +117,23 @@ export function TokenCard({
   return (
     <div
       draggable={Boolean(onDragStart)}
+      onClick={onSelect}
       onDragEnd={handleDragEnd}
       onDragStart={handleDragStart}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          onSelect?.();
+        }
+      }}
+      role={onSelect ? "button" : undefined}
       style={{ width: "100%" }}
+      tabIndex={onSelect ? 0 : undefined}
     >
       <motion.div
         animate={{
-          scale: isDragging ? 1.05 : 1,
+          scale: highlighted ? 1.05 : 1,
           opacity: isOtherDragging ? 0.35 : 1,
-          y: isDragging ? -4 : 0,
+          y: highlighted ? -4 : 0,
         }}
         style={{
           position: "relative",
@@ -131,16 +144,16 @@ export function TokenCard({
           padding: "10px 14px",
           width: "100%",
           minWidth: "70px",
-          background: isDragging
+          background: highlighted
             ? "rgba(255, 255, 255, 0.08)"
             : "rgba(26, 26, 26, 0.4)",
           backdropFilter: "blur(24px) saturate(150%)",
           WebkitBackdropFilter: "blur(24px) saturate(150%)",
           borderRadius: "14px",
-          border: isDragging
-            ? "1px solid rgba(255, 255, 255, 0.2)"
+          border: highlighted
+            ? `1px solid ${config.glow}`
             : "1px solid rgba(255, 255, 255, 0.06)",
-          boxShadow: isDragging
+          boxShadow: highlighted
             ? `0 16px 32px rgba(0, 0, 0, 0.4), 0 0 24px ${config.glow}`
             : "0 4px 12px rgba(0, 0, 0, 0.2)",
           cursor: onDragStart ? "grab" : "default",

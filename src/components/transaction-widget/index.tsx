@@ -37,6 +37,7 @@ export function TransactionWidget({
     state,
     startDrag,
     endDrag,
+    selectToken,
     dragOverZone,
     dragLeaveZone,
     dropOnZone,
@@ -49,6 +50,12 @@ export function TransactionWidget({
   // Active recipe state - when a recipe card is clicked
   const [activeRecipe, setActiveRecipe] = useState<Recipe | null>(null);
 
+  // Touch device detection — disable HTML5 DnD on touch (it doesn't work anyway)
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  useEffect(() => {
+    setIsTouchDevice(window.matchMedia("(pointer: coarse)").matches);
+  }, []);
+
   // Drag hint - ghost card animation, shows once when actions first load
   const [showDragHint, setShowDragHint] = useState(false);
   const hintShownRef = useRef(false);
@@ -58,12 +65,12 @@ export function TransactionWidget({
 
   // Show drag hint arrow once after balances load
   useEffect(() => {
-    if (balances.length > 0 && !hintShownRef.current) {
+    if (balances.length > 0 && !hintShownRef.current && !isTouchDevice) {
       hintShownRef.current = true;
       const timer = setTimeout(() => setShowDragHint(true), 600);
       return () => clearTimeout(timer);
     }
-  }, [balances.length]);
+  }, [balances.length, isTouchDevice]);
 
   // Handle cancel - close modal
   const handleCancel = useCallback(() => {
@@ -94,6 +101,19 @@ export function TransactionWidget({
       deleteRecipe(id);
     },
     [deleteRecipe]
+  );
+
+  // Tap on action zone: use selected token, or fallback to first available token
+  const handleZoneTap = useCallback(
+    (zone: DropZoneType) => {
+      const token =
+        state.selectedToken ??
+        balances.find((t) => getUsdValue(t.balance, t.symbol) >= 0.01);
+      if (token) {
+        dropOnZone(zone, token);
+      }
+    },
+    [state.selectedToken, balances, dropOnZone]
   );
 
   // Handle drag start
@@ -289,9 +309,10 @@ export function TransactionWidget({
         <div
           style={{
             display: "flex",
+            flexWrap: "wrap",
             justifyContent: "space-between",
             alignItems: "flex-start",
-            gap: "48px",
+            gap: "24px",
             opacity: 0.5,
           }}
         >
@@ -464,16 +485,16 @@ export function TransactionWidget({
   };
 
   return (
-    <div className={className} style={{ width: "100%" }}>
+    <div className={className} style={{ width: "100%", overflow: "hidden" }}>
       <div
         ref={layoutContainerRef}
         style={{
           position: "relative",
           display: "flex",
-          justifyContent: "space-between",
+          flexWrap: "wrap",
           alignItems: "flex-start",
           width: "100%",
-          gap: "48px",
+          gap: "24px",
         }}
       >
         {/* Ghost drag hint - one-time animated guide */}
@@ -493,6 +514,8 @@ export function TransactionWidget({
             display: "flex",
             flexDirection: "column",
             gap: "12px",
+            flex: "1 1 100%",
+            minWidth: 0,
           }}
         >
           <span
@@ -512,10 +535,8 @@ export function TransactionWidget({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(2, 1fr)",
+              gridTemplateColumns: "repeat(auto-fill, minmax(70px, 1fr))",
               gap: "10px",
-              padding: "12px",
-              margin: "-12px",
             }}
           >
             {filteredBalances.map((token, index) => (
@@ -528,8 +549,10 @@ export function TransactionWidget({
                   isOtherDragging={
                     state.isDragging && state.draggedToken?.mint !== token.mint
                   }
-                  onDragEnd={handleDragEnd}
-                  onDragStart={handleDragStart}
+                  isSelected={state.selectedToken?.mint === token.mint}
+                  onDragEnd={isTouchDevice ? undefined : handleDragEnd}
+                  onDragStart={isTouchDevice ? undefined : handleDragStart}
+                  onSelect={() => selectToken(token)}
                   token={token}
                 />
               </div>
@@ -543,6 +566,8 @@ export function TransactionWidget({
             display: "flex",
             flexDirection: "column",
             gap: "12px",
+            flex: "1 1 100%",
+            minWidth: 0,
           }}
         >
           <span
@@ -563,14 +588,14 @@ export function TransactionWidget({
           <div
             style={{
               display: "flex",
+              flexWrap: "wrap",
               gap: "10px",
-              padding: "12px",
-              margin: "-12px",
             }}
           >
             {(["telegram", "wallet", "swap"] as const).map(
               (zone, zoneIndex) => (
                 <div
+                  data-dropzone={zone}
                   key={zone}
                   ref={zoneIndex === 0 ? firstActionRef : undefined}
                   style={{ flex: 1 }}
@@ -579,6 +604,8 @@ export function TransactionWidget({
                     droppedToken={state.droppedToken}
                     isDragOver={state.dragOverZone === zone}
                     isExpanded={false}
+                    isHighlighted={state.selectedToken !== null}
+                    onClick={() => handleZoneTap(zone)}
                     onDragLeave={handleDragLeave()}
                     onDragOver={handleDragOver(zone)}
                     onDrop={handleDrop(zone)}

@@ -7,6 +7,9 @@ type DragDropState = {
   isDragging: boolean;
   draggedToken: TokenBalance | null;
 
+  // Tap-to-select state (mobile)
+  selectedToken: TokenBalance | null;
+
   // Drop zone states
   dragOverZone: DropZoneType | null;
 
@@ -23,6 +26,7 @@ type DragDropState = {
 const initialState: DragDropState = {
   isDragging: false,
   draggedToken: null,
+  selectedToken: null,
   dragOverZone: null,
   expandedZone: null,
   droppedToken: null,
@@ -75,6 +79,7 @@ export function useDragDrop() {
       ...prev,
       isDragging: false,
       draggedToken: null,
+      selectedToken: null,
       dragOverZone: null,
       expandedZone: zone,
       droppedToken: token,
@@ -82,6 +87,22 @@ export function useDragDrop() {
       transactionStatus: null,
       transactionResult: null,
       isExecuting: false,
+    }));
+  }, []);
+
+  // Select a token via tap (mobile)
+  const selectToken = useCallback((token: TokenBalance) => {
+    setState((prev) => ({
+      ...prev,
+      selectedToken: prev.selectedToken?.mint === token.mint ? null : token,
+    }));
+  }, []);
+
+  // Deselect token
+  const deselectToken = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      selectedToken: null,
     }));
   }, []);
 
@@ -130,6 +151,8 @@ export function useDragDrop() {
     state,
     startDrag,
     endDrag,
+    selectToken,
+    deselectToken,
     dragOverZone,
     dragLeaveZone,
     dropOnZone,
