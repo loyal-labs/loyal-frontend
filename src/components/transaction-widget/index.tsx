@@ -14,7 +14,7 @@ import { RecipeCard } from "./RecipeCard";
 import { RecipeSendForm } from "./RecipeSendForm";
 import { SendForm } from "./SendForm";
 import { SwapForm } from "./SwapForm";
-import { TokenCard } from "./TokenCard";
+import { getUsdValue, TokenCard } from "./TokenCard";
 
 type TransactionWidgetProps = {
   className?: string;
@@ -400,18 +400,22 @@ export function TransactionWidget({
               margin: "-12px",
             }}
           >
-            {balances.map((token) => (
-              <TokenCard
-                isDragging={state.draggedToken?.mint === token.mint}
-                isOtherDragging={
-                  state.isDragging && state.draggedToken?.mint !== token.mint
-                }
-                key={token.mint}
-                onDragEnd={handleDragEnd}
-                onDragStart={handleDragStart}
-                token={token}
-              />
-            ))}
+            {balances
+              .filter(
+                (token) => getUsdValue(token.balance, token.symbol) >= 0.01
+              )
+              .map((token) => (
+                <TokenCard
+                  isDragging={state.draggedToken?.mint === token.mint}
+                  isOtherDragging={
+                    state.isDragging && state.draggedToken?.mint !== token.mint
+                  }
+                  key={token.mint}
+                  onDragEnd={handleDragEnd}
+                  onDragStart={handleDragStart}
+                  token={token}
+                />
+              ))}
           </div>
         </motion.div>
 

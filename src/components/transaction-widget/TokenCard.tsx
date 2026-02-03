@@ -63,16 +63,20 @@ function formatBalance(balance: number): string {
   return balance.toFixed(balance < 1 ? 4 : 2);
 }
 
+const TOKEN_PRICES: Record<string, number> = {
+  SOL: 145,
+  USDC: 1,
+  USDT: 1,
+  BONK: 0.000_01,
+  LOYAL: 0.1,
+};
+
+export function getUsdValue(balance: number, symbol: string): number {
+  return balance * (TOKEN_PRICES[symbol] ?? 0);
+}
+
 function formatUsdValue(balance: number, symbol: string): string {
-  const prices: Record<string, number> = {
-    SOL: 145,
-    USDC: 1,
-    USDT: 1,
-    BONK: 0.000_01,
-    LOYAL: 0.1,
-  };
-  const price = prices[symbol] ?? 0;
-  const value = balance * price;
+  const value = getUsdValue(balance, symbol);
 
   if (value >= 1_000_000) {
     return `$${(value / 1_000_000).toFixed(1)}M`;
