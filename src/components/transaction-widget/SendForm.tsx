@@ -444,6 +444,8 @@ export function SendForm({
                 ? "1px solid rgba(239, 68, 68, 0.5)"
                 : "1px solid rgba(255, 255, 255, 0.08)",
             borderRadius: "14px",
+            overflow: "hidden",
+            boxSizing: "border-box",
           }}
         >
           <input
@@ -451,6 +453,7 @@ export function SendForm({
             placeholder="0.00"
             style={{
               flex: 1,
+              minWidth: 0,
               padding: "8px 10px",
               background: "transparent",
               border: "none",
