@@ -1765,20 +1765,29 @@ export default function LandingPage() {
                 />
               )}
 
-              {/* Transaction widget - drag & drop tokens above input when scrolled */}
+              {/* "Use skills" link - scrolls to top where TransactionWidget lives */}
               {skillsEnabled && !isChatMode && isInputStuckToBottom && (
-                <div
+                <button
+                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
                   style={{
                     pointerEvents: "auto",
-                    marginBottom: "12px",
-                    width: "100%",
-                    maxWidth: "500px",
+                    marginBottom: "8px",
+                    background: "none",
+                    border: "none",
+                    padding: "4px 0",
+                    cursor: "pointer",
+                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                    fontSize: "12px",
+                    fontWeight: 500,
+                    color: "rgba(255, 255, 255, 0.4)",
+                    transition: "color 0.15s ease",
                   }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255, 255, 255, 0.7)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255, 255, 255, 0.4)"; }}
+                  type="button"
                 >
-                  <TransactionWidget
-                    onTransactionComplete={handleTransactionWidgetComplete}
-                  />
-                </div>
+                  ↑ Use skills
+                </button>
               )}
 
               {/* Input form - liquid glass style with integrated send button */}

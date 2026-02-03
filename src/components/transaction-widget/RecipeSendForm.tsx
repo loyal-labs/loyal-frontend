@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "motion/react";
-import Image from "next/image";
 import { useCallback, useState } from "react";
 import type { Recipe } from "@/hooks/use-recipes";
 
@@ -15,23 +14,25 @@ interface RecipeSendFormProps {
     walletAddress: string;
     destinationType: "wallet" | "telegram";
   }) => void;
+  onSwap?: (data: {
+    fromCurrency: string;
+    fromCurrencyMint: string;
+    fromCurrencyDecimals: number;
+    amount: string;
+    toCurrency: string;
+    toCurrencyMint: string;
+    toCurrencyDecimals: number;
+  }) => void;
   onCancel: () => void;
   isLoading?: boolean;
   status?: "pending" | "success" | "error" | null;
   result?: { signature?: string; error?: string } | null;
 }
 
-const TOKEN_PRICES: Record<string, number> = {
-  SOL: 145,
-  USDC: 1,
-  USDT: 1,
-  BONK: 0.000_01,
-  LOYAL: 0.1,
-};
-
 export function RecipeSendForm({
   recipe,
   onSend,
+  onSwap,
   onCancel,
   isLoading = false,
   status = null,
@@ -39,20 +40,30 @@ export function RecipeSendForm({
 }: RecipeSendFormProps) {
   const [isConfirming, setIsConfirming] = useState(false);
 
-  const price = TOKEN_PRICES[recipe.tokenSymbol] ?? 0;
-  const amountNum = Number.parseFloat(recipe.amount) || 0;
-  const usdValue = amountNum * price;
+  const isSwap = recipe.type === "swap";
 
   const handleSubmit = useCallback(() => {
-    onSend({
-      currency: recipe.tokenSymbol,
-      currencyMint: recipe.tokenMint,
-      currencyDecimals: recipe.tokenDecimals,
-      amount: recipe.amount,
-      walletAddress: recipe.recipient,
-      destinationType: recipe.type,
-    });
-  }, [recipe, onSend]);
+    if (isSwap && onSwap && recipe.toTokenSymbol && recipe.toTokenMint && recipe.toTokenDecimals != null) {
+      onSwap({
+        fromCurrency: recipe.tokenSymbol,
+        fromCurrencyMint: recipe.tokenMint,
+        fromCurrencyDecimals: recipe.tokenDecimals,
+        amount: recipe.amount,
+        toCurrency: recipe.toTokenSymbol,
+        toCurrencyMint: recipe.toTokenMint,
+        toCurrencyDecimals: recipe.toTokenDecimals,
+      });
+    } else {
+      onSend({
+        currency: recipe.tokenSymbol,
+        currencyMint: recipe.tokenMint,
+        currencyDecimals: recipe.tokenDecimals,
+        amount: recipe.amount,
+        walletAddress: recipe.recipient,
+        destinationType: recipe.type as "wallet" | "telegram",
+      });
+    }
+  }, [recipe, onSend, onSwap, isSwap]);
 
   // Success state
   if (status === "success") {
@@ -64,98 +75,57 @@ export function RecipeSendForm({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "20px",
-          padding: "32px 0",
+          gap: "16px",
+          padding: "16px 0 8px",
         }}
       >
         <motion.div
-          animate={{ scale: [0, 1.2, 1] }}
+          animate={{ scale: 1, opacity: 1 }}
+          initial={{ scale: 0.5, opacity: 0 }}
           style={{
-            width: "64px",
-            height: "64px",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            borderRadius: "20px",
-            background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-            boxShadow: "0 8px 24px rgba(34, 197, 94, 0.4)",
+            gap: "10px",
           }}
-          transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
+          transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
         >
-          <svg
-            aria-label="Success"
-            fill="none"
-            height="32"
-            role="img"
-            stroke="#fff"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="3"
-            viewBox="0 0 24 24"
-            width="32"
-          >
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-        </motion.div>
-        <div style={{ textAlign: "center" }}>
-          <p
+          <div
             style={{
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontWeight: 600,
-              fontSize: "18px",
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              background: "#22c55e",
+              boxShadow: "0 0 12px rgba(34, 197, 94, 0.6)",
+            }}
+          />
+          <span
+            style={{
+              fontFamily: "var(--font-geist-mono), monospace",
+              fontSize: "15px",
+              fontWeight: 500,
               color: "#fff",
-              marginBottom: "4px",
+              letterSpacing: "-0.02em",
             }}
           >
-            Sent {recipe.amount} {recipe.tokenSymbol}
-          </p>
-          <p
-            style={{
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontSize: "14px",
-              color: "rgba(255, 255, 255, 0.5)",
-            }}
-          >
-            Recipe executed successfully
-          </p>
-        </div>
-        {result?.signature && (
-          <a
-            href={`https://solscan.io/tx/${result.signature}`}
-            rel="noopener noreferrer"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "10px 16px",
-              background: "rgba(255, 255, 255, 0.06)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              borderRadius: "10px",
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontSize: "13px",
-              color: "rgba(96, 165, 250, 1)",
-              textDecoration: "none",
-              transition: "background 0.2s ease",
-            }}
-            target="_blank"
-          >
-            View on Solscan
-            <span style={{ fontSize: "12px" }}>↗</span>
-          </a>
-        )}
+            {isSwap
+              ? `${recipe.amount} ${recipe.tokenSymbol} swapped`
+              : `${recipe.amount} ${recipe.tokenSymbol} sent`}
+          </span>
+        </motion.div>
         <button
           onClick={onCancel}
           style={{
-            padding: "12px 24px",
-            background: "rgba(255, 255, 255, 0.08)",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            borderRadius: "12px",
-            color: "#fff",
-            fontSize: "14px",
+            width: "100%",
+            padding: "12px 20px",
+            background: "transparent",
+            border: "none",
+            borderRadius: "10px",
+            color: "rgba(255, 255, 255, 0.5)",
+            fontSize: "13px",
             fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontWeight: 500,
             cursor: "pointer",
-            transition: "background 0.2s ease",
+            transition: "color 0.15s ease",
           }}
           type="button"
         >
@@ -175,76 +145,64 @@ export function RecipeSendForm({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "20px",
-          padding: "32px 0",
+          gap: "12px",
+          padding: "16px 0",
         }}
       >
-        <motion.div
-          animate={{ scale: [0, 1.2, 1] }}
+        <div
           style={{
-            width: "64px",
-            height: "64px",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            borderRadius: "20px",
-            background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-            boxShadow: "0 8px 24px rgba(239, 68, 68, 0.4)",
+            gap: "10px",
           }}
-          transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
         >
-          <svg
-            aria-label="Error"
-            fill="none"
-            height="32"
-            role="img"
-            stroke="#fff"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="3"
-            viewBox="0 0 24 24"
-            width="32"
-          >
-            <line x1="18" x2="6" y1="6" y2="18" />
-            <line x1="6" x2="18" y1="6" y2="18" />
-          </svg>
-        </motion.div>
-        <div style={{ textAlign: "center" }}>
-          <p
+          <div
             style={{
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontWeight: 600,
-              fontSize: "18px",
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              background: "#ef4444",
+              boxShadow: "0 0 12px rgba(239, 68, 68, 0.6)",
+            }}
+          />
+          <span
+            style={{
+              fontFamily: "var(--font-geist-mono), monospace",
+              fontWeight: 500,
+              fontSize: "14px",
               color: "#fff",
-              marginBottom: "8px",
+              letterSpacing: "-0.02em",
             }}
           >
             Recipe Failed
-          </p>
+          </span>
+        </div>
+        {result?.error && (
           <p
             style={{
               fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontSize: "14px",
-              color: "rgba(248, 113, 113, 1)",
-              maxWidth: "280px",
+              fontSize: "12px",
+              color: "rgba(248, 113, 113, 0.8)",
+              textAlign: "center",
+              maxWidth: "260px",
             }}
           >
-            {result?.error}
+            {result.error}
           </p>
-        </div>
+        )}
         <button
           onClick={onCancel}
           style={{
-            padding: "12px 24px",
-            background: "rgba(255, 255, 255, 0.08)",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            borderRadius: "12px",
-            color: "#fff",
-            fontSize: "14px",
+            width: "100%",
+            padding: "10px 16px",
+            background: "rgba(255, 255, 255, 0.06)",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
+            borderRadius: "10px",
+            color: "rgba(255, 255, 255, 0.7)",
+            fontSize: "13px",
             fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontWeight: 500,
             cursor: "pointer",
-            transition: "background 0.2s ease",
           }}
           type="button"
         >
@@ -257,118 +215,108 @@ export function RecipeSendForm({
   // Confirmation view
   if (isConfirming) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-        <div style={{ textAlign: "center" }}>
-          <p
-            style={{
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontWeight: 600,
-              fontSize: "16px",
-              color: "#fff",
-              marginBottom: "8px",
-            }}
-          >
-            Confirm Transaction
-          </p>
-          <p
-            style={{
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontSize: "13px",
-              color: "rgba(255, 255, 255, 0.5)",
-            }}
-          >
-            You&apos;re about to execute this recipe
-          </p>
-        </div>
-
+      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
         {/* Summary */}
         <div
           style={{
-            padding: "16px",
-            background: "rgba(255, 255, 255, 0.04)",
+            padding: "14px",
+            background: "rgba(0, 0, 0, 0.2)",
             borderRadius: "12px",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
+            border: "1px solid rgba(255, 255, 255, 0.06)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: "12px",
-            }}
-          >
-            <span
-              style={{
-                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                fontSize: "12px",
-                color: "rgba(255, 255, 255, 0.5)",
-              }}
-            >
-              Recipient
-            </span>
-            <span
-              style={{
-                fontFamily: "var(--font-geist-mono), monospace",
-                fontSize: "13px",
-                color: "#fff",
-              }}
-            >
-              {recipe.type === "telegram"
-                ? `@${recipe.recipient}`
-                : `${recipe.recipient.slice(0, 8)}...`}
-            </span>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: "12px",
-            }}
-          >
-            <span
-              style={{
-                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                fontSize: "12px",
-                color: "rgba(255, 255, 255, 0.5)",
-              }}
-            >
-              Amount
-            </span>
-            <span
-              style={{
-                fontFamily: "var(--font-geist-mono), monospace",
-                fontSize: "13px",
-                color: "#fff",
-              }}
-            >
-              {recipe.amount} {recipe.tokenSymbol}
-            </span>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-            }}
-          >
-            <span
-              style={{
-                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                fontSize: "12px",
-                color: "rgba(255, 255, 255, 0.5)",
-              }}
-            >
-              Value
-            </span>
-            <span
-              style={{
-                fontFamily: "var(--font-geist-mono), monospace",
-                fontSize: "13px",
-                color: "rgba(255, 255, 255, 0.6)",
-              }}
-            >
-              ≈ ${usdValue >= 0.01 ? usdValue.toFixed(2) : "< 0.01"} USD
-            </span>
-          </div>
+          {isSwap ? (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span
+                  style={{
+                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                    fontSize: "12px",
+                    color: "rgba(255, 255, 255, 0.5)",
+                  }}
+                >
+                  From
+                </span>
+                <span
+                  style={{
+                    fontFamily: "var(--font-geist-mono), monospace",
+                    fontSize: "13px",
+                    color: "#fff",
+                  }}
+                >
+                  {recipe.amount} {recipe.tokenSymbol}
+                </span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span
+                  style={{
+                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                    fontSize: "12px",
+                    color: "rgba(255, 255, 255, 0.5)",
+                  }}
+                >
+                  To
+                </span>
+                <span
+                  style={{
+                    fontFamily: "var(--font-geist-mono), monospace",
+                    fontSize: "13px",
+                    color: "#fff",
+                  }}
+                >
+                  {recipe.toTokenSymbol}
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span
+                  style={{
+                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                    fontSize: "12px",
+                    color: "rgba(255, 255, 255, 0.5)",
+                  }}
+                >
+                  Recipient
+                </span>
+                <span
+                  style={{
+                    fontFamily: "var(--font-geist-mono), monospace",
+                    fontSize: "13px",
+                    color: "#fff",
+                  }}
+                >
+                  {recipe.type === "telegram"
+                    ? `@${recipe.recipient}`
+                    : `${recipe.recipient.slice(0, 8)}...`}
+                </span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span
+                  style={{
+                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                    fontSize: "12px",
+                    color: "rgba(255, 255, 255, 0.5)",
+                  }}
+                >
+                  Amount
+                </span>
+                <span
+                  style={{
+                    fontFamily: "var(--font-geist-mono), monospace",
+                    fontSize: "13px",
+                    color: "#fff",
+                  }}
+                >
+                  {recipe.amount} {recipe.tokenSymbol}
+                </span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Action buttons */}
@@ -409,16 +357,16 @@ export function RecipeSendForm({
               justifyContent: "center",
               gap: "6px",
               padding: "10px 20px",
-              background: "linear-gradient(135deg, #fff 0%, #e5e5e5 100%)",
+              background: isLoading ? "rgba(255, 255, 255, 0.08)" : "#fff",
               border: "none",
               borderRadius: "10px",
-              color: "#000",
+              color: isLoading ? "rgba(255, 255, 255, 0.3)" : "#000",
               fontSize: "14px",
               fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
               fontWeight: 600,
               cursor: isLoading ? "wait" : "pointer",
               transition: "all 0.15s ease",
-              boxShadow: "0 2px 8px rgba(255, 255, 255, 0.15)",
+              boxShadow: "none",
             }}
             type="button"
           >
@@ -435,11 +383,11 @@ export function RecipeSendForm({
                 >
                   ◌
                 </motion.span>
-                Sending...
+                {isSwap ? "Swapping..." : "Sending..."}
               </>
             ) : (
               <>
-                Confirm Send
+                Confirm {isSwap ? "Swap" : "Send"}
                 <span style={{ fontSize: "14px" }}>→</span>
               </>
             )}
@@ -451,62 +399,7 @@ export function RecipeSendForm({
 
   // Default: Recipe preview
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-      {/* Recipe header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-          paddingBottom: "8px",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-        }}
-      >
-        {recipe.photoUrl && (
-          <div
-            style={{
-              width: "40px",
-              height: "40px",
-              borderRadius: "50%",
-              overflow: "hidden",
-              border: "2px solid rgba(255, 255, 255, 0.15)",
-            }}
-          >
-            <Image
-              alt={recipe.name}
-              height={40}
-              src={recipe.photoUrl}
-              style={{ objectFit: "cover" }}
-              width={40}
-            />
-          </div>
-        )}
-        <div>
-          <p
-            style={{
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontWeight: 600,
-              fontSize: "15px",
-              color: "#fff",
-              marginBottom: "2px",
-            }}
-          >
-            {recipe.name}
-          </p>
-          <p
-            style={{
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontSize: "11px",
-              color: "rgba(255, 255, 255, 0.4)",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-            }}
-          >
-            Recipe
-          </p>
-        </div>
-      </div>
-
+    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
       {/* Recipe details */}
       <div
         style={{
@@ -514,87 +407,100 @@ export function RecipeSendForm({
           background: "rgba(0, 0, 0, 0.2)",
           borderRadius: "12px",
           border: "1px solid rgba(255, 255, 255, 0.06)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: "10px",
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontSize: "12px",
-              color: "rgba(255, 255, 255, 0.5)",
-            }}
-          >
-            To
-          </span>
-          <span
-            style={{
-              fontFamily: "var(--font-geist-mono), monospace",
-              fontSize: "13px",
-              color: "#fff",
-            }}
-          >
-            {recipe.type === "telegram"
-              ? `@${recipe.recipient}`
-              : `${recipe.recipient.slice(0, 8)}...${recipe.recipient.slice(-4)}`}
-          </span>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: "10px",
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontSize: "12px",
-              color: "rgba(255, 255, 255, 0.5)",
-            }}
-          >
-            Amount
-          </span>
-          <span
-            style={{
-              fontFamily: "var(--font-geist-mono), monospace",
-              fontSize: "13px",
-              color: "#fff",
-            }}
-          >
-            {recipe.amount} {recipe.tokenSymbol}
-          </span>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontSize: "12px",
-              color: "rgba(255, 255, 255, 0.5)",
-            }}
-          >
-            Value
-          </span>
-          <span
-            style={{
-              fontFamily: "var(--font-geist-mono), monospace",
-              fontSize: "12px",
-              color: "rgba(255, 255, 255, 0.5)",
-            }}
-          >
-            ≈ ${usdValue >= 0.01 ? usdValue.toFixed(2) : "< 0.01"} USD
-          </span>
-        </div>
+        {isSwap ? (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span
+                style={{
+                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                  fontSize: "12px",
+                  color: "rgba(255, 255, 255, 0.5)",
+                }}
+              >
+                From
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-geist-mono), monospace",
+                  fontSize: "13px",
+                  color: "#fff",
+                }}
+              >
+                {recipe.amount} {recipe.tokenSymbol}
+              </span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span
+                style={{
+                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                  fontSize: "12px",
+                  color: "rgba(255, 255, 255, 0.5)",
+                }}
+              >
+                To
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-geist-mono), monospace",
+                  fontSize: "13px",
+                  color: "#fff",
+                }}
+              >
+                {recipe.toTokenSymbol}
+              </span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span
+                style={{
+                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                  fontSize: "12px",
+                  color: "rgba(255, 255, 255, 0.5)",
+                }}
+              >
+                To
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-geist-mono), monospace",
+                  fontSize: "13px",
+                  color: "#fff",
+                }}
+              >
+                {recipe.type === "telegram"
+                  ? `@${recipe.recipient}`
+                  : `${recipe.recipient.slice(0, 8)}...${recipe.recipient.slice(-4)}`}
+              </span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span
+                style={{
+                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                  fontSize: "12px",
+                  color: "rgba(255, 255, 255, 0.5)",
+                }}
+              >
+                Amount
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-geist-mono), monospace",
+                  fontSize: "13px",
+                  color: "#fff",
+                }}
+              >
+                {recipe.amount} {recipe.tokenSymbol}
+              </span>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Action buttons */}
@@ -603,7 +509,6 @@ export function RecipeSendForm({
           display: "flex",
           alignItems: "center",
           gap: "10px",
-          paddingTop: "4px",
         }}
       >
         <button
@@ -634,7 +539,7 @@ export function RecipeSendForm({
             justifyContent: "center",
             gap: "6px",
             padding: "10px 20px",
-            background: "linear-gradient(135deg, #fff 0%, #e5e5e5 100%)",
+            background: "#fff",
             border: "none",
             borderRadius: "10px",
             color: "#000",
@@ -643,7 +548,7 @@ export function RecipeSendForm({
             fontWeight: 600,
             cursor: "pointer",
             transition: "all 0.15s ease",
-            boxShadow: "0 2px 8px rgba(255, 255, 255, 0.15)",
+            boxShadow: "none",
           }}
           type="button"
         >

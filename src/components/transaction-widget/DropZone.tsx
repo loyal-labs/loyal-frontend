@@ -24,13 +24,13 @@ const ZONE_CONFIG: Record<
   { icon: ReactNode; label: string; gradient: string; glow: string }
 > = {
   telegram: {
-    icon: <Send size={14} />,
+    icon: <Send size={16} />,
     label: "Send w Telegram",
     gradient: "linear-gradient(135deg, #0088cc 0%, #00a0dc 100%)",
     glow: "rgba(0, 136, 204, 0.4)",
   },
   wallet: {
-    icon: <Wallet size={14} />,
+    icon: <Wallet size={16} />,
     label: "Send w address",
     gradient: "linear-gradient(135deg, #9945FF 0%, #14F195 100%)",
     glow: "rgba(153, 69, 255, 0.4)",
@@ -156,45 +156,18 @@ export function DropZone({
 
       <AnimatePresence mode="wait">
         {isExpanded ? (
-          // Expanded state - form content
+          // Expanded state - form content only (header provided by modal)
           <motion.div
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
             key="expanded"
             style={{
               position: "relative",
               zIndex: 1,
-              padding: "16px",
             }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: 0.15 }}
           >
-            {/* Header */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                marginBottom: "16px",
-                paddingBottom: "12px",
-                borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-              }}
-            >
-              <span style={{ color: "#fff" }}>{config.icon}</span>
-              <span
-                style={{
-                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                  fontWeight: 600,
-                  fontSize: "13px",
-                  color: "#fff",
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                {config.label} {droppedToken?.symbol}
-              </span>
-            </div>
-
-            {/* Form content (passed as children) */}
             {children}
           </motion.div>
         ) : (
@@ -213,8 +186,8 @@ export function DropZone({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: "4px",
-              padding: "6px 10px",
+              gap: "8px",
+              padding: "8px 12px",
             }}
             transition={{ duration: 0.2 }}
           >
@@ -234,7 +207,7 @@ export function DropZone({
               style={{
                 fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                 fontWeight: 500,
-                fontSize: "10px",
+                fontSize: "12px",
                 color: isDragOver ? "#fff" : "rgba(255, 255, 255, 0.5)",
                 transition: "color 0.2s ease",
                 whiteSpace: "nowrap",

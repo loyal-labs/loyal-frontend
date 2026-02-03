@@ -1,9 +1,10 @@
 "use client";
 
+import { NotebookPen } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
+import type { Recipe } from "@/hooks/use-recipes";
 import type { TokenBalance } from "@/hooks/use-wallet-balances";
-import { TokenCard } from "./TokenCard";
 
 // Available swap targets
 const SWAP_TARGETS = [
@@ -56,6 +57,7 @@ type SwapFormProps = {
     toCurrencyDecimals: number;
   }) => void;
   onCancel: () => void;
+  onCreateRecipe?: (recipe: Omit<Recipe, "id" | "createdAt">) => void;
   onGetQuote: (
     fromToken: string,
     toToken: string,
@@ -96,6 +98,7 @@ export function SwapForm({
   token,
   onSwap,
   onCancel,
+  onCreateRecipe,
   onGetQuote,
   isLoading = false,
   status = null,
@@ -188,101 +191,118 @@ export function SwapForm({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "20px",
-          padding: "32px 0",
+          gap: "12px",
+          padding: "16px 0",
         }}
       >
         <motion.div
-          animate={{ scale: [0, 1.2, 1] }}
+          animate={{ scale: 1, opacity: 1 }}
+          initial={{ scale: 0.5, opacity: 0 }}
           style={{
-            width: "64px",
-            height: "64px",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            borderRadius: "20px",
-            background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
-            boxShadow: "0 8px 24px rgba(34, 197, 94, 0.4)",
+            gap: "10px",
           }}
-          transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
+          transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
         >
-          <svg
-            fill="none"
-            height="32"
-            stroke="#fff"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="3"
-            viewBox="0 0 24 24"
-            width="32"
-          >
-            <polyline points="20 6 9 17 4 12" />
-          </svg>
-        </motion.div>
-        <div style={{ textAlign: "center" }}>
-          <p
+          <div
             style={{
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontWeight: 600,
-              fontSize: "18px",
-              color: "#fff",
-              marginBottom: "4px",
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              background: "#22c55e",
+              boxShadow: "0 0 12px rgba(34, 197, 94, 0.6)",
             }}
-          >
-            Swapped {amount} {token.symbol}
-          </p>
-          <p
+          />
+          <span
             style={{
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+              fontFamily: "var(--font-geist-mono), monospace",
               fontSize: "14px",
-              color: "rgba(255, 255, 255, 0.5)",
+              fontWeight: 500,
+              color: "#fff",
+              letterSpacing: "-0.02em",
             }}
           >
-            → {toToken?.symbol}
-          </p>
-        </div>
-        {result?.signature && (
-          <a
-            href={`https://solscan.io/tx/${result.signature}`}
-            rel="noopener noreferrer"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              padding: "10px 16px",
-              background: "rgba(255, 255, 255, 0.06)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              borderRadius: "10px",
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontSize: "13px",
-              color: "rgba(96, 165, 250, 1)",
-              textDecoration: "none",
-              transition: "background 0.2s ease",
-            }}
-            target="_blank"
-          >
-            View on Solscan
-            <span style={{ fontSize: "12px" }}>↗</span>
-          </a>
-        )}
-        <button
-          onClick={onCancel}
+            {amount} {token.symbol} → {toToken?.symbol}
+          </span>
+        </motion.div>
+        {/* Action buttons */}
+        <div
           style={{
-            padding: "12px 24px",
-            background: "rgba(255, 255, 255, 0.08)",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            borderRadius: "12px",
-            color: "#fff",
-            fontSize: "14px",
-            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-            fontWeight: 500,
-            cursor: "pointer",
-            transition: "background 0.2s ease",
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+            width: "100%",
+            marginTop: "8px",
           }}
-          type="button"
         >
-          Done
-        </button>
+          {onCreateRecipe && (
+            <motion.button
+              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 8 }}
+              onClick={() => {
+                onCreateRecipe({
+                  name: "",
+                  type: "swap",
+                  tokenSymbol: token.symbol,
+                  tokenMint: token.mint,
+                  tokenDecimals: token.decimals,
+                  amount,
+                  recipient: "",
+                  toTokenSymbol: toToken?.symbol,
+                  toTokenMint: toToken?.mint,
+                  toTokenDecimals: toToken?.decimals,
+                });
+                onCancel();
+              }}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                padding: "14px 20px",
+                background: "rgba(255, 255, 255, 0.08)",
+                border: "1px solid rgba(255, 255, 255, 0.15)",
+                borderRadius: "12px",
+                color: "#fff",
+                fontSize: "14px",
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "all 0.15s ease",
+              }}
+              transition={{ delay: 0.2 }}
+              type="button"
+              whileHover={{
+                background: "rgba(255, 255, 255, 0.12)",
+                borderColor: "rgba(255, 255, 255, 0.25)",
+              }}
+            >
+              <NotebookPen size={16} />
+              Save as Recipe
+            </motion.button>
+          )}
+          <button
+            onClick={onCancel}
+            style={{
+              width: "100%",
+              padding: "12px 20px",
+              background: "transparent",
+              border: "none",
+              borderRadius: "10px",
+              color: "rgba(255, 255, 255, 0.5)",
+              fontSize: "13px",
+              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+              fontWeight: 500,
+              cursor: "pointer",
+              transition: "color 0.15s ease",
+            }}
+            type="button"
+          >
+            Done
+          </button>
+        </div>
       </motion.div>
     );
   }
@@ -297,74 +317,64 @@ export function SwapForm({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "20px",
-          padding: "32px 0",
+          gap: "12px",
+          padding: "16px 0",
         }}
       >
-        <motion.div
-          animate={{ scale: [0, 1.2, 1] }}
+        <div
           style={{
-            width: "64px",
-            height: "64px",
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            borderRadius: "20px",
-            background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-            boxShadow: "0 8px 24px rgba(239, 68, 68, 0.4)",
+            gap: "10px",
           }}
-          transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
         >
-          <svg
-            fill="none"
-            height="32"
-            stroke="#fff"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="3"
-            viewBox="0 0 24 24"
-            width="32"
-          >
-            <line x1="18" x2="6" y1="6" y2="18" />
-            <line x1="6" x2="18" y1="6" y2="18" />
-          </svg>
-        </motion.div>
-        <div style={{ textAlign: "center" }}>
-          <p
+          <div
             style={{
-              fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontWeight: 600,
-              fontSize: "18px",
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              background: "#ef4444",
+              boxShadow: "0 0 12px rgba(239, 68, 68, 0.6)",
+            }}
+          />
+          <span
+            style={{
+              fontFamily: "var(--font-geist-mono), monospace",
+              fontWeight: 500,
+              fontSize: "14px",
               color: "#fff",
-              marginBottom: "8px",
+              letterSpacing: "-0.02em",
             }}
           >
             Swap Failed
-          </p>
+          </span>
+        </div>
+        {result?.error && (
           <p
             style={{
               fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-              fontSize: "14px",
-              color: "rgba(248, 113, 113, 1)",
-              maxWidth: "280px",
+              fontSize: "12px",
+              color: "rgba(248, 113, 113, 0.8)",
+              textAlign: "center",
+              maxWidth: "260px",
             }}
           >
-            {result?.error}
+            {result.error}
           </p>
-        </div>
+        )}
         <button
           onClick={onCancel}
           style={{
-            padding: "12px 24px",
-            background: "rgba(255, 255, 255, 0.08)",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            borderRadius: "12px",
-            color: "#fff",
-            fontSize: "14px",
+            width: "100%",
+            padding: "10px 16px",
+            background: "rgba(255, 255, 255, 0.06)",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
+            borderRadius: "10px",
+            color: "rgba(255, 255, 255, 0.7)",
+            fontSize: "13px",
             fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontWeight: 500,
             cursor: "pointer",
-            transition: "background 0.2s ease",
           }}
           type="button"
         >
@@ -375,163 +385,70 @@ export function SwapForm({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-      {/* Token cards row: from → to */}
-      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-        <TokenCard token={token} />
-
-        {/* Arrow */}
-        <div
+    <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+      {/* From → To summary row */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "10px 12px",
+          background: "rgba(255, 255, 255, 0.04)",
+          borderRadius: "12px",
+          border: "1px solid rgba(255, 255, 255, 0.06)",
+        }}
+      >
+        <span
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "36px",
-            height: "36px",
-            borderRadius: "10px",
-            background: "rgba(255, 255, 255, 0.06)",
-            flexShrink: 0,
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            fontWeight: 600,
+            fontSize: "13px",
+            color: "#fff",
           }}
         >
-          <span style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: "16px" }}>
-            →
+          {token.symbol}
+        </span>
+        <span style={{ color: "rgba(255, 255, 255, 0.3)", fontSize: "12px" }}>
+          →
+        </span>
+        <span
+          style={{
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+            fontWeight: 600,
+            fontSize: "13px",
+            color: toToken ? "#fff" : "rgba(255, 255, 255, 0.4)",
+          }}
+        >
+          {toToken ? toToken.symbol : "Select"}
+        </span>
+        {quoteLoading && (
+          <motion.span
+            animate={{ opacity: [0.3, 1, 0.3] }}
+            style={{
+              fontFamily: "var(--font-geist-mono), monospace",
+              fontSize: "11px",
+              color: "rgba(255, 255, 255, 0.4)",
+              marginLeft: "auto",
+            }}
+            transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY }}
+          >
+            quoting...
+          </motion.span>
+        )}
+        {!quoteLoading && quote && toToken && (
+          <span
+            style={{
+              fontFamily: "var(--font-geist-mono), monospace",
+              fontSize: "11px",
+              color: "rgba(255, 255, 255, 0.5)",
+              marginLeft: "auto",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            ≈ {Number.parseFloat(quote.outputAmount).toFixed(4)}{" "}
+            {toToken.symbol}
           </span>
-        </div>
-
-        {/* To token display */}
-        <motion.div
-          animate={{
-            borderColor: toToken
-              ? "rgba(255, 255, 255, 0.15)"
-              : "rgba(255, 255, 255, 0.1)",
-          }}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "8px",
-            minWidth: "100px",
-            padding: "16px 20px",
-            background: "rgba(26, 26, 26, 0.4)",
-            backdropFilter: "blur(24px) saturate(150%)",
-            WebkitBackdropFilter: "blur(24px) saturate(150%)",
-            borderRadius: "20px",
-            border: toToken
-              ? `1px solid ${toToken.glow}`
-              : "2px dashed rgba(255, 255, 255, 0.15)",
-            boxShadow: toToken
-              ? `0 4px 16px rgba(0, 0, 0, 0.2), 0 0 20px ${toToken.glow}`
-              : "0 4px 16px rgba(0, 0, 0, 0.2)",
-          }}
-        >
-          {toToken ? (
-            <>
-              <div
-                style={{
-                  width: "44px",
-                  height: "44px",
-                  borderRadius: "14px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: toToken.gradient,
-                  boxShadow: `0 4px 12px ${toToken.glow}`,
-                }}
-              >
-                <span
-                  style={{
-                    fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                    fontSize: "18px",
-                    fontWeight: 700,
-                    color: "#fff",
-                  }}
-                >
-                  {toToken.symbol.charAt(0)}
-                </span>
-              </div>
-              <span
-                style={{
-                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                  fontWeight: 600,
-                  fontSize: "15px",
-                  color: "#fff",
-                }}
-              >
-                {toToken.symbol}
-              </span>
-              {quoteLoading ? (
-                <motion.span
-                  animate={{ opacity: [0.3, 1, 0.3] }}
-                  style={{
-                    fontFamily: "var(--font-geist-mono), monospace",
-                    fontSize: "13px",
-                    color: "rgba(255, 255, 255, 0.5)",
-                  }}
-                  transition={{
-                    duration: 1.5,
-                    repeat: Number.POSITIVE_INFINITY,
-                  }}
-                >
-                  Loading...
-                </motion.span>
-              ) : quote ? (
-                <span
-                  style={{
-                    fontFamily: "var(--font-geist-mono), monospace",
-                    fontSize: "14px",
-                    color: "rgba(255, 255, 255, 0.9)",
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  ≈ {Number.parseFloat(quote.outputAmount).toFixed(4)}
-                </span>
-              ) : (
-                <span
-                  style={{
-                    fontFamily: "var(--font-geist-mono), monospace",
-                    fontSize: "13px",
-                    color: "rgba(255, 255, 255, 0.4)",
-                  }}
-                >
-                  —
-                </span>
-              )}
-            </>
-          ) : (
-            <>
-              <div
-                style={{
-                  width: "44px",
-                  height: "44px",
-                  borderRadius: "14px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "rgba(255, 255, 255, 0.08)",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "20px",
-                    color: "rgba(255, 255, 255, 0.4)",
-                  }}
-                >
-                  ?
-                </span>
-              </div>
-              <span
-                style={{
-                  fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
-                  fontWeight: 500,
-                  fontSize: "14px",
-                  color: "rgba(255, 255, 255, 0.5)",
-                }}
-              >
-                Select token
-              </span>
-            </>
-          )}
-        </motion.div>
+        )}
       </div>
 
       {/* Target token chips */}
@@ -539,7 +456,7 @@ export function SwapForm({
         style={{
           display: "flex",
           flexWrap: "wrap",
-          gap: "8px",
+          gap: "6px",
         }}
       >
         {availableTargets.map((target) => {
@@ -549,84 +466,53 @@ export function SwapForm({
               key={target.symbol}
               onClick={() => setToToken(target)}
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "10px 16px",
+                padding: "6px 12px",
                 background: isSelected
-                  ? "rgba(255, 255, 255, 0.12)"
+                  ? "rgba(255, 255, 255, 0.1)"
                   : "rgba(255, 255, 255, 0.04)",
                 border: isSelected
-                  ? `1px solid ${target.glow}`
-                  : "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: "12px",
-                color: isSelected ? "#fff" : "rgba(255, 255, 255, 0.7)",
-                fontSize: "14px",
+                  ? "1px solid rgba(255, 255, 255, 0.2)"
+                  : "1px solid rgba(255, 255, 255, 0.06)",
+                borderRadius: "8px",
+                color: isSelected ? "#fff" : "rgba(255, 255, 255, 0.5)",
+                fontSize: "12px",
                 fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
                 fontWeight: 600,
                 cursor: "pointer",
-                transition: "all 0.2s ease",
-                boxShadow: isSelected ? `0 0 12px ${target.glow}` : "none",
+                transition: "all 0.15s ease",
               }}
               type="button"
             >
-              <div
-                style={{
-                  width: "20px",
-                  height: "20px",
-                  borderRadius: "6px",
-                  background: target.gradient,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <span
-                  style={{ fontSize: "10px", color: "#fff", fontWeight: 700 }}
-                >
-                  {target.symbol.charAt(0)}
-                </span>
-              </div>
               {target.symbol}
             </button>
           );
         })}
       </div>
 
-      {/* Amount presets with pill container */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          padding: "6px",
-          background: "rgba(255, 255, 255, 0.04)",
-          border: "1px solid rgba(255, 255, 255, 0.06)",
-          borderRadius: "16px",
-        }}
-      >
+      {/* Amount presets */}
+      <div style={{ display: "flex", gap: "6px" }}>
         {AMOUNT_PRESETS.map((preset) => (
           <button
             key={preset.label}
             onClick={() => handlePresetClick(preset)}
             style={{
               flex: 1,
-              padding: "10px 0",
+              padding: "6px 0",
               background:
                 activePreset === preset.value
                   ? "rgba(255, 255, 255, 0.12)"
-                  : "transparent",
-              border: "none",
-              borderRadius: "12px",
+                  : "rgba(255, 255, 255, 0.04)",
+              border: "1px solid rgba(255, 255, 255, 0.06)",
+              borderRadius: "8px",
               color:
                 activePreset === preset.value
                   ? "#fff"
-                  : "rgba(255, 255, 255, 0.6)",
-              fontSize: "13px",
+                  : "rgba(255, 255, 255, 0.5)",
+              fontSize: "12px",
               fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
               fontWeight: 500,
               cursor: "pointer",
-              transition: "all 0.2s ease",
+              transition: "all 0.15s ease",
             }}
             type="button"
           >
@@ -640,7 +526,7 @@ export function SwapForm({
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "12px",
+          gap: "8px",
         }}
       >
         <div style={{ flex: 1 }}>
@@ -649,10 +535,11 @@ export function SwapForm({
             placeholder="0.00"
             style={{
               ...glassInputStyle,
+              padding: "10px 14px",
               textAlign: "right",
               fontFamily: "var(--font-geist-mono), monospace",
               fontVariantNumeric: "tabular-nums",
-              fontSize: "20px",
+              fontSize: "16px",
               fontWeight: 500,
               borderColor:
                 amount && !isAmountValid
@@ -721,28 +608,24 @@ export function SwapForm({
         style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
-          paddingTop: "16px",
-          borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+          gap: "10px",
+          paddingTop: "8px",
         }}
       >
         <button
           disabled={isLoading}
           onClick={onCancel}
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "12px 20px",
+            padding: "10px 16px",
             background: "transparent",
             border: "1px solid rgba(255, 255, 255, 0.1)",
-            borderRadius: "12px",
-            color: "rgba(255, 255, 255, 0.7)",
-            fontSize: "14px",
+            borderRadius: "10px",
+            color: "rgba(255, 255, 255, 0.6)",
+            fontSize: "13px",
             fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontWeight: 500,
             cursor: "pointer",
-            transition: "all 0.2s ease",
+            transition: "all 0.15s ease",
           }}
           type="button"
         >
@@ -753,23 +636,22 @@ export function SwapForm({
           disabled={!canSubmit}
           onClick={handleSubmit}
           style={{
+            flex: 1,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            gap: "8px",
-            padding: "14px 28px",
-            background: canSubmit
-              ? "linear-gradient(135deg, #ef4444 0%, #f97316 100%)"
-              : "rgba(255, 255, 255, 0.1)",
+            gap: "6px",
+            padding: "10px 20px",
+            background: canSubmit ? "#fff" : "rgba(255, 255, 255, 0.08)",
             border: "none",
             borderRadius: "12px",
-            color: canSubmit ? "#fff" : "rgba(255, 255, 255, 0.4)",
-            fontSize: "15px",
+            color: canSubmit ? "#000" : "rgba(255, 255, 255, 0.3)",
+            fontSize: "14px",
             fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontWeight: 600,
             cursor: canSubmit ? "pointer" : "not-allowed",
             transition: "all 0.2s ease",
-            boxShadow: canSubmit ? "0 4px 16px rgba(239, 68, 68, 0.4)" : "none",
+            boxShadow: "none",
           }}
           type="button"
         >

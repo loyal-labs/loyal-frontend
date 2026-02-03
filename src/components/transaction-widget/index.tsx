@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import type { DragEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useDragDrop } from "@/hooks/use-drag-drop";
 import { type Recipe, useRecipes } from "@/hooks/use-recipes";
 import { useSend } from "@/hooks/use-send";
@@ -43,7 +44,7 @@ export function TransactionWidget({
     setExecuting,
     setTransactionResult,
   } = useDragDrop();
-  const { recipes, addRecipe, deleteRecipe } = useRecipes();
+  const { recipes, addRecipe, deleteRecipe, generateRecipeName } = useRecipes();
 
   // Active recipe state - when a recipe card is clicked
   const [activeRecipe, setActiveRecipe] = useState<Recipe | null>(null);
@@ -55,13 +56,6 @@ export function TransactionWidget({
   const firstTokenRef = useRef<HTMLDivElement>(null);
   const firstActionRef = useRef<HTMLDivElement>(null);
 
-  // Animation phases:
-  // Opening: "zooming" (card comes closer) -> "opened" (content visible)
-  // Closing: "returning" (expanded form exits, card zooms back)
-  const [animationPhase, setAnimationPhase] = useState<
-    "zooming" | "opened" | "returning"
-  >("zooming");
-
   // Show drag hint arrow once after balances load
   useEffect(() => {
     if (balances.length > 0 && !hintShownRef.current) {
@@ -71,38 +65,27 @@ export function TransactionWidget({
     }
   }, [balances.length]);
 
-  // Reset animation phase when zone changes
-  useEffect(() => {
-    if (state.expandedZone) {
-      setAnimationPhase("zooming");
-    }
-  }, [state.expandedZone]);
-
-  // Handle cancel - go directly to returning phase
+  // Handle cancel - close modal
   const handleCancel = useCallback(() => {
-    // Close active recipe view if open
     if (activeRecipe) {
       setActiveRecipe(null);
       return;
     }
-    if (animationPhase === "opened") {
-      setAnimationPhase("returning");
-    } else {
-      cancelForm();
-    }
-  }, [animationPhase, cancelForm, activeRecipe]);
+    cancelForm();
+  }, [cancelForm, activeRecipe]);
 
   // Handle recipe click - opens pre-filled form
   const handleRecipeClick = useCallback((recipe: Recipe) => {
     setActiveRecipe(recipe);
   }, []);
 
-  // Handle recipe creation
+  // Handle recipe creation - auto-generate name if empty
   const handleCreateRecipe = useCallback(
     (recipeData: Omit<Recipe, "id" | "createdAt">) => {
-      addRecipe(recipeData);
+      const name = recipeData.name || generateRecipeName(recipeData);
+      addRecipe({ ...recipeData, name });
     },
-    [addRecipe]
+    [addRecipe, generateRecipeName]
   );
 
   // Handle recipe delete
@@ -431,33 +414,57 @@ export function TransactionWidget({
   const isAnyZoneExpanded =
     state.expandedZone !== null || activeRecipe !== null;
 
-  // Smooth spring for zoom
-  const zoomSpring = { type: "spring", stiffness: 280, damping: 30 } as const;
+  // Determine which zone type the modal shows (for header)
+  const modalZone = state.expandedZone ?? activeRecipe?.type ?? null;
 
-  // Transform origin based on which zone is expanded (zoom centers on that zone)
-  const getSceneOrigin = () => {
-    if (!state.expandedZone) return "center center";
-    // Actions are on the right side
-    if (state.expandedZone === "telegram") return "100% 0%"; // top-right area
-    if (state.expandedZone === "wallet") return "100% 0%";
-    if (state.expandedZone === "swap") return "100% 50%"; // right-center
-    return "center center";
+  // Modal content
+  const renderModalContent = () => {
+    if (state.expandedZone && state.droppedToken) {
+      if (state.expandedZone === "swap") {
+        return (
+          <SwapForm
+            isLoading={state.isExecuting}
+            onCancel={handleCancel}
+            onCreateRecipe={handleCreateRecipe}
+            onGetQuote={handleGetQuote}
+            onSwap={handleSwap}
+            result={state.transactionResult}
+            status={state.transactionStatus}
+            token={state.droppedToken}
+          />
+        );
+      }
+      return (
+        <SendForm
+          destinationType={state.expandedZone}
+          isLoading={state.isExecuting}
+          onCancel={handleCancel}
+          onCreateRecipe={handleCreateRecipe}
+          onSend={handleSend}
+          result={state.transactionResult}
+          status={state.transactionStatus}
+          token={state.droppedToken}
+        />
+      );
+    }
+    if (activeRecipe) {
+      return (
+        <RecipeSendForm
+          isLoading={state.isExecuting}
+          onCancel={handleCancel}
+          onSend={handleSend}
+          onSwap={handleSwap}
+          recipe={activeRecipe}
+          result={state.transactionResult}
+          status={state.transactionStatus}
+        />
+      );
+    }
+    return null;
   };
 
-  // ZOOM INTO SCENE - everything scales, centered on selected action
   return (
-    <motion.div
-      animate={{
-        scale: isAnyZoneExpanded ? 1.15 : 1,
-      }}
-      className={className}
-      style={{
-        width: "100%",
-        transformOrigin: getSceneOrigin(),
-        overflow: "visible",
-      }}
-      transition={zoomSpring}
-    >
+    <div className={className} style={{ width: "100%" }}>
       <div
         ref={layoutContainerRef}
         style={{
@@ -479,19 +486,14 @@ export function TransactionWidget({
             tokenSymbol={filteredBalances[0]?.symbol ?? ""}
           />
         )}
-        {/* Tokens - blur when zoomed (out of focus) */}
-        <motion.div
-          animate={{
-            opacity: isAnyZoneExpanded ? 0.25 : 1,
-            filter: isAnyZoneExpanded ? "blur(6px)" : "blur(0px)",
-          }}
+
+        {/* Tokens */}
+        <div
           style={{
             display: "flex",
             flexDirection: "column",
             gap: "12px",
-            pointerEvents: isAnyZoneExpanded ? "none" : "auto",
           }}
-          transition={zoomSpring}
         >
           <span
             style={{
@@ -533,22 +535,17 @@ export function TransactionWidget({
               </div>
             ))}
           </div>
-        </motion.div>
+        </div>
 
-        {/* Actions section - position relative for expanded form */}
+        {/* Actions section */}
         <div
           style={{
-            position: "relative",
             display: "flex",
             flexDirection: "column",
             gap: "12px",
           }}
         >
-          {/* Label - fades when zoomed */}
-          <motion.span
-            animate={{
-              opacity: isAnyZoneExpanded ? 0 : 1,
-            }}
+          <span
             style={{
               fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
               fontSize: "11px",
@@ -558,12 +555,11 @@ export function TransactionWidget({
               letterSpacing: "0.05em",
               paddingLeft: "4px",
             }}
-            transition={zoomSpring}
           >
             Actions
-          </motion.span>
+          </span>
 
-          {/* Action cards container */}
+          {/* Action cards */}
           <div
             style={{
               display: "flex",
@@ -573,94 +569,35 @@ export function TransactionWidget({
             }}
           >
             {(["telegram", "wallet", "swap"] as const).map(
-              (zone, zoneIndex) => {
-                const isSelected = state.expandedZone === zone && !activeRecipe;
-                const isOther = isAnyZoneExpanded && !isSelected;
-
-                // Collapsed card visibility:
-                // - Show during "zooming" (opening phase 1)
-                // - Hide during "opened" (expanded form visible)
-                // - Show during "returning" (zoom back out)
-                const showCollapsed =
-                  !isSelected ||
-                  animationPhase === "zooming" ||
-                  animationPhase === "returning";
-
-                // Scale logic for selected card:
-                // - "zooming": scale up to 1.28 (coming closer)
-                // - "opened": stay at 1.28 (hidden, but maintain scale for seamless transition)
-                // - "returning": animate from 1.28 back to 1
-                const getSelectedScale = () => {
-                  if (animationPhase === "returning") {
-                    return 1;
-                  }
-                  return 1.28; // "zooming" or "opened"
-                };
-
-                return (
-                  <motion.div
-                    animate={{
-                      opacity: isOther ? 0.25 : 1,
-                      scale: isSelected
-                        ? getSelectedScale()
-                        : isOther
-                          ? 0.85
-                          : 1,
-                      filter: isOther ? "blur(4px)" : "blur(0px)",
-                    }}
-                    key={zone}
-                    onAnimationComplete={() => {
-                      if (isSelected) {
-                        // Opening: zooming -> opened
-                        if (animationPhase === "zooming") {
-                          setAnimationPhase("opened");
-                        }
-                        // Closing complete: returning -> reset
-                        if (animationPhase === "returning") {
-                          cancelForm();
-                        }
-                      }
-                    }}
-                    ref={zoneIndex === 0 ? firstActionRef : undefined}
-                    style={{
-                      flex: 1,
-                      transformOrigin: "center center",
-                      pointerEvents: isOther ? "none" : "auto",
-                      visibility: showCollapsed ? "visible" : "hidden",
-                      zIndex: isSelected ? 5 : 1,
-                    }}
-                    transition={zoomSpring}
-                  >
-                    <DropZone
-                      droppedToken={state.droppedToken}
-                      isDragOver={state.dragOverZone === zone}
-                      isExpanded={false}
-                      onDragLeave={handleDragLeave()}
-                      onDragOver={handleDragOver(zone)}
-                      onDrop={handleDrop(zone)}
-                      type={zone}
-                    />
-                  </motion.div>
-                );
-              }
+              (zone, zoneIndex) => (
+                <div
+                  key={zone}
+                  ref={zoneIndex === 0 ? firstActionRef : undefined}
+                  style={{ flex: 1 }}
+                >
+                  <DropZone
+                    droppedToken={state.droppedToken}
+                    isDragOver={state.dragOverZone === zone}
+                    isExpanded={false}
+                    onDragLeave={handleDragLeave()}
+                    onDragOver={handleDragOver(zone)}
+                    onDrop={handleDrop(zone)}
+                    type={zone}
+                  />
+                </div>
+              )
             )}
           </div>
 
-          {/* Recipes row - separate section below actions */}
+          {/* Recipes row */}
           {recipes.length > 0 && (
-            <motion.div
-              animate={{
-                opacity: isAnyZoneExpanded ? 0.25 : 1,
-                filter: isAnyZoneExpanded ? "blur(4px)" : "blur(0px)",
-              }}
+            <div
               style={{
                 display: "flex",
                 flexDirection: "column",
                 gap: "8px",
                 marginTop: "8px",
-                pointerEvents: isAnyZoneExpanded ? "none" : "auto",
               }}
-              transition={zoomSpring}
             >
               <span
                 style={{
@@ -691,120 +628,122 @@ export function TransactionWidget({
                   />
                 ))}
               </div>
-            </motion.div>
+            </div>
           )}
-
-          {/* Expanded form - appears after zoom phase */}
-          <AnimatePresence>
-            {state.expandedZone &&
-              state.droppedToken &&
-              animationPhase === "opened" && (
-                <motion.div
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  initial={{ opacity: 0, scale: 1.08 }}
-                  key={state.expandedZone}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    zIndex: 10,
-                    transformOrigin: "center top",
-                  }}
-                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
-                >
-                  <DropZone
-                    droppedToken={state.droppedToken}
-                    isDragOver={false}
-                    isExpanded={true}
-                    onDragLeave={handleDragLeave()}
-                    onDragOver={handleDragOver(state.expandedZone)}
-                    onDrop={handleDrop(state.expandedZone)}
-                    type={state.expandedZone}
-                  >
-                    {state.expandedZone === "telegram" && (
-                      <SendForm
-                        destinationType="telegram"
-                        isLoading={state.isExecuting}
-                        onCancel={handleCancel}
-                        onCreateRecipe={handleCreateRecipe}
-                        onSend={handleSend}
-                        result={state.transactionResult}
-                        status={state.transactionStatus}
-                        token={state.droppedToken}
-                      />
-                    )}
-                    {state.expandedZone === "wallet" && (
-                      <SendForm
-                        destinationType="wallet"
-                        isLoading={state.isExecuting}
-                        onCancel={handleCancel}
-                        onCreateRecipe={handleCreateRecipe}
-                        onSend={handleSend}
-                        result={state.transactionResult}
-                        status={state.transactionStatus}
-                        token={state.droppedToken}
-                      />
-                    )}
-                    {state.expandedZone === "swap" && (
-                      <SwapForm
-                        isLoading={state.isExecuting}
-                        onCancel={handleCancel}
-                        onGetQuote={handleGetQuote}
-                        onSwap={handleSwap}
-                        result={state.transactionResult}
-                        status={state.transactionStatus}
-                        token={state.droppedToken}
-                      />
-                    )}
-                  </DropZone>
-                </motion.div>
-              )}
-          </AnimatePresence>
-
-          {/* Recipe form overlay - when recipe card is clicked */}
-          <AnimatePresence>
-            {activeRecipe && (
-              <motion.div
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                initial={{ opacity: 0, scale: 1.08 }}
-                key={`recipe-${activeRecipe.id}`}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  zIndex: 10,
-                  transformOrigin: "center top",
-                }}
-                transition={{ type: "spring", stiffness: 400, damping: 35 }}
-              >
-                <DropZone
-                  droppedToken={null}
-                  isDragOver={false}
-                  isExpanded={true}
-                  onDragLeave={handleDragLeave()}
-                  onDragOver={handleDragOver(activeRecipe.type)}
-                  onDrop={handleDrop(activeRecipe.type)}
-                  type={activeRecipe.type}
-                >
-                  <RecipeSendForm
-                    isLoading={state.isExecuting}
-                    onCancel={handleCancel}
-                    onSend={handleSend}
-                    recipe={activeRecipe}
-                    result={state.transactionResult}
-                    status={state.transactionStatus}
-                  />
-                </DropZone>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </div>
-    </motion.div>
+
+      {/* Portal modal overlay */}
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {isAnyZoneExpanded && modalZone && (
+              <motion.div
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                initial={{ opacity: 0 }}
+                key="modal-backdrop"
+                onClick={handleCancel}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    handleCancel();
+                  }
+                }}
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  zIndex: 9999,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "rgba(0, 0, 0, 0.6)",
+                  backdropFilter: "blur(8px)",
+                  WebkitBackdropFilter: "blur(8px)",
+                }}
+                transition={{ duration: 0.2 }}
+              >
+                <motion.div
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.97, y: 8 }}
+                  initial={{ opacity: 0, scale: 0.97, y: 8 }}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  style={{
+                    width: "100%",
+                    maxWidth: "360px",
+                    margin: "0 16px",
+                    background: "rgba(22, 22, 22, 0.95)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: "16px",
+                    boxShadow:
+                      "0 24px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04)",
+                    overflow: "hidden",
+                  }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 35,
+                  }}
+                >
+                  {/* Modal header */}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "14px 16px",
+                      borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily:
+                          "var(--font-geist-sans), system-ui, sans-serif",
+                        fontWeight: 600,
+                        fontSize: "13px",
+                        color: "#fff",
+                        letterSpacing: "-0.01em",
+                      }}
+                    >
+                      {activeRecipe
+                        ? activeRecipe.name
+                        : modalZone === "telegram"
+                          ? "Send via Telegram"
+                          : modalZone === "wallet"
+                            ? "Send to Address"
+                            : "Swap"}
+                    </span>
+                    <button
+                      onClick={handleCancel}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: "28px",
+                        height: "28px",
+                        borderRadius: "8px",
+                        border: "none",
+                        background: "rgba(255, 255, 255, 0.06)",
+                        color: "rgba(255, 255, 255, 0.5)",
+                        fontSize: "14px",
+                        cursor: "pointer",
+                        transition: "background 0.15s ease",
+                      }}
+                      type="button"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Modal body */}
+                  <div style={{ padding: "16px" }}>{renderModalContent()}</div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
+    </div>
   );
 }
 

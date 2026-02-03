@@ -127,10 +127,10 @@ export function TokenCard({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "2px",
-          padding: "6px 10px",
+          gap: "3px",
+          padding: "10px 14px",
           width: "100%",
-          minWidth: "60px",
+          minWidth: "70px",
           background: isDragging
             ? "rgba(255, 255, 255, 0.08)"
             : "rgba(26, 26, 26, 0.4)",
@@ -164,7 +164,7 @@ export function TokenCard({
           style={{
             fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontWeight: 600,
-            fontSize: "11px",
+            fontSize: "13px",
             color: "#fff",
             letterSpacing: "0.02em",
           }}
@@ -172,20 +172,30 @@ export function TokenCard({
           {token.symbol}
         </span>
 
-        {/* Balance + USD on one line */}
+        {/* Balance */}
         <span
           style={{
             fontFamily: "var(--font-geist-mono), monospace",
             fontWeight: 500,
-            fontSize: "10px",
+            fontSize: "12px",
             color: "rgba(255, 255, 255, 0.7)",
             fontVariantNumeric: "tabular-nums",
           }}
         >
-          {formatBalance(token.balance)}{" "}
-          <span style={{ color: "rgba(255, 255, 255, 0.4)" }}>
-            {formatUsdValue(token.balance, token.symbol)}
-          </span>
+          {formatBalance(token.balance)}
+        </span>
+
+        {/* USD value */}
+        <span
+          style={{
+            fontFamily: "var(--font-geist-mono), monospace",
+            fontWeight: 500,
+            fontSize: "11px",
+            color: "rgba(255, 255, 255, 0.4)",
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          {formatUsdValue(token.balance, token.symbol)}
         </span>
       </motion.div>
     </div>

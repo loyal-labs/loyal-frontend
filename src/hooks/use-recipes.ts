@@ -5,12 +5,16 @@ import { useCallback, useEffect, useState } from "react";
 export interface Recipe {
   id: string;
   name: string;
-  type: "telegram" | "wallet";
+  type: "telegram" | "wallet" | "swap";
   tokenSymbol: string;
   tokenMint: string;
   tokenDecimals: number;
   amount: string;
   recipient: string;
+  /** Swap-only: target token */
+  toTokenSymbol?: string;
+  toTokenMint?: string;
+  toTokenDecimals?: number;
   photoUrl?: string;
   createdAt: number;
 }
@@ -84,14 +88,15 @@ export function useRecipes() {
   }, []);
 
   const generateRecipeName = useCallback(
-    (
-      _tokenSymbol: string,
-      _amount: string,
-      _recipient: string,
-      _type: "telegram" | "wallet"
-    ): string => {
-      // Demo: always generate "Send 0.0001 SOL to Vlad"
-      return "Send 0.0001 SOL to Vlad";
+    (recipe: Omit<Recipe, "id" | "createdAt">): string => {
+      if (recipe.type === "swap") {
+        return `Swap ${recipe.amount} ${recipe.tokenSymbol} → ${recipe.toTokenSymbol}`;
+      }
+      const target =
+        recipe.type === "telegram"
+          ? `@${recipe.recipient}`
+          : `${recipe.recipient.slice(0, 6)}...`;
+      return `Send ${recipe.amount} ${recipe.tokenSymbol} → ${target}`;
     },
     []
   );
