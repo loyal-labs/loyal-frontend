@@ -262,38 +262,121 @@ export function TransactionWidget({
     ]
   );
 
-  // Empty state
+  // Empty / not signed in state — show skeleton
   if (balances.length === 0 && !balancesLoading) {
+    const skeletonBlock = {
+      background: "rgba(255, 255, 255, 0.04)",
+      borderRadius: "14px",
+      border: "1px solid rgba(255, 255, 255, 0.06)",
+    };
     return (
       <div
         className={className}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "32px 16px",
-        }}
+        style={{ display: "flex", flexDirection: "column", gap: "12px" }}
       >
-        <p
+        <span
           style={{
-            fontFamily: "var(--font-geist-sans), sans-serif",
-            fontSize: "14px",
-            color: "rgba(255, 255, 255, 0.6)",
-          }}
-        >
-          No tokens in wallet
-        </p>
-        <p
-          style={{
-            marginTop: "4px",
-            fontFamily: "var(--font-geist-sans), sans-serif",
+            fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
             fontSize: "12px",
-            color: "rgba(255, 255, 255, 0.4)",
+            fontWeight: 500,
+            color: "rgba(255, 255, 255, 0.45)",
+            textAlign: "center",
           }}
         >
-          Connect wallet or get some tokens
-        </p>
+          Sign in to perform actions
+        </span>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: "48px",
+            opacity: 0.5,
+          }}
+        >
+          {/* Skeleton tokens */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <span
+              style={{
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                fontSize: "11px",
+                fontWeight: 500,
+                color: "rgba(255, 255, 255, 0.25)",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                paddingLeft: "4px",
+              }}
+            >
+              Your Tokens
+            </span>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, 1fr)",
+                gap: "10px",
+              }}
+            >
+              <div
+                style={{
+                  ...skeletonBlock,
+                  padding: "6px 10px",
+                  height: "32px",
+                }}
+              />
+              <div
+                style={{
+                  ...skeletonBlock,
+                  padding: "6px 10px",
+                  height: "32px",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Skeleton actions */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <span
+              style={{
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                fontSize: "11px",
+                fontWeight: 500,
+                color: "rgba(255, 255, 255, 0.25)",
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                paddingLeft: "4px",
+              }}
+            >
+              Actions
+            </span>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <div
+                style={{
+                  ...skeletonBlock,
+                  padding: "6px 10px",
+                  height: "32px",
+                  width: "80px",
+                }}
+              />
+              <div
+                style={{
+                  ...skeletonBlock,
+                  padding: "6px 10px",
+                  height: "32px",
+                  width: "80px",
+                }}
+              />
+              <div
+                style={{
+                  ...skeletonBlock,
+                  padding: "6px 10px",
+                  height: "32px",
+                  width: "80px",
+                }}
+              />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
