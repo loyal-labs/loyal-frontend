@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import type { DragEvent } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDragDrop } from "@/hooks/use-drag-drop";
 import { type Recipe, useRecipes } from "@/hooks/use-recipes";
 import { useSend } from "@/hooks/use-send";
@@ -10,6 +10,7 @@ import { useSwap } from "@/hooks/use-swap";
 import type { TokenBalance } from "@/hooks/use-wallet-balances";
 import { useWalletBalances } from "@/hooks/use-wallet-balances";
 import { DropZone, type DropZoneType } from "./DropZone";
+import { DragHint } from "./drag-hint-arrow";
 import { RecipeCard } from "./RecipeCard";
 import { RecipeSendForm } from "./RecipeSendForm";
 import { SendForm } from "./SendForm";
@@ -47,12 +48,28 @@ export function TransactionWidget({
   // Active recipe state - when a recipe card is clicked
   const [activeRecipe, setActiveRecipe] = useState<Recipe | null>(null);
 
+  // Drag hint - ghost card animation, shows once when actions first load
+  const [showDragHint, setShowDragHint] = useState(false);
+  const hintShownRef = useRef(false);
+  const layoutContainerRef = useRef<HTMLDivElement>(null);
+  const firstTokenRef = useRef<HTMLDivElement>(null);
+  const firstActionRef = useRef<HTMLDivElement>(null);
+
   // Animation phases:
   // Opening: "zooming" (card comes closer) -> "opened" (content visible)
   // Closing: "returning" (expanded form exits, card zooms back)
   const [animationPhase, setAnimationPhase] = useState<
     "zooming" | "opened" | "returning"
   >("zooming");
+
+  // Show drag hint arrow once after balances load
+  useEffect(() => {
+    if (balances.length > 0 && !hintShownRef.current) {
+      hintShownRef.current = true;
+      const timer = setTimeout(() => setShowDragHint(true), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [balances.length]);
 
   // Reset animation phase when zone changes
   useEffect(() => {
@@ -407,6 +424,10 @@ export function TransactionWidget({
     );
   }
 
+  const filteredBalances = balances.filter(
+    (token) => getUsdValue(token.balance, token.symbol) >= 0.01
+  );
+
   const isAnyZoneExpanded =
     state.expandedZone !== null || activeRecipe !== null;
 
@@ -438,7 +459,9 @@ export function TransactionWidget({
       transition={zoomSpring}
     >
       <div
+        ref={layoutContainerRef}
         style={{
+          position: "relative",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
@@ -446,6 +469,16 @@ export function TransactionWidget({
           gap: "48px",
         }}
       >
+        {/* Ghost drag hint - one-time animated guide */}
+        {showDragHint && !isAnyZoneExpanded && (
+          <DragHint
+            containerRef={layoutContainerRef}
+            firstActionRef={firstActionRef}
+            firstTokenRef={firstTokenRef}
+            onComplete={() => setShowDragHint(false)}
+            tokenSymbol={filteredBalances[0]?.symbol ?? ""}
+          />
+        )}
         {/* Tokens - blur when zoomed (out of focus) */}
         <motion.div
           animate={{
@@ -483,22 +516,22 @@ export function TransactionWidget({
               margin: "-12px",
             }}
           >
-            {balances
-              .filter(
-                (token) => getUsdValue(token.balance, token.symbol) >= 0.01
-              )
-              .map((token) => (
+            {filteredBalances.map((token, index) => (
+              <div
+                key={token.mint}
+                ref={index === 0 ? firstTokenRef : undefined}
+              >
                 <TokenCard
                   isDragging={state.draggedToken?.mint === token.mint}
                   isOtherDragging={
                     state.isDragging && state.draggedToken?.mint !== token.mint
                   }
-                  key={token.mint}
                   onDragEnd={handleDragEnd}
                   onDragStart={handleDragStart}
                   token={token}
                 />
-              ))}
+              </div>
+            ))}
           </div>
         </motion.div>
 
@@ -539,71 +572,78 @@ export function TransactionWidget({
               margin: "-12px",
             }}
           >
-            {(["telegram", "wallet", "swap"] as const).map((zone) => {
-              const isSelected = state.expandedZone === zone && !activeRecipe;
-              const isOther = isAnyZoneExpanded && !isSelected;
+            {(["telegram", "wallet", "swap"] as const).map(
+              (zone, zoneIndex) => {
+                const isSelected = state.expandedZone === zone && !activeRecipe;
+                const isOther = isAnyZoneExpanded && !isSelected;
 
-              // Collapsed card visibility:
-              // - Show during "zooming" (opening phase 1)
-              // - Hide during "opened" (expanded form visible)
-              // - Show during "returning" (zoom back out)
-              const showCollapsed =
-                !isSelected ||
-                animationPhase === "zooming" ||
-                animationPhase === "returning";
+                // Collapsed card visibility:
+                // - Show during "zooming" (opening phase 1)
+                // - Hide during "opened" (expanded form visible)
+                // - Show during "returning" (zoom back out)
+                const showCollapsed =
+                  !isSelected ||
+                  animationPhase === "zooming" ||
+                  animationPhase === "returning";
 
-              // Scale logic for selected card:
-              // - "zooming": scale up to 1.28 (coming closer)
-              // - "opened": stay at 1.28 (hidden, but maintain scale for seamless transition)
-              // - "returning": animate from 1.28 back to 1
-              const getSelectedScale = () => {
-                if (animationPhase === "returning") {
-                  return 1;
-                }
-                return 1.28; // "zooming" or "opened"
-              };
+                // Scale logic for selected card:
+                // - "zooming": scale up to 1.28 (coming closer)
+                // - "opened": stay at 1.28 (hidden, but maintain scale for seamless transition)
+                // - "returning": animate from 1.28 back to 1
+                const getSelectedScale = () => {
+                  if (animationPhase === "returning") {
+                    return 1;
+                  }
+                  return 1.28; // "zooming" or "opened"
+                };
 
-              return (
-                <motion.div
-                  animate={{
-                    opacity: isOther ? 0.25 : 1,
-                    scale: isSelected ? getSelectedScale() : isOther ? 0.85 : 1,
-                    filter: isOther ? "blur(4px)" : "blur(0px)",
-                  }}
-                  key={zone}
-                  onAnimationComplete={() => {
-                    if (isSelected) {
-                      // Opening: zooming -> opened
-                      if (animationPhase === "zooming") {
-                        setAnimationPhase("opened");
+                return (
+                  <motion.div
+                    animate={{
+                      opacity: isOther ? 0.25 : 1,
+                      scale: isSelected
+                        ? getSelectedScale()
+                        : isOther
+                          ? 0.85
+                          : 1,
+                      filter: isOther ? "blur(4px)" : "blur(0px)",
+                    }}
+                    key={zone}
+                    onAnimationComplete={() => {
+                      if (isSelected) {
+                        // Opening: zooming -> opened
+                        if (animationPhase === "zooming") {
+                          setAnimationPhase("opened");
+                        }
+                        // Closing complete: returning -> reset
+                        if (animationPhase === "returning") {
+                          cancelForm();
+                        }
                       }
-                      // Closing complete: returning -> reset
-                      if (animationPhase === "returning") {
-                        cancelForm();
-                      }
-                    }
-                  }}
-                  style={{
-                    flex: 1,
-                    transformOrigin: "center center",
-                    pointerEvents: isOther ? "none" : "auto",
-                    visibility: showCollapsed ? "visible" : "hidden",
-                    zIndex: isSelected ? 5 : 1,
-                  }}
-                  transition={zoomSpring}
-                >
-                  <DropZone
-                    droppedToken={state.droppedToken}
-                    isDragOver={state.dragOverZone === zone}
-                    isExpanded={false}
-                    onDragLeave={handleDragLeave()}
-                    onDragOver={handleDragOver(zone)}
-                    onDrop={handleDrop(zone)}
-                    type={zone}
-                  />
-                </motion.div>
-              );
-            })}
+                    }}
+                    ref={zoneIndex === 0 ? firstActionRef : undefined}
+                    style={{
+                      flex: 1,
+                      transformOrigin: "center center",
+                      pointerEvents: isOther ? "none" : "auto",
+                      visibility: showCollapsed ? "visible" : "hidden",
+                      zIndex: isSelected ? 5 : 1,
+                    }}
+                    transition={zoomSpring}
+                  >
+                    <DropZone
+                      droppedToken={state.droppedToken}
+                      isDragOver={state.dragOverZone === zone}
+                      isExpanded={false}
+                      onDragLeave={handleDragLeave()}
+                      onDragOver={handleDragOver(zone)}
+                      onDrop={handleDrop(zone)}
+                      type={zone}
+                    />
+                  </motion.div>
+                );
+              }
+            )}
           </div>
 
           {/* Recipes row - separate section below actions */}
