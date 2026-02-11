@@ -120,6 +120,7 @@ export function useWalletBalances() {
     balances,
     loading,
     error,
+    isConnected: Boolean(isConnected && solanaAddress),
     refetch: fetchBalances,
   };
 }

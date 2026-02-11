@@ -51,3 +51,5 @@ next-env.d.ts
 .qoder/rules/byterover-rules.md
 .augment/rules/byterover-rules.md
 /.brv
+
+CLAUDE.md

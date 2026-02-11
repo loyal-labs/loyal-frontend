@@ -30,7 +30,12 @@ export function TransactionWidget({
   className,
   onTransactionComplete,
 }: TransactionWidgetProps) {
-  const { balances, loading: balancesLoading, refetch } = useWalletBalances();
+  const {
+    balances,
+    loading: balancesLoading,
+    isConnected,
+    refetch,
+  } = useWalletBalances();
   const { executeSend } = useSend();
   const { getQuote, executeSwap } = useSwap();
   const {
@@ -282,8 +287,8 @@ export function TransactionWidget({
     ]
   );
 
-  // Empty / not signed in state — show skeleton
-  if (balances.length === 0 && !balancesLoading) {
+  // Not signed in state — show skeleton
+  if (!isConnected && balances.length === 0 && !balancesLoading) {
     const skeletonBlock = {
       background: "rgba(255, 255, 255, 0.04)",
       borderRadius: "14px",
@@ -532,32 +537,47 @@ export function TransactionWidget({
             Your Tokens
           </span>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(70px, 1fr))",
-              gap: "10px",
-            }}
-          >
-            {filteredBalances.map((token, index) => (
-              <div
-                key={token.mint}
-                ref={index === 0 ? firstTokenRef : undefined}
-              >
-                <TokenCard
-                  isDragging={state.draggedToken?.mint === token.mint}
-                  isOtherDragging={
-                    state.isDragging && state.draggedToken?.mint !== token.mint
-                  }
-                  isSelected={state.selectedToken?.mint === token.mint}
-                  onDragEnd={isTouchDevice ? undefined : handleDragEnd}
-                  onDragStart={isTouchDevice ? undefined : handleDragStart}
-                  onSelect={() => selectToken(token)}
-                  token={token}
-                />
-              </div>
-            ))}
-          </div>
+          {filteredBalances.length > 0 ? (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(70px, 1fr))",
+                gap: "10px",
+              }}
+            >
+              {filteredBalances.map((token, index) => (
+                <div
+                  key={token.mint}
+                  ref={index === 0 ? firstTokenRef : undefined}
+                >
+                  <TokenCard
+                    isDragging={state.draggedToken?.mint === token.mint}
+                    isOtherDragging={
+                      state.isDragging &&
+                      state.draggedToken?.mint !== token.mint
+                    }
+                    isSelected={state.selectedToken?.mint === token.mint}
+                    onDragEnd={isTouchDevice ? undefined : handleDragEnd}
+                    onDragStart={isTouchDevice ? undefined : handleDragStart}
+                    onSelect={() => selectToken(token)}
+                    token={token}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <span
+              style={{
+                fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
+                fontSize: "12px",
+                fontWeight: 500,
+                color: "rgba(255, 255, 255, 0.35)",
+                paddingLeft: "4px",
+              }}
+            >
+              Add funds to perform actions
+            </span>
+          )}
         </div>
 
         {/* Actions section */}
