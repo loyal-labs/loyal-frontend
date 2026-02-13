@@ -16,6 +16,7 @@ import localFont from "next/font/local";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { BentoGridSection } from "@/components/bento-grid-section";
+import { BlogSection } from "@/components/blog-section";
 import { Footer } from "@/components/footer";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { RoadmapSection } from "@/components/roadmap-section";
@@ -152,9 +153,11 @@ export default function LandingPage() {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isScrolledToAbout, setIsScrolledToAbout] = useState(false);
   const [isScrolledToRoadmap, setIsScrolledToRoadmap] = useState(false);
+  const [isScrolledToBlog, setIsScrolledToBlog] = useState(false);
   const [isScrolledToLinks, setIsScrolledToLinks] = useState(false);
   const prevScrolledToAbout = useRef(false);
   const prevScrolledToRoadmap = useRef(false);
+  const prevScrolledToBlog = useRef(false);
   const prevScrolledToLinks = useRef(false);
 
   // Enable send when there's text input
@@ -404,6 +407,7 @@ export default function LandingPage() {
     const handlePageScroll = () => {
       const aboutSection = document.getElementById("about-section");
       const roadmapSection = document.getElementById("roadmap-section");
+      const blogSection = document.getElementById("blog-section");
       const footerSection = document.getElementById("footer-section");
 
       // Check if we're at the bottom of the page
@@ -415,6 +419,7 @@ export default function LandingPage() {
       if (isAtBottom && footerSection) {
         setIsScrolledToAbout(false);
         setIsScrolledToRoadmap(false);
+        setIsScrolledToBlog(false);
         setIsScrolledToLinks(true);
         return;
       }
@@ -427,6 +432,7 @@ export default function LandingPage() {
           element: roadmapSection,
           setter: setIsScrolledToRoadmap,
         },
+        { id: "blog", element: blogSection, setter: setIsScrolledToBlog },
         { id: "links", element: footerSection, setter: setIsScrolledToLinks },
       ];
 
@@ -510,13 +516,14 @@ export default function LandingPage() {
     const aboutChanged = prevScrolledToAbout.current !== isScrolledToAbout;
     const roadmapChanged =
       prevScrolledToRoadmap.current !== isScrolledToRoadmap;
+    const blogChanged = prevScrolledToBlog.current !== isScrolledToBlog;
     const linksChanged = prevScrolledToLinks.current !== isScrolledToLinks;
 
     if (
-      (aboutChanged || roadmapChanged || linksChanged) &&
-      (hoveredNavIndex === 0 || hoveredNavIndex === 1 || hoveredNavIndex === 2)
+      (aboutChanged || roadmapChanged || blogChanged || linksChanged) &&
+      (hoveredNavIndex === 0 || hoveredNavIndex === 1 || hoveredNavIndex === 2 || hoveredNavIndex === 3)
     ) {
-      // Index 0 is About, Index 1 is Roadmap, Index 2 is Links
+      // Index 0 is About, Index 1 is Roadmap, Index 2 is Blog, Index 3 is Links
       const currentIndex = hoveredNavIndex;
       setHoveredNavIndex(null);
       // Use double requestAnimationFrame to ensure layout has been recalculated
@@ -529,9 +536,10 @@ export default function LandingPage() {
 
     prevScrolledToAbout.current = isScrolledToAbout;
     prevScrolledToRoadmap.current = isScrolledToRoadmap;
+    prevScrolledToBlog.current = isScrolledToBlog;
     prevScrolledToLinks.current = isScrolledToLinks;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isScrolledToAbout, isScrolledToRoadmap, isScrolledToLinks]);
+  }, [isScrolledToAbout, isScrolledToRoadmap, isScrolledToBlog, isScrolledToLinks]);
 
   // Handler for new TransactionWidget completions
   // Success/error states are now shown within the widget itself
@@ -645,6 +653,23 @@ export default function LandingPage() {
 
       // Update URL hash
       window.history.pushState(null, "", "#roadmap");
+    }
+  };
+
+  const handleScrollToBlog = () => {
+    const blogSection = document.getElementById("blog-section");
+    if (blogSection) {
+      const navHeight = 80;
+      const elementPosition = blogSection.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.scrollY - navHeight;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth",
+      });
+
+      // Update URL hash
+      window.history.pushState(null, "", "#blog");
     }
   };
 
@@ -782,6 +807,13 @@ export default function LandingPage() {
                     isRoadmap: true,
                   },
                   {
+                    label: "Blog",
+                    onClick: isScrolledToBlog
+                      ? handleBackToTop
+                      : handleScrollToBlog,
+                    isBlog: true,
+                  },
+                  {
                     label: "Links",
                     onClick: isScrolledToLinks
                       ? handleBackToTop
@@ -834,6 +866,7 @@ export default function LandingPage() {
                       filter:
                         (item.isAbout && isScrolledToAbout) ||
                         (item.isRoadmap && isScrolledToRoadmap) ||
+                        (item.isBlog && isScrolledToBlog) ||
                         (item.isLinks && isScrolledToLinks)
                           ? "drop-shadow(0 0 8px rgba(255, 255, 255, 0.6))"
                           : "none",
@@ -848,29 +881,33 @@ export default function LandingPage() {
                         opacity:
                           (item.isAbout && isScrolledToAbout) ||
                           (item.isRoadmap && isScrolledToRoadmap) ||
+                          (item.isBlog && isScrolledToBlog) ||
                           (item.isLinks && isScrolledToLinks)
                             ? 1
                             : 0,
                         transform:
                           (item.isAbout && isScrolledToAbout) ||
                           (item.isRoadmap && isScrolledToRoadmap) ||
+                          (item.isBlog && isScrolledToBlog) ||
                           (item.isLinks && isScrolledToLinks)
                             ? "scale(1) translateY(0)"
                             : "scale(0.8) translateY(4px)",
                         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                         position:
                           (item.isAbout && isScrolledToAbout) ||
+                          (item.isBlog && isScrolledToBlog) ||
                           (item.isLinks && isScrolledToLinks)
                             ? "relative"
                             : "absolute",
                         pointerEvents:
                           (item.isAbout && isScrolledToAbout) ||
+                          (item.isBlog && isScrolledToBlog) ||
                           (item.isLinks && isScrolledToLinks)
                             ? "auto"
                             : "none",
                       }}
                     >
-                      {(item.isAbout || item.isRoadmap || item.isLinks) && (
+                      {(item.isAbout || item.isRoadmap || item.isBlog || item.isLinks) && (
                         <ArrowUpToLine size={18} />
                       )}
                     </span>
@@ -882,23 +919,27 @@ export default function LandingPage() {
                         opacity:
                           (item.isAbout && isScrolledToAbout) ||
                           (item.isRoadmap && isScrolledToRoadmap) ||
+                          (item.isBlog && isScrolledToBlog) ||
                           (item.isLinks && isScrolledToLinks)
                             ? 0
                             : 1,
                         transform:
                           (item.isAbout && isScrolledToAbout) ||
                           (item.isRoadmap && isScrolledToRoadmap) ||
+                          (item.isBlog && isScrolledToBlog) ||
                           (item.isLinks && isScrolledToLinks)
                             ? "scale(0.8) translateY(-4px)"
                             : "scale(1) translateY(0)",
                         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                         position:
                           (item.isAbout && isScrolledToAbout) ||
+                          (item.isBlog && isScrolledToBlog) ||
                           (item.isLinks && isScrolledToLinks)
                             ? "absolute"
                             : "relative",
                         pointerEvents:
                           (item.isAbout && isScrolledToAbout) ||
+                          (item.isBlog && isScrolledToBlog) ||
                           (item.isLinks && isScrolledToLinks)
                             ? "none"
                             : "auto",
@@ -1990,6 +2031,9 @@ export default function LandingPage() {
 
         {/* Roadmap Section - Only show when not in chat mode */}
         {!isChatMode && <RoadmapSection />}
+
+        {/* Blog Section - Only show when not in chat mode */}
+        {!isChatMode && <BlogSection />}
         {!isChatMode && <Footer />}
       </div>
 
