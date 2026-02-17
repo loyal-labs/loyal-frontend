@@ -10,6 +10,7 @@ export type RoadmapEvent = {
   periodType: RoadmapPeriodType;
   periodNumber: number;
   isChecked: boolean;
+  isActive?: boolean;
   events: RoadmapEventItem[];
 };
 
@@ -18,12 +19,12 @@ export const roadmapEvents: RoadmapEvent[] = [
     year: 2025,
     periodType: "Q" as const,
     periodNumber: 4,
-    isChecked: false,
+    isChecked: true,
     events: [
       { title: "Transactions over Telegram", isChecked: true },
-      { title: "Telegram chat summaries", isChecked: false },
+      { title: "Telegram chat summaries", isChecked: true },
       { title: "Rudimentary workflow representation", isChecked: true },
-      { title: "Branded community agents", isChecked: false },
+      { title: "Branded community agents", isChecked: true },
     ],
   },
   {
@@ -31,6 +32,7 @@ export const roadmapEvents: RoadmapEvent[] = [
     periodType: "Q" as const,
     periodNumber: 1,
     isChecked: false,
+    isActive: true,
     events: [
       { title: "Squads multisig interoperability", isChecked: false },
       { title: "LP management & staking automation", isChecked: false },

@@ -50,6 +50,13 @@ function RoadmapSectionComponent() {
       };
     }
 
+    if (item.isActive) {
+      return {
+        label: "In progress",
+        color: "rgba(249, 115, 22, 0.8)",
+      };
+    }
+
     const hasCompletedEvents = item.events.some((event) => event.isChecked);
 
     if (hasCompletedEvents) {
