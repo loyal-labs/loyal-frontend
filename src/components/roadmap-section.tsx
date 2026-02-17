@@ -29,7 +29,14 @@ const ibmPlexSans = IBM_Plex_Sans({
 });
 
 function RoadmapSectionComponent() {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const q1_2026Index = roadmapEvents.findIndex(
+    (item) =>
+      item.year === 2026 &&
+      item.periodType === "Q" &&
+      item.periodNumber === 1
+  );
+  const initialRoadmapIndex = q1_2026Index >= 0 ? q1_2026Index : 0;
+  const [currentIndex, setCurrentIndex] = useState(initialRoadmapIndex);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(true);
 
   const formatPeriod = (item: (typeof roadmapEvents)[0]) => {
